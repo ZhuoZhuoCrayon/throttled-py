@@ -1,0 +1,81 @@
+[tool.poetry]
+name = "throttled-py"
+version = "0.1.0"
+description = "🔧 Python rate limiting library that supports multiple algorithms and storage options. "
+authors = ["ZhuoZhuoCrayon <crayon.ccxx@gmail.com>"]
+readme = "README.md"
+packages = [
+    { include = "throttled" },
+]
+
+[tool.poetry.dependencies]
+python = ">=3.8,<4.0"
+
+[tool.poetry.group.dev.dependencies]
+poetry-setup = "^0.3.6"
+twine = "^6.0.1"
+ipython = [
+    { version = "^7.34.0", python = "~3.8 || ~3.9" },
+    { version = "^8", python = "^3.10" }
+]
+pre-commit = "^3.4.0"
+pyproject-flake8 = "5.0.4.post1"
+
+[[tool.poetry.source]]
+priority = "primary"
+name = "tencent-mirror"
+url = "https://mirrors.tencent.com/pypi/simple/"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.flake8]
+python_requires = ">= 3.8"
+ignore = "F405,W503,E203"
+max-line-length = 89
+max-complexity = 26
+format = "pylint"
+show_source = "false"
+statistics = "true"
+count = "true"
+exclude = [
+    "migrations",
+    "*.pyc",
+    ".git",
+    "__pycache__",
+    "static",
+    "node_modules",
+    "templates",
+    "bin",
+    "config",
+    "scripts",
+    "script",
+]
+#per-file-ignores = """
+#    xxx.py: E501
+#"""
+
+[tool.black]
+line-length = 89
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | migrations
+)/
+'''
+
+[tool.isort]
+# refer: https://pycqa.github.io/isort/docs/configuration/options.html
+profile = "black"
+line_length = 89
+skip_glob = ["*/migrations/*", "*/node_modules/*"]

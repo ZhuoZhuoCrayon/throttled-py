@@ -1,0 +1,19 @@
+name: Publish to Pypi
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build and publish to Pypi
+        uses: JRubics/poetry-publish@v1.17
+        with:
+          python_version: "3.11.3"
+          poetry_version: "==1.8.2"
+          ignore_dev_requirements: "yes"
+          repository_name: "throttled-py"
+          pypi_token: ${{ secrets.PYPI_TOKEN }}
