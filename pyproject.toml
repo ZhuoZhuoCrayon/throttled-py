@@ -10,6 +10,7 @@ packages = [
 
 [tool.poetry.dependencies]
 python = ">=3.8,<4.0"
+redis = "^5.2.1"
 
 [tool.poetry.group.dev.dependencies]
 poetry-setup = "^0.3.6"
