@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "throttled-py"
 version = "0.1.0"
-description = "🔧 Python rate limiting library that supports multiple algorithms and storage options. "
+description = "🔧 Python rate limiting library that supports multiple algorithms and storage options."
 authors = ["ZhuoZhuoCrayon <crayon.ccxx@gmail.com>"]
 readme = "README.md"
 packages = [
@@ -21,6 +21,8 @@ ipython = [
 ]
 pre-commit = "^3.4.0"
 pyproject-flake8 = "5.0.4.post1"
+pytest = "^8.3.4"
+fakeredis = {extras = ["lua"], version = "^2.26.2"}
 
 [[tool.poetry.source]]
 priority = "primary"
