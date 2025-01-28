@@ -1,7 +1,7 @@
 import pytest
 
+from throttled import MemoryStore
 from throttled.exceptions import DataError
-from throttled.store.memory import MemoryStore
 
 
 @pytest.fixture

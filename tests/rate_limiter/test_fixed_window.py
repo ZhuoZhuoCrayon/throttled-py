@@ -4,8 +4,9 @@ from typing import Callable, List
 
 import pytest
 
-from throttled.rate_limter.base import (
+from throttled import (
     BaseRateLimiter,
+    BaseStore,
     Quota,
     Rate,
     RateLimitResult,
@@ -13,7 +14,6 @@ from throttled.rate_limter.base import (
     per_min,
 )
 from throttled.rate_limter.fixed_window import FixedWindowRateLimiter
-from throttled.store.base import BaseStore
 from throttled.utils import now_sec
 
 
@@ -62,13 +62,7 @@ class TestFixedWindowRateLimiter:
         assert rate_limiter._store.get(store_key) == 9
 
     @pytest.mark.parametrize(
-        "quota",
-        [
-            Quota(per_min(1)),
-            Quota(per_min(10)),
-            Quota(per_min(100)),
-            Quota(per_min(1_000)),
-        ],
+        "quota", [per_min(1), per_min(10), per_min(100), per_min(1_000)]
     )
     @pytest.mark.parametrize("requests_num", [10, 100, 1_000, 10_000])
     def test_limit__current(
@@ -93,7 +87,7 @@ class TestFixedWindowRateLimiter:
 
     def test_peek(self, rate_limiter_constructor: Callable[[Quota], BaseRateLimiter]):
         key: str = "key"
-        rate_limiter: BaseRateLimiter = rate_limiter_constructor(Quota(per_min(1)))
+        rate_limiter: BaseRateLimiter = rate_limiter_constructor(per_min(1))
         assert rate_limiter.peek(key) == RateLimitState(
             limit=1, remaining=1, reset_after=60
         )

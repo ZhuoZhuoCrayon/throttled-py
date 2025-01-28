@@ -4,7 +4,7 @@ from redis import Redis
 
 from ..constants import StoreType
 from ..exceptions import DataError
-from ..typing import KeyT, StoreValueT
+from ..types import KeyT, StoreValueT
 from .base import BaseAtomicAction, BaseStore, BaseStoreBackend
 
 

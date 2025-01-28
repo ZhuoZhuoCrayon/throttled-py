@@ -7,7 +7,7 @@ from ..constants import StoreType
 from ..store.base import BaseAtomicAction
 from ..store.memory import MemoryStoreBackend
 from ..store.redis import RedisStoreBackend
-from ..typing import AtomicActionTypeT, KeyT, StoreValueT
+from ..types import AtomicActionTypeT, KeyT, StoreValueT
 from ..utils import now_sec
 from .base import BaseRateLimiter, RateLimitResult, RateLimitState
 

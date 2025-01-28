@@ -2,10 +2,8 @@ import fakeredis
 import pytest
 from redis import Redis
 
+from throttled import BaseStore, MemoryStore, RedisStore
 from throttled.constants import StoreType
-from throttled.store.base import BaseStore
-from throttled.store.memory import MemoryStore
-from throttled.store.redis import RedisStore
 
 
 @pytest.fixture

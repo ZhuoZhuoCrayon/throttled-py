@@ -12,3 +12,7 @@ class DataError(BaseThrottledError):
 
 class StoreUnavailableError(BaseThrottledError):
     pass
+
+
+class LimitedError(BaseThrottledError):
+    pass

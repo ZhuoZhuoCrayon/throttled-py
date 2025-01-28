@@ -7,3 +7,5 @@ KeyT = _StringLikeT
 StoreValueT = _NumberLikeT
 
 AtomicActionTypeT = str
+
+RateLimiterTypeT = str

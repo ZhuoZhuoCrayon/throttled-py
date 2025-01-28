@@ -6,7 +6,7 @@ from typing import Dict, List, Optional, Set, Type
 
 from ..exceptions import SetUpError
 from ..store.base import BaseAtomicAction, BaseStore
-from ..typing import AtomicActionTypeT
+from ..types import AtomicActionTypeT
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -40,24 +40,24 @@ class Quota:
         return self.rate.limit
 
 
-def per_sec(limit: int) -> Rate:
-    """Representing the maximum requests per second."""
-    return Rate(period=timedelta(seconds=1), limit=limit)
+def per_sec(limit: int, burst: int = 0) -> Quota:
+    """Create a quota representing the maximum requests and burst per second."""
+    return Quota(Rate(period=timedelta(seconds=1), limit=limit), burst=burst)
 
 
-def per_min(limit: int) -> Rate:
-    """Representing the maximum requests per minute."""
-    return Rate(period=timedelta(minutes=1), limit=limit)
+def per_min(limit: int, burst: int = 0) -> Quota:
+    """Create a quota representing the maximum requests and burst per minute."""
+    return Quota(Rate(period=timedelta(minutes=1), limit=limit), burst=burst)
 
 
-def per_hour(limit: int) -> Rate:
-    """Representing the maximum requests per hour."""
-    return Rate(period=timedelta(hours=1), limit=limit)
+def per_hour(limit: int, burst: int = 0) -> Quota:
+    """Create a quota representing the maximum requests and burst per hour."""
+    return Quota(Rate(period=timedelta(hours=1), limit=limit), burst=burst)
 
 
-def per_day(limit: int) -> Rate:
-    """Representing the maximum requests per day."""
-    return Rate(period=timedelta(days=1), limit=limit)
+def per_day(limit: int, burst: int = 0) -> Quota:
+    """Create a quota representing the maximum requests and burst per day."""
+    return Quota(Rate(period=timedelta(days=1), limit=limit), burst=burst)
 
 
 @dataclass

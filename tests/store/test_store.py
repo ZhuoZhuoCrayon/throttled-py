@@ -3,9 +3,9 @@ from typing import Any, Type
 
 import pytest
 
+from throttled import BaseStore
 from throttled.exceptions import BaseThrottledError, DataError
-from throttled.store.base import BaseStore
-from throttled.typing import KeyT, StoreValueT
+from throttled.types import KeyT, StoreValueT
 
 
 class TestStore:

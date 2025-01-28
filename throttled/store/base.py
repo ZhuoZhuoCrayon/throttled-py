@@ -2,7 +2,7 @@ import abc
 from typing import Any, Optional, Sequence, Type
 
 from ..exceptions import DataError, SetUpError
-from ..typing import KeyT, StoreValueT
+from ..types import KeyT, StoreValueT
 
 
 class BaseStoreBackend(abc.ABC):

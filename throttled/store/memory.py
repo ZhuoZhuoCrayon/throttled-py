@@ -4,7 +4,7 @@ from typing import Dict, Optional, Type
 
 from ..constants import StoreType
 from ..exceptions import DataError
-from ..typing import KeyT, StoreValueT
+from ..types import KeyT, StoreValueT
 from ..utils import now_sec
 from .base import BaseAtomicAction, BaseStore, BaseStoreBackend
 
