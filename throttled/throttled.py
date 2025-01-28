@@ -1,9 +1,14 @@
-from typing import Callable, Optional
+from typing import Callable, Optional, Type
 
 from .exceptions import LimitedError
-from .rate_limter.base import BaseRateLimiter, Quota, RateLimitResult, RateLimitState
-from .rate_limter.fixed_window import FixedWindowRateLimiter
-from .store.base import BaseStore
+from .rate_limter import (
+    BaseRateLimiter,
+    Quota,
+    RateLimiterRegistry,
+    RateLimitResult,
+    RateLimitState,
+)
+from .store import BaseStore
 from .types import KeyT, RateLimiterTypeT
 
 
@@ -15,15 +20,15 @@ class Throttled:
         # TODO Support extract key from params.
         # TODO Support get cost weight by key.
         self.key: str = key
-        self.using: RateLimiterTypeT = using
         self._quota: Quota = quota
         self._store: BaseStore = store
+        self._limiter_cls: Type[BaseRateLimiter] = RateLimiterRegistry.get(using)
 
         self._limiter: Optional[BaseRateLimiter] = None
 
     def _get_limiter(self) -> BaseRateLimiter:
         if self._limiter is None:
-            self._limiter = FixedWindowRateLimiter(self._quota, self._store)
+            self._limiter = self._limiter_cls(self._quota, self._store)
         return self._limiter
 
     def __call__(self, func: Callable) -> Callable:

@@ -5,8 +5,8 @@ from datetime import timedelta
 from typing import Dict, List, Optional, Set, Type
 
 from ..exceptions import SetUpError
-from ..store.base import BaseAtomicAction, BaseStore
-from ..types import AtomicActionTypeT
+from ..store import BaseAtomicAction, BaseStore
+from ..types import AtomicActionTypeT, RateLimiterTypeT
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -89,7 +89,36 @@ class RateLimitResult:
     state: RateLimitState
 
 
-class BaseRateLimiter(abc.ABC):
+class RateLimiterRegistry:
+    _RATE_LIMITERS: Dict[RateLimiterTypeT, Type["BaseRateLimiter"]] = {}
+
+    @classmethod
+    def register(cls, new_cls):
+        try:
+            cls._RATE_LIMITERS[new_cls.Meta.type] = new_cls
+        except AttributeError as e:
+            raise SetUpError("failed to register RateLimiter: {}".format(e))
+
+    @classmethod
+    def get(cls, _type: RateLimiterTypeT) -> Type["BaseRateLimiter"]:
+        try:
+            return cls._RATE_LIMITERS[_type]
+        except KeyError:
+            raise SetUpError("{} not found".format(_type))
+
+
+class RateLimiterMeta(abc.ABCMeta):
+    def __new__(cls, name, bases, attrs):
+        print(name, bases, attrs)
+        new_cls = super().__new__(cls, name, bases, attrs)
+        if not [b for b in bases if isinstance(b, RateLimiterMeta)]:
+            return new_cls
+
+        RateLimiterRegistry.register(new_cls)
+        return new_cls
+
+
+class BaseRateLimiter(metaclass=RateLimiterMeta):
     """Base class for RateLimiter."""
 
     def __init__(

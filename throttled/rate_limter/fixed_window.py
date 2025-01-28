@@ -3,13 +3,11 @@ from typing import List, Optional, Sequence, Tuple, Type
 
 from redis.commands.core import Script
 
-from ..constants import StoreType
-from ..store.base import BaseAtomicAction
-from ..store.memory import MemoryStoreBackend
-from ..store.redis import RedisStoreBackend
-from ..types import AtomicActionTypeT, KeyT, StoreValueT
+from ..constants import RateLimiterType, StoreType
+from ..store import BaseAtomicAction, MemoryStoreBackend, RedisStoreBackend
+from ..types import AtomicActionTypeT, KeyT, RateLimiterTypeT, StoreValueT
 from ..utils import now_sec
-from .base import BaseRateLimiter, RateLimitResult, RateLimitState
+from . import BaseRateLimiter, RateLimitResult, RateLimitState
 
 
 class FixedWindowAtomicActionType(Enum):
@@ -77,6 +75,9 @@ class MemoryLimitAtomicAction(BaseAtomicAction):
 
 class FixedWindowRateLimiter(BaseRateLimiter):
     """Concrete implementation of BaseRateLimiter using fixed window as algorithm."""
+
+    class Meta:
+        type: RateLimiterTypeT = RateLimiterType.FIXED_WINDOW.value
 
     @classmethod
     def _default_atomic_action_classes(cls) -> List[Type[BaseAtomicAction]]:

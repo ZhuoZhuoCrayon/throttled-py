@@ -9,18 +9,19 @@ from throttled import (
     BaseStore,
     Quota,
     Rate,
+    RateLimiterRegistry,
     RateLimitResult,
     RateLimitState,
     per_min,
 )
-from throttled.rate_limter.fixed_window import FixedWindowRateLimiter
+from throttled.constants import RateLimiterType
 from throttled.utils import now_sec
 
 
 @pytest.fixture
 def rate_limiter_constructor(store: BaseStore) -> Callable[[Quota], BaseRateLimiter]:
     def _create_rate_limiter(quota: Quota) -> BaseRateLimiter:
-        return FixedWindowRateLimiter(quota, store)
+        return RateLimiterRegistry.get(RateLimiterType.FIXED_WINDOW.value)(quota, store)
 
     yield _create_rate_limiter
 

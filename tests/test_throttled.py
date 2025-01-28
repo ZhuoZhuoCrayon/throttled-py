@@ -2,7 +2,7 @@ from typing import Callable
 
 import pytest
 
-from throttled import MemoryStore, Throttled, per_min
+from throttled import Throttled, rate_limter, store
 from throttled.constants import RateLimiterType
 from throttled.exceptions import LimitedError
 
@@ -12,8 +12,8 @@ def decorated_demo() -> Callable:
     @Throttled(
         key="/api/product",
         using=RateLimiterType.FIXED_WINDOW.value,
-        quota=per_min(1),
-        store=MemoryStore(),
+        quota=rate_limter.per_min(1),
+        store=store.MemoryStore(),
     )
     def demo(left: int, right: int) -> int:
         return left + right
