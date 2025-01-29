@@ -36,7 +36,7 @@ class RedisLimitAtomicAction(BaseAtomicAction):
     """
 
     def __init__(self, backend: RedisStoreBackend):
-        self._script: Script = backend.client.register_script(self.SCRIPTS)
+        self._script: Script = backend.get_client().register_script(self.SCRIPTS)
 
     def do(
         self, keys: Sequence[KeyT], args: Optional[Sequence[StoreValueT]]
@@ -68,7 +68,7 @@ class MemoryLimitAtomicAction(BaseAtomicAction):
                 self._backend.set(key, current, period)
             else:
                 current += cost
-                self._backend.store[key] = current
+                self._backend.get_client()[key] = current
 
             return (0, 1)[current > limit], current
 

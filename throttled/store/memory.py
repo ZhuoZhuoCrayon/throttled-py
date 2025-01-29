@@ -1,9 +1,11 @@
 import threading
 from collections import OrderedDict
-from typing import Dict, Optional, Type
+from typing import Any, Dict, Optional
+from typing import OrderedDict as OrderedDictT
+from typing import Type
 
 from ..constants import StoreType
-from ..exceptions import DataError
+from ..exceptions import DataError, SetUpError
 from ..types import KeyT, StoreValueT
 from ..utils import now_sec
 from .base import BaseAtomicAction, BaseStore, BaseStoreBackend
@@ -12,14 +14,25 @@ from .base import BaseAtomicAction, BaseStore, BaseStoreBackend
 class MemoryStoreBackend(BaseStoreBackend):
     """Backend for Memory Store."""
 
-    def __init__(self, max_size: int = 1024):
+    def __init__(
+        self, server: Optional[str] = None, options: Optional[Dict[str, Any]] = None
+    ):
+        super().__init__(server, options)
+
+        max_size: Any = self.options.get("MAX_SIZE", 1024)
+        if not (isinstance(max_size, int) and max_size > 0):
+            raise SetUpError("MAX_SIZE must be a positive integer")
+
         self.max_size: int = max_size
         self.expire_info: Dict[str, float] = {}
-        self.store: OrderedDict[KeyT, StoreValueT] = OrderedDict()
         self.lock: threading.RLock = threading.RLock()
+        self._client: OrderedDictT[KeyT, StoreValueT] = OrderedDict()
+
+    def get_client(self) -> OrderedDictT[KeyT, StoreValueT]:
+        return self._client
 
     def exists(self, key: KeyT) -> bool:
-        return key in self.store
+        return key in self.get_client()
 
     def has_expired(self, key: KeyT) -> bool:
         return self.ttl(key) <= 0
@@ -35,9 +48,9 @@ class MemoryStoreBackend(BaseStoreBackend):
         return ttl
 
     def check_and_evict(self, key: KeyT) -> None:
-        is_full: bool = len(self.store) >= self.max_size
+        is_full: bool = len(self.get_client()) >= self.max_size
         if is_full and not self.exists(key):
-            pop_key, __ = self.store.popitem(last=False)
+            pop_key, __ = self.get_client().popitem(last=False)
             self.expire_info.pop(pop_key, None)
 
     def expire(self, key: KeyT, timeout: int) -> None:
@@ -48,21 +61,21 @@ class MemoryStoreBackend(BaseStoreBackend):
             self.delete(key)
             return None
 
-        value: Optional[StoreValueT] = self.store.get(key)
+        value: Optional[StoreValueT] = self.get_client().get(key)
         if value is not None:
-            self.store.move_to_end(key)
+            self.get_client().move_to_end(key)
         return value
 
     def set(self, key: KeyT, value: StoreValueT, timeout: int) -> None:
         self.check_and_evict(key)
-        self.store[key] = value
-        self.store.move_to_end(key)
+        self.get_client()[key] = value
+        self.get_client().move_to_end(key)
         self.expire(key, timeout)
 
     def delete(self, key: KeyT) -> bool:
         try:
             self.expire_info.pop(key, None)
-            del self.store[key]
+            del self.get_client()[key]
         except KeyError:
             return False
         return True
@@ -81,8 +94,10 @@ class MemoryStore(BaseStore):
 
     TYPE: str = StoreType.MEMORY.value
 
-    def __init__(self, max_size: int = 1024):
-        self._backend: MemoryStoreBackend = MemoryStoreBackend(max_size)
+    def __init__(
+        self, server: Optional[str] = None, options: Optional[Dict[str, Any]] = None
+    ):
+        self._backend: MemoryStoreBackend = MemoryStoreBackend(server, options)
 
     def exists(self, key: KeyT) -> bool:
         return self._backend.exists(key)
