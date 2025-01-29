@@ -1,5 +1,5 @@
 import abc
-from typing import Any, Optional, Sequence, Type
+from typing import Any, Dict, Optional, Sequence, Type
 
 from ..exceptions import DataError, SetUpError
 from ..types import KeyT, StoreValueT
@@ -8,7 +8,15 @@ from ..types import KeyT, StoreValueT
 class BaseStoreBackend(abc.ABC):
     """Abstract class for all store backends."""
 
-    pass
+    def __init__(
+        self, server: Optional[str] = None, options: Optional[Dict[str, Any]] = None
+    ):
+        self.server: Optional[str] = server
+        self.options: Dict[str, Any] = options or {}
+
+    @abc.abstractmethod
+    def get_client(self) -> Any:
+        raise NotImplementedError
 
 
 class BaseAtomicAction(abc.ABC):
@@ -65,6 +73,12 @@ class BaseStore(abc.ABC):
             "Invalid timeout: {timeout}, Must be an integer greater "
             "than 0.".format(timeout=timeout)
         )
+
+    @abc.abstractmethod
+    def __init__(
+        self, server: Optional[str] = None, options: Optional[Dict[str, Any]] = None
+    ):
+        raise NotImplementedError
 
     @abc.abstractmethod
     def exists(self, key: KeyT) -> bool:
