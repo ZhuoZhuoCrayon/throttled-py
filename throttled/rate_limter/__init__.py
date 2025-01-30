@@ -14,6 +14,7 @@ from .base import (
 
 # Trigger to register RateLimiter
 from .fixed_window import FixedWindowRateLimiter
+from .sliding_window import SlidingWindowRateLimiter
 
 __all__ = [
     "per_sec",
@@ -28,4 +29,5 @@ __all__ = [
     "RateLimiterMeta",
     "BaseRateLimiter",
     "FixedWindowRateLimiter",
+    "SlidingWindowRateLimiter",
 ]
