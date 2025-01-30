@@ -34,6 +34,10 @@ def now_sec() -> int:
     return int(time.time())
 
 
+def now_ms() -> int:
+    return int(time.time() * 1000)
+
+
 def import_string(dotted_path: str):
     """
     Import a dotted module path and return the attribute/class designated by the
