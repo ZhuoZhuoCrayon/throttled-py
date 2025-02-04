@@ -1,7 +1,7 @@
 import pytest
 
 from throttled import MemoryStore
-from throttled.exceptions import DataError
+from throttled.constants import StoreTTLState
 
 
 @pytest.fixture
@@ -18,11 +18,6 @@ class TestMemoryStore:
 
         for idx in range(size + 1):
             key: str = str(idx)
-            exists: bool = (True, False)[idx == 0]
-            if exists:
-                assert store.ttl(key) == timeout
-            else:
-                with pytest.raises(DataError, match="Key not found"):
-                    store.ttl(key)
-
+            exists: bool = idx != 0
+            assert store.ttl(key) == (StoreTTLState.NOT_EXIST.value, timeout)[exists]
             assert store.exists(key) is exists

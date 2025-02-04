@@ -2,7 +2,7 @@ import abc
 from typing import Any, Dict, Optional, Sequence, Type
 
 from ..exceptions import DataError, SetUpError
-from ..types import KeyT, StoreValueT
+from ..types import KeyT, StoreDictValueT, StoreValueT
 
 
 class BaseStoreBackend(abc.ABC):
@@ -97,6 +97,10 @@ class BaseStore(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
+    def expire(self, key: KeyT, timeout: int) -> None:
+        raise NotImplementedError
+
+    @abc.abstractmethod
     def set(self, key: KeyT, value: StoreValueT, timeout: int) -> None:
         """Set a value for the specified key with specified timeout.
         :param key: The key to set.
@@ -111,6 +115,20 @@ class BaseStore(abc.ABC):
         :param key: The key for which to get a value.
         :return: The value for the specified key, or None if it does not exist.
         """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def hset(
+        self,
+        name: KeyT,
+        key: Optional[KeyT] = None,
+        value: Optional[StoreValueT] = None,
+        mapping: Optional[StoreDictValueT] = None,
+    ) -> None:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def hgetall(self, name: KeyT) -> StoreDictValueT:
         raise NotImplementedError
 
     @abc.abstractmethod

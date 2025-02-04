@@ -8,6 +8,11 @@ class StoreType(Enum):
     MEMORY: str = "memory"
 
 
+class StoreTTLState(Enum):
+    NOT_TTL: int = -1
+    NOT_EXIST: int = -2
+
+
 class RateLimiterType(Enum):
     FIXED_WINDOW: RateLimiterTypeT = "fixed_window"
     SLIDING_WINDOW: RateLimiterTypeT = "sliding_window"

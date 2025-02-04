@@ -4,9 +4,9 @@ from typing import Any, Dict, Optional
 from typing import OrderedDict as OrderedDictT
 from typing import Type
 
-from ..constants import StoreType
+from ..constants import StoreTTLState, StoreType
 from ..exceptions import DataError, SetUpError
-from ..types import KeyT, StoreValueT
+from ..types import KeyT, StoreBucketValueT, StoreDictValueT, StoreValueT
 from ..utils import now_sec
 from .base import BaseAtomicAction, BaseStore, BaseStoreBackend
 
@@ -26,31 +26,33 @@ class MemoryStoreBackend(BaseStoreBackend):
         self.max_size: int = max_size
         self.expire_info: Dict[str, float] = {}
         self.lock: threading.RLock = threading.RLock()
-        self._client: OrderedDictT[KeyT, StoreValueT] = OrderedDict()
+        self._client: OrderedDictT[KeyT, StoreBucketValueT] = OrderedDict()
 
-    def get_client(self) -> OrderedDictT[KeyT, StoreValueT]:
+    def get_client(self) -> OrderedDictT[KeyT, StoreBucketValueT]:
         return self._client
 
     def exists(self, key: KeyT) -> bool:
-        return key in self.get_client()
+        return key in self._client
 
     def has_expired(self, key: KeyT) -> bool:
-        return self.ttl(key) <= 0
+        return self.ttl(key) == StoreTTLState.NOT_EXIST.value
 
     def ttl(self, key: KeyT) -> int:
         exp: Optional[float] = self.expire_info.get(key)
         if exp is None:
-            return -2
+            if not self.exists(key):
+                return StoreTTLState.NOT_EXIST.value
+            return StoreTTLState.NOT_TTL.value
 
         ttl: int = int(exp) - now_sec()
         if ttl <= 0:
-            return -2
+            return StoreTTLState.NOT_EXIST.value
         return ttl
 
     def check_and_evict(self, key: KeyT) -> None:
-        is_full: bool = len(self.get_client()) >= self.max_size
+        is_full: bool = len(self._client) >= self.max_size
         if is_full and not self.exists(key):
-            pop_key, __ = self.get_client().popitem(last=False)
+            pop_key, __ = self._client.popitem(last=False)
             self.expire_info.pop(pop_key, None)
 
     def expire(self, key: KeyT, timeout: int) -> None:
@@ -61,21 +63,62 @@ class MemoryStoreBackend(BaseStoreBackend):
             self.delete(key)
             return None
 
-        value: Optional[StoreValueT] = self.get_client().get(key)
+        value: Optional[StoreValueT] = self._client.get(key)
         if value is not None:
-            self.get_client().move_to_end(key)
+            self._client.move_to_end(key)
         return value
 
     def set(self, key: KeyT, value: StoreValueT, timeout: int) -> None:
         self.check_and_evict(key)
-        self.get_client()[key] = value
-        self.get_client().move_to_end(key)
+        self._client[key] = value
+        self._client.move_to_end(key)
         self.expire(key, timeout)
+
+    def hset(
+        self,
+        name: KeyT,
+        key: Optional[KeyT] = None,
+        value: Optional[StoreValueT] = None,
+        mapping: Optional[StoreDictValueT] = None,
+    ) -> None:
+        if key is None and not mapping:
+            raise DataError("hset must with key value pairs")
+
+        kv: StoreDictValueT = {}
+        if key is not None:
+            kv[key] = value
+        if mapping:
+            kv.update(mapping)
+
+        origin: Optional[StoreBucketValueT] = self._client.get(name)
+        if origin is not None:
+            if not isinstance(origin, dict):
+                raise DataError("origin must be a dict")
+            origin.update(kv)
+        else:
+            self.check_and_evict(key)
+            self._client[name] = kv
+
+        self._client.move_to_end(name)
+
+    def hgetall(self, name: KeyT) -> StoreDictValueT:
+        if self.has_expired(name):
+            self.delete(name)
+            return {}
+
+        kv: Optional[StoreBucketValueT] = self._client.get(name)
+        if not (kv is None or isinstance(kv, dict)):
+            raise DataError("NumberLike value does not support hgetall")
+
+        if kv is not None:
+            self._client.move_to_end(name)
+
+        return kv or {}
 
     def delete(self, key: KeyT) -> bool:
         try:
             self.expire_info.pop(key, None)
-            del self.get_client()[key]
+            del self._client[key]
         except KeyError:
             return False
         return True
@@ -103,10 +146,11 @@ class MemoryStore(BaseStore):
         return self._backend.exists(key)
 
     def ttl(self, key: KeyT) -> int:
-        ttl: int = self._backend.ttl(key)
-        if ttl == -2:
-            raise DataError("Key not found: {key}".format(key=key))
-        return ttl
+        return self._backend.ttl(key)
+
+    def expire(self, key: KeyT, timeout: int) -> None:
+        self._validate_timeout(timeout)
+        self._backend.expire(key, timeout)
 
     def set(self, key: KeyT, value: StoreValueT, timeout: int) -> None:
         self._validate_timeout(timeout)
@@ -116,6 +160,20 @@ class MemoryStore(BaseStore):
     def get(self, key: KeyT) -> Optional[StoreValueT]:
         with self._backend.lock:
             return self._backend.get(key)
+
+    def hset(
+        self,
+        name: KeyT,
+        key: Optional[KeyT] = None,
+        value: Optional[StoreValueT] = None,
+        mapping: Optional[StoreDictValueT] = None,
+    ) -> None:
+        with self._backend.lock:
+            self._backend.hset(name, key, value, mapping)
+
+    def hgetall(self, name: KeyT) -> StoreDictValueT:
+        with self._backend.lock:
+            return self._backend.hgetall(name)
 
     def make_atomic(self, action_cls: Type[BaseAtomicAction]) -> BaseAtomicAction:
         return action_cls(backend=self._backend)
