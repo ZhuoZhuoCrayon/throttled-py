@@ -14,6 +14,7 @@ from throttled import (
     per_min,
 )
 from throttled.constants import RateLimiterType
+from throttled.utils import now_sec
 
 
 @pytest.fixture
@@ -69,15 +70,17 @@ class TestFixedWindowRateLimiter:
 
         key: str = "key"
         rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
+        now: int = now_sec()
         with ThreadPoolExecutor(max_workers=32) as executor:
             results: List[bool] = list(executor.map(_task, range(requests_num)))
+            cost: int = now_sec() - now
 
         accessed_num: int = requests_num - sum(results)
         limit: int = min(requests_num, quota.get_limit())
         rate: float = quota.get_limit() / quota.get_period_sec()
 
         assert accessed_num >= limit
-        assert accessed_num <= limit + 10 * rate
+        assert accessed_num <= limit + (cost + 2) * rate
 
     def test_peek(self, rate_limiter_constructor: Callable[[Quota], BaseRateLimiter]):
         key: str = "key"

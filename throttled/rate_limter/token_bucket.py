@@ -35,11 +35,13 @@ class RedisLimitAtomicAction(BaseAtomicAction):
     local cost = tonumber(ARGV[3])
     local now = tonumber(ARGV[4])
 
+    local expired = false
     local last_tokens = capacity
     local last_refreshed = now
     local bucket = redis.call("HMGET", KEYS[1], "tokens", "last_refreshed")
 
     if bucket[1] ~= false then
+        expired = true
         last_tokens = tonumber(bucket[1])
         last_refreshed = tonumber(bucket[2])
     end
@@ -52,10 +54,12 @@ class RedisLimitAtomicAction(BaseAtomicAction):
         tokens = tokens - cost
     end
 
-    local fill_time = capacity / rate
     redis.call("HSET", KEYS[1], "tokens", tokens, "last_refreshed", now)
-    redis.call("EXPIRE", KEYS[1], math.floor(2 * fill_time))
 
+    local fill_time = capacity / rate
+    if (expired or now - last_refreshed >= 1) then
+        redis.call("EXPIRE", KEYS[1], math.ceil(2 * fill_time))
+    end
     return {limited, tokens}
     """
 
