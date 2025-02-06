@@ -15,6 +15,7 @@ from .base import (
 # Trigger to register RateLimiter
 from .fixed_window import FixedWindowRateLimiter
 from .sliding_window import SlidingWindowRateLimiter
+from .token_bucket import TokenBucketRateLimiter
 
 __all__ = [
     "per_sec",
@@ -30,4 +31,5 @@ __all__ = [
     "BaseRateLimiter",
     "FixedWindowRateLimiter",
     "SlidingWindowRateLimiter",
+    "TokenBucketRateLimiter",
 ]

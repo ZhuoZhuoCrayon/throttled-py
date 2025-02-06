@@ -1,43 +1,48 @@
 <h1 align="center">throttled-py</h1>
 <p align="center">
-    <em>🔧支持多种算法及存储的限流 Python 库，同时提供对 Django、Django REST Framework（DRF）、Flask 等框架友好的限流中间件，以便快速集成。</em>
+    <em>🔧 支持多种算法及存储的限流 Python 库，同时提供对 Django、Django REST Framework（DRF）、Flask 等框架友好的限流中间件，以便快速集成。</em>
 </p>
+
 
 [English Documents Available](./README.md) | 简体中文
 
 
-## 🚀 功能
+## :rocket: 功能
 
 ### 1）存储
 
-- [x] Redis
-- [x] 内存
+| Redis              | 内存（支持过期时间的 LRU Cache） |
+|--------------------|-----------------------|
+| :white_check_mark: | :white_check_mark:    |
 
 ### 2）限流算法
 
-- [x] [固定窗口](https://github.com/ZhuoZhuoCrayon/throttled-py/tree/main/docs/basic#21-%E5%9B%BA%E5%AE%9A%E7%AA%97%E5%8F%A3%E8%AE%A1%E6%95%B0%E5%99%A8)
-- [x] [滑动窗口]()
-- [ ] 令牌桶
-- [ ] 漏桶
-- [ ] 通用信元速率算法（Generic Cell Rate Algorithm, GCRA）
+| [固定窗口](https://github.com/ZhuoZhuoCrayon/throttled-py/tree/main/docs/basic#21-%E5%9B%BA%E5%AE%9A%E7%AA%97%E5%8F%A3%E8%AE%A1%E6%95%B0%E5%99%A8) | [滑动窗口](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#22-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3) | [令牌桶](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#23-%E4%BB%A4%E7%89%8C%E6%A1%B6) | [漏桶]()                  | [通用信元速率算法（Generic Cell Rate Algorithm, GCRA）]() |
+|------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------|-------------------------|-------------------------------------------------|
+| :white_check_mark:                                                                                                                             | :white_check_mark:                                                                                                            | :white_check_mark:                                                                                                  | :ballot_box_with_check: | :ballot_box_with_check:                         |
 
 ### 3）周边生态
 
-- [ ] Django
-- [ ] Django REST Framework（DRF）
-- [ ] Flask
+| Django                  | Django REST Framework（DRF） | Flask                   | gRPC                    |
+|-------------------------|----------------------------|-------------------------|-------------------------|
+| :ballot_box_with_check: | :ballot_box_with_check:    | :ballot_box_with_check: | :ballot_box_with_check: |
 
 
-## 🔰 安装
+
+
+## :beginner: 安装
 
 ```shell
 $ pip install throttled-py
 ```
 
 
-## 📝 使用
 
-## 📈 进阶
+## :memo: 使用
+
+
+
+## :chart_with_upwards_trend: 进阶
 
 ### 1）Store
 

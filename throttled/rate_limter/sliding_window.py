@@ -116,13 +116,13 @@ class SlidingWindowRateLimiter(BaseRateLimiter):
 
     def _limit(self, key: str, cost: int = 1) -> RateLimitResult:
         current_key, previous_key, period, limit = self._prepare(key)
-        limited, current = self._atomic_actions[
+        limited, used = self._atomic_actions[
             SlidingWindowAtomicActionType.LIMIT.value
         ].do([current_key, previous_key], [period, limit, cost, now_ms()])
         return RateLimitResult(
             limited=bool(limited),
             state=RateLimitState(
-                limit=limit, remaining=max(0, limit - current), reset_after=period
+                limit=limit, remaining=max(0, limit - used), reset_after=period
             ),
         )
 

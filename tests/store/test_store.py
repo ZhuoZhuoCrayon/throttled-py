@@ -1,9 +1,10 @@
 from datetime import timedelta
-from typing import Any, Type
+from typing import Any, Dict, Optional, Type
 
 import pytest
 
 from throttled import BaseStore
+from throttled.constants import StoreTTLState
 from throttled.exceptions import BaseThrottledError, DataError
 from throttled.types import KeyT, StoreValueT
 
@@ -37,16 +38,12 @@ class TestStore:
         store.set(key, 1, timeout)
         assert timeout == store.ttl(key)
 
-    @pytest.mark.parametrize("key,exc,match", [["key", DataError, "Key not found"]])
-    def test_ttl__raise(
-        self,
-        store: BaseStore,
-        key: KeyT,
-        exc: Type[BaseThrottledError],
-        match: str,
-    ):
-        with pytest.raises(exc, match=match):
-            store.ttl(key)
+    def test_ttl__not_exist(self, store: BaseStore):
+        assert store.ttl("key") == StoreTTLState.NOT_EXIST.value
+
+    def test_ttl__not_ttl(self, store: BaseStore):
+        store.hset("name", "key", 1)
+        assert store.ttl("name") == StoreTTLState.NOT_TTL.value
 
     @pytest.mark.parametrize("key,timeout", [("one", 1)])
     def test_set(self, store: BaseStore, key: KeyT, timeout: int):
@@ -107,3 +104,62 @@ class TestStore:
         if set_before:
             store.set(key, value, 1)
         assert store.get(key) == (None, value)[set_before]
+
+    @pytest.mark.parametrize(
+        "name,expect,key,value,mapping",
+        [
+            ["one", {"k1": 1}, "k1", 1, None],
+            ["one", {"中文": 1}, "中文", 1, None],
+            ["one", {"🐶": 1}, "🐶", 1, None],
+            ["one", {"🐶": 1}, "🐶", 1, {}],
+            ["one", {"🐶": 1, "k1": 1, "k2": 2}, "🐶", 1, {"k1": 1, "k2": 2}],
+        ],
+    )
+    def test_hset(
+        self,
+        store: BaseStore,
+        name: KeyT,
+        expect: Dict[KeyT, StoreValueT],
+        key: Optional[KeyT],
+        value: Optional[StoreValueT],
+        mapping: Optional[Dict[KeyT, StoreValueT]],
+    ):
+        assert store.exists(name) is False
+        assert store.ttl(name) == StoreTTLState.NOT_EXIST.value
+        store.hset(name, key, value, mapping)
+        assert store.exists(name) is True
+        assert store.ttl(name) == StoreTTLState.NOT_TTL.value
+        store.expire(name, 1)
+        assert store.ttl(name) == 1
+        assert store.hgetall(name) == expect
+
+    def test_hset__raise(self, store: BaseStore):
+        with pytest.raises(DataError, match="hset must with key value pairs"):
+            store.hset("key")
+
+        with pytest.raises(DataError, match="hset must with key value pairs"):
+            store.hset("key", mapping={})
+
+    def test_hset__overwrite(self, store: BaseStore):
+        key: str = "key"
+        store.hset(key, "k1", 1)
+        assert store.hgetall(key) == {"k1": 1}
+
+        store.hset(key, "k1", 2)
+        assert store.hgetall(key) == {"k1": 2}
+
+        store.hset(key, mapping={"k1": 3})
+        assert store.hgetall(key) == {"k1": 3}
+
+        store.hset(key, mapping={"k1": 1, "k2": 2})
+        assert store.hgetall(key) == {"k1": 1, "k2": 2}
+
+        store.hset(key, "k3", 3)
+        assert store.hgetall(key) == {"k1": 1, "k2": 2, "k3": 3}
+
+    def test_hgetall(self, store: BaseStore):
+        assert store.hgetall("name") == {}
+        store.hset("name", "k1", 1)
+        assert store.hgetall("name") == {"k1": 1}
+        store.hset("name", "k2", 2)
+        assert store.hgetall("name") == {"k1": 1, "k2": 2}
