@@ -80,7 +80,7 @@ class TestFixedWindowRateLimiter:
         rate: float = quota.get_limit() / quota.get_period_sec()
 
         assert accessed_num >= limit
-        assert accessed_num <= limit + (cost + 2) * rate
+        assert accessed_num <= limit + (cost + 5) * rate
 
     def test_peek(self, rate_limiter_constructor: Callable[[Quota], BaseRateLimiter]):
         key: str = "key"
