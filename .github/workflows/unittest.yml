@@ -1,0 +1,39 @@
+name: Unittest
+
+on:
+  push:
+    branches: [main]
+  pull_request: {}
+
+jobs:
+  ci:
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+        poetry-version: ["latest", "main", "1.8.5"]
+        exclude:
+          - python-version: "3.8"
+            poetry-version: "main"
+    env:
+      MAINLINE_PYTHON_VERSION: "3.12"
+      MAINLINE_POETRY_VERSION: "1.8.5"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Poetry
+        uses: abatilo/actions-poetry@v3
+        with:
+          poetry-version: ${{ matrix.poetry-version }}
+      - name: Install the project dependencies
+        run: poetry install
+      - name: Run tests
+        run: poetry run pytest --cov=throttled --cov-branch --cov-report=xml
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+        if: ${{ env.MAINLINE_PYTHON_VERSION == matrix.python-version && env.MAINLINE_POETRY_VERSION == matrix.poetry-version }}
