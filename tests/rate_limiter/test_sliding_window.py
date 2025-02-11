@@ -28,7 +28,7 @@ def rate_limiter_constructor(store: BaseStore) -> Callable[[Quota], BaseRateLimi
     yield _create_rate_limiter
 
 
-class TestFixedWindowRateLimiter:
+class TestSlidingWindowRateLimiter:
     def test_limit(self, rate_limiter_constructor: Callable[[Quota], BaseRateLimiter]):
         limit: int = 5
         period: int = 60
@@ -79,13 +79,16 @@ class TestFixedWindowRateLimiter:
             return _result.limited
 
         key: str = "key"
+        now: int = now_sec()
         rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
         with ThreadPoolExecutor(max_workers=32) as executor:
             results: List[bool] = list(executor.map(_task, range(requests_num)))
+            cost: int = now_sec() - now
 
         accessed_num: int = requests_num - sum(results)
         limit: int = min(requests_num, quota.get_limit())
-        assert accessed_num == limit
+        rate: float = quota.get_limit() / quota.get_period_sec()
+        assert abs(accessed_num - limit) <= (cost + 2) * rate
 
     def test_peek(self, rate_limiter_constructor: Callable[[Quota], BaseRateLimiter]):
         key: str = "key"

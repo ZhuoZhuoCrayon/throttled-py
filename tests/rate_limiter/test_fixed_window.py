@@ -84,7 +84,7 @@ class TestFixedWindowRateLimiter:
         accessed_num: int = requests_num - sum(results)
         limit: int = min(requests_num, quota.get_limit())
         # Period boundaries may burst with 2 times the number of requests.
-        assert accessed_num >= limit and accessed_num <= 2 * limit
+        assert accessed_num == limit or accessed_num == 2 * limit
 
     def test_peek(self, rate_limiter_constructor: Callable[[Quota], BaseRateLimiter]):
         key: str = "key"

@@ -25,7 +25,7 @@ def rate_limiter_constructor(store: BaseStore) -> Callable[[Quota], BaseRateLimi
     yield _create_rate_limiter
 
 
-class TestFixedWindowRateLimiter:
+class TestTokenBucketRateLimiter:
     def test_limit(self, rate_limiter_constructor: Callable[[Quota], BaseRateLimiter]):
         key: str = "key"
         quota: Quota = per_min(limit=60, burst=10)
@@ -69,8 +69,8 @@ class TestFixedWindowRateLimiter:
             return _result.limited
 
         key: str = "key"
-        rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
         now: int = now_sec()
+        rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
         with ThreadPoolExecutor(max_workers=32) as executor:
             results: List[bool] = list(executor.map(_task, range(requests_num)))
             cost: int = now_sec() - now
