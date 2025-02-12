@@ -3,6 +3,14 @@
     <em>🔧 支持多种算法及存储的限流 Python 库，同时提供对 Django、Django REST Framework（DRF）、Flask 等框架友好的限流中间件，以便快速集成。</em>
 </p>
 
+<p align="center">
+    <a href="https://github.com/ZhuoZhuoCrayon/throttled-py">
+        <img src="https://badgen.net/badge/python/%3E=3.8/green?icon=github" alt="Python">
+    </a>
+     <a href="https://github.com/ZhuoZhuoCrayon/throttled-py">
+        <img src="https://codecov.io/gh/ZhuoZhuoCrayon/throttled-py/graph/badge.svg" alt="Coverage Status">
+    </a>
+</p>
 
 [English Documents Available](./README.md) | 简体中文
 
