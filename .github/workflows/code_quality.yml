@@ -10,9 +10,31 @@ jobs:
     runs-on: ubuntu-latest
     env:
       python-version: 3.12
+      poetry-version: 1.8.5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.python-version }}
-      - uses: pre-commit/action@v3.0.1
+      - name: Install Poetry
+        uses: abatilo/actions-poetry@v4
+        with:
+          poetry-version: ${{ env.poetry-version }}
+      - name: Setup Poetry
+        run: |
+          poetry config virtualenvs.create true --local
+          poetry config virtualenvs.in-project true --local
+      - name: Define a cache for the virtual environment
+        uses: actions/cache@v3
+        with:
+          path: ./.venv
+          key: venv-${{ env.python-version }}-${{ env.poetry-version }}-${{ hashFiles('poetry.lock')}}
+      - name: Define a cache for the pre-commit virtual environment
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pre-commit
+          key: venv-precommit-${{ env.python-version }}-${{ env.poetry-version }}-${{ hashFiles('poetry.lock')}}
+      - name: Install the project dependencies
+        run: poetry install
+      - name: Pre-commit run
+        run: pre-commit run --show-diff-on-failure --color=always --all-files
