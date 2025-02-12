@@ -48,11 +48,13 @@ jobs:
       - name: Install the project dependencies
         run: poetry install
       - name: Run tests
-        run: poetry run pytest --cov=throttled --cov-branch --cov-report=xml
+        run: poetry run pytest --cov=throttled --cov-branch --cov-report=xml | tee pytest-coverage.txt
       - name: Pytest coverage comment
         uses: MishaKav/pytest-coverage-comment@main
         with:
           pytest-xml-coverage-path: ./coverage.xml
+          pytest-coverage-path: ./pytest-coverage.txt
+
         if: ${{ env.MAINLINE_PYTHON_VERSION == matrix.python-version && env.MAINLINE_POETRY_VERSION == matrix.poetry-version }}
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
