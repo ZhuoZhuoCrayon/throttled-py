@@ -9,7 +9,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      python-version: 3.12
+      python-version: 3.8
       poetry-version: 1.8.5
     steps:
       - uses: actions/checkout@v4
