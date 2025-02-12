@@ -37,4 +37,5 @@ jobs:
       - name: Install the project dependencies
         run: poetry install
       - name: Pre-commit run
-        run: pre-commit run --show-diff-on-failure --color=always --all-files
+        run: poetry run pre-commit run --show-diff-on-failure --color=always --all-files
+        shell: bash
