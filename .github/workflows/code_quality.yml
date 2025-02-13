@@ -5,6 +5,14 @@ on:
     branches: [main]
   pull_request: {}
 
+# https://docs.github.com/en/actions/using-jobs/assigning-permissions-to-jobs
+# `contents` is for permission to the contents of the repository.
+# `pull-requests` is for permission to pull request
+permissions:
+  contents: write
+  checks: write
+  pull-requests: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -39,3 +47,10 @@ jobs:
       - name: Pre-commit run
         run: poetry run pre-commit run --show-diff-on-failure --color=always --all-files
         shell: bash
+      - name: Run tests
+        run: poetry run pytest --junitxml=pytest.xml --cov-report=term-missing:skip-covered --cov=throttled tests/ | tee pytest-coverage.txt
+      - name: Pytest coverage comment
+        uses: MishaKav/pytest-coverage-comment@main
+        with:
+          pytest-coverage-path: ./pytest-coverage.txt
+          junitxml-path: ./pytest.xml
