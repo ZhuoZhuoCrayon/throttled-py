@@ -20,7 +20,6 @@ ipython = [
     { version = "^8", python = "^3.10" }
 ]
 pre-commit = "^3.4.0"
-pyproject-flake8 = "5.0.4.post1"
 pytest = "^8.3.4"
 pytest-cov = [
     {version = "^2", python = "~3.8"},
@@ -42,7 +41,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.flake8]
 python_requires = ">= 3.8"
-ignore = "F405,W503,E203"
+ignore = "F405,W503,E203,TYP001"
 max-line-length = 89
 max-complexity = 26
 format = "pylint"
