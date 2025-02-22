@@ -26,7 +26,7 @@
 
 #### 2.1.1 工作原理
 
-1）将时间划分为固定大小的窗口（period），设定窗口所允许通过的最大请求数（limit）。
+1）将时间轴划分为固定大小的窗口（period），设定每个窗口所允许通过的最大请求数（limit）。
 
 2）每个窗口都有独立的计数器，每当有请求到达，计数器 + 1。
 
@@ -38,11 +38,17 @@
 * 1 min 内最多允许通过 3 个请求。
 * `period-2` 已接收 3 个请求，后续请求被拒绝。
 
-<img src="./images/2-1-1.png" style="zoom:50%;float: left" />
+<div align="left">
+  <img src="./images/2-1-1.png" 
+       style="max-width: 50%; height: auto; border: 1px solid #eee;"
+       alt="">
+</div>
 
 #### 2.1.2 优点
 
-1）算法简单，仅需维护当前窗口的计数器，对内存友好，处理高效。
+1）算法简单：只需要维护当前窗口的计数器，不需要复杂的数据结构和算法，易于理解和实现。
+2）内存友好：由于只需要记录当前窗口的计数器值，对内存的占用非常小。即使在高并发的场景下，也不会给系统带来太大的内存压力。
+3）处理高效：算法的计算复杂度较低，处理请求的速度快。
 
 #### 2.1.3 缺点
 
@@ -55,8 +61,11 @@
 * 在 `period-2` 前半段，通过 3 个请求，消耗完本窗口的配额。
 * `period-1` 后半段 / `period-2` 前半段组成的 1 min 窗口，一共通过 6 个请求，是配额的 2 倍。
 
-<img src="./images/2-1-2.png" style="zoom:50%;float: left" />
-
+<div align="left">
+  <img src="./images/2-1-2.png" 
+       style="max-width: 50%; height: auto; border: 1px solid #eee;"
+       alt="">
+</div>
 
 ### 2.2 滑动窗口
 
@@ -75,7 +84,11 @@
 * 当前时刻，滑动窗口已记录请求时间为 `00:00:34`、`00:00:41`、`00:01:20` 三个请求；`00:20` 已离开窗口，需要删除。
 * `00:01:25` 进入一个请求，超过阈值，拒绝请求。
 
-<img src="./images/2-2-1.png" style="zoom:50%;float: left" />
+<div align="left">
+  <img src="./images/2-2-1.png" 
+       style="max-width: 50%; height: auto; border: 1px solid #eee;"
+       alt="">
+</div>
 
 #### 2.2.2 优点
 
@@ -100,7 +113,13 @@
 * 当前请求数 = 滑动窗口占上一个固定窗口的比例（50%）x 上一个固定窗口请求数（4）+ 当前固定窗口请求数（1）= 3。
 * 又来了一个请求，被拒绝。
 
-<img src="./images/2-2-4.png" style="zoom:50%;float: left" />
+<div align="left">
+  <img src="./images/2-2-4.png" 
+       style="max-width: 50%; height: auto; border: 1px solid #eee;"
+       alt="">
+</div>
+
+
 
 优点：折衷版本优化了内存开销，无需保存请求时间。
 
@@ -126,9 +145,11 @@
 * b：到达 3 个请求，消耗 3 个令牌，桶里剩余 0 个。
 * c：到达 1 个请求，未到令牌补充时间，此时没有足够的令牌，请求拒绝。
 
-<img src="./images/2-3-1.png" style="zoom:50%;float: left" />
-
-
+<div align="left">
+  <img src="./images/2-3-1.png" 
+       style="max-width: 75%; height: auto; border: 1px solid #eee;"
+       alt="">
+</div>
 
 #### 2.3.2 优点
 
@@ -148,7 +169,59 @@
 1）「最大令牌容量」「令牌产生速率」参数具有一定的理解和调试成本。
 
 ### 2.4 漏桶
-> 等待更新...
+#### 2.4.1 工作原理
+
+漏桶是一个缓冲队列模型，将请求到达视为「注水」，请求处理视为「漏水」。当某一段时间「注水」过快时，桶可以作为缓冲区，容纳一定的未处理请求，同时不断「漏水」以释放桶的可用空间。
+
+如果一段时间内「注水量」大于「漏水量」，桶可能被灌满，溢出的水便是拒绝的请求。
+
+漏桶有两种实现方式：
+
+* [As a queue](https://en.wikipedia.org/wiki/Leaky_bucket#As_a_queue)：通过 FIFO（先进先出队列），以**固定速率**处理桶里的请求。
+
+* [As a meter](https://en.wikipedia.org/wiki/Leaky_bucket#As_a_meter)：「漏水」非匀速，在处理请求的同时计算漏水量，本次请求若导致水溢出则拒绝。
+
+
+
+As a queue 通常需要借助分布式消息队列来实现固定速率漏水，这意味着需要有多个 Worker 来扮演生产者 / 消费者。
+
+[throttled-py](https://github.com/ZhuoZhuoCrayon/throttled-py) 更希望提供轻量、无多余服务进程的限流功能，故基于「As a meter」实现漏桶算法，下文将介绍实现原理：
+
+1）维护一个初始状态为空的桶，桶具有「最大令牌容量」，以及「令牌丢弃速率」。
+
+2）令牌会以预设的速率定期被丢弃。
+
+3）每个请求会往桶里放一个令牌，当请求到达时：
+
+* 根据当前时间及上一次请求时间，计算需要被丢弃的令牌数，更新剩余令牌数。
+* 当前请求放入桶中，不会导致桶溢出，请求放行。
+
+* 桶溢出，拒绝请求。
+
+4）下图给出一个具体示例：
+
+* 当前状态：桶最大令牌容量为 4，每秒丢弃 1 个令牌，目前桶内有 2 个令牌，已丢弃 1 个令牌，假设「间隔 1 秒」先后发生 a、b、c。
+* a（时间：00:00）：到达 1 个请求，请求加入后没有溢出（1 + 2 = 3 <= 4），加入后桶里剩余 3 个。
+* b（时间：00:01）：
+  * 距离 a 已过去 1 秒，需要丢弃 1 个令牌，剩 2 个（3 - 1 x 1 = 2）。
+  * 到达 2 个请求，请求加入后没有溢出（2 + 2 <= 4），加入后桶里剩余 4 个。
+* c（时间：00:02）：
+  * 距离 b 已过去 1 秒，需要丢弃 1 个令牌，剩 3 个（4 - 1 x 1 = 3）。
+  * 到达 2 个请求，请求加入后桶会溢出（**3 + 2 > 4**），拒绝请求。
+
+<div align="left">
+  <img src="./images/2-4-1.png" 
+       style="max-width: 70%; height: auto; border: 1px solid #eee;"
+       alt="">
+</div>
+
+#### 2.4.2 优点
+
+1）「As a meter」是令牌桶算法的镜像实现，两者在限流效果上几乎等价，拥有令牌桶的所有优点。
+
+#### 2.4.2 缺点
+
+1）「As a meter」相比于「As a queue」，缺少固定速率处理请求的能力，不适用于需要严格控制请求速率的场景。
 
 ### 2.5 GCRA
 > 等待更新...
@@ -160,3 +233,4 @@
 * [凤凰架构 / 流量控制](https://icyfenix.cn/distribution/traffic-management/traffic-control.html)
 * [系统设计面试：内幕指南 / 第04章：设计一个限流器](https://learning-guide.gitbook.io/system-design-interview/xi-tong-she-ji-mian-shi-nei-mu-zhi-nan-di-yi-juan/chapter-04-design-a-rate-limiter)
 * [Rate Limiting, Cells, and GCRA]()
+* [Wikipedia - Leaky bucket](https://en.wikipedia.org/wiki/Leaky_bucket)

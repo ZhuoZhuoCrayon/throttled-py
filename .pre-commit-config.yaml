@@ -14,6 +14,7 @@ repos:
         types: [python]
         entry: pflake8 --config=pyproject.toml
         additional_dependencies:
+          # https://github.com/csachs/pyproject-flake8/issues/30
           - pyproject-flake8==7.0.0
           - flake8-typing-imports
 
