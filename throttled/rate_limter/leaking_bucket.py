@@ -17,16 +17,16 @@ from ..utils import now_sec
 from . import BaseRateLimiter, RateLimitResult, RateLimitState
 
 
-class TokenBucketAtomicActionType(Enum):
-    """Enumeration for types of AtomicActions used in TokenBucketRateLimiter."""
+class LeakingBucketAtomicActionType(Enum):
+    """Enumeration for types of AtomicActions used in LeakingBucketRateLimiter."""
 
     LIMIT: AtomicActionTypeT = "limit"
 
 
 class RedisLimitAtomicAction(BaseAtomicAction):
-    """Redis-based implementation of AtomicAction for TokenBucketRateLimiter."""
+    """Redis-based implementation of AtomicAction for LeakingBucketRateLimiter."""
 
-    TYPE: AtomicActionTypeT = TokenBucketAtomicActionType.LIMIT.value
+    TYPE: AtomicActionTypeT = LeakingBucketAtomicActionType.LIMIT.value
     STORE_TYPE: str = StoreType.REDIS.value
 
     SCRIPTS: str = """
@@ -35,32 +35,27 @@ class RedisLimitAtomicAction(BaseAtomicAction):
     local cost = tonumber(ARGV[3])
     local now = tonumber(ARGV[4])
 
-    local expired = false
-    local last_tokens = capacity
+    local last_tokens = 0
     local last_refreshed = now
     local bucket = redis.call("HMGET", KEYS[1], "tokens", "last_refreshed")
 
     if bucket[1] ~= false then
-        expired = true
         last_tokens = tonumber(bucket[1])
         last_refreshed = tonumber(bucket[2])
     end
 
     local time_elapsed = math.max(0, now - last_refreshed)
-    local tokens = math.min(capacity, last_tokens + (math.floor(time_elapsed * rate)))
+    local tokens = math.max(0, last_tokens - (math.floor(time_elapsed * rate)))
 
-    local limited = cost > tokens
-    if not limited then
-        tokens = tokens - cost
+    local limited = tokens + cost > capacity
+    if limited then
+        return {limited, capacity - tokens}
     end
-
-    redis.call("HSET", KEYS[1], "tokens", tokens, "last_refreshed", now)
 
     local fill_time = capacity / rate
-    if (expired or now - last_refreshed >= 1) then
-        redis.call("EXPIRE", KEYS[1], math.ceil(2 * fill_time))
-    end
-    return {limited, tokens}
+    redis.call("EXPIRE", KEYS[1], math.floor(2 * fill_time))
+    redis.call("HSET", KEYS[1], "tokens", tokens + cost, "last_refreshed", now)
+    return {limited, capacity - (tokens + cost)}
     """
 
     def __init__(self, backend: RedisStoreBackend):
@@ -73,9 +68,9 @@ class RedisLimitAtomicAction(BaseAtomicAction):
 
 
 class MemoryLimitAtomicAction(BaseAtomicAction):
-    """Memory-based implementation of AtomicAction for TokenBucketRateLimiter."""
+    """Memory-based implementation of AtomicAction for LeakingBucketRateLimiter."""
 
-    TYPE: AtomicActionTypeT = TokenBucketAtomicActionType.LIMIT.value
+    TYPE: AtomicActionTypeT = LeakingBucketAtomicActionType.LIMIT.value
     STORE_TYPE: str = StoreType.MEMORY.value
 
     def __init__(self, backend: MemoryStoreBackend):
@@ -92,29 +87,30 @@ class MemoryLimitAtomicAction(BaseAtomicAction):
             now: int = args[3]
 
             bucket: StoreDictValueT = self._backend.hgetall(key)
-            last_tokens: int = bucket.get("tokens", capacity)
+            last_tokens: int = bucket.get("tokens", 0)
             last_refreshed: int = bucket.get("last_refreshed", now)
 
-            time_elapsed: int = max(0, now - last_refreshed)
-            tokens: int = min(capacity, last_tokens + (math.floor(time_elapsed * rate)))
+            time_elapsed: float = now - last_refreshed
+            tokens: int = max(0, last_tokens - math.floor(time_elapsed * rate))
 
-            limited: int = (1, 0)[tokens >= cost]
-            if not limited:
-                tokens -= cost
-
-            self._backend.hset(key, mapping={"tokens": tokens, "last_refreshed": now})
+            limited: int = (0, 1)[tokens + cost > capacity]
+            if limited:
+                return limited, capacity - tokens
 
             fill_time: float = capacity / rate
             self._backend.expire(key, math.ceil(2 * fill_time))
+            self._backend.hset(
+                key, mapping={"tokens": tokens + cost, "last_refreshed": now}
+            )
 
-            return limited, tokens
+            return limited, capacity - (tokens + cost)
 
 
-class TokenBucketRateLimiter(BaseRateLimiter):
-    """Concrete implementation of BaseRateLimiter using token bucket as algorithm."""
+class LeakingBucketRateLimiter(BaseRateLimiter):
+    """Concrete implementation of BaseRateLimiter using leaking bucket as algorithm."""
 
     class Meta:
-        type: RateLimiterTypeT = RateLimiterType.TOKEN_BUCKET.value
+        type: RateLimiterTypeT = RateLimiterType.LEAKING_BUCKET.value
 
     @classmethod
     def _default_atomic_action_classes(cls) -> List[Type[BaseAtomicAction]]:
@@ -122,7 +118,7 @@ class TokenBucketRateLimiter(BaseRateLimiter):
 
     @classmethod
     def _supported_atomic_action_types(cls) -> List[AtomicActionTypeT]:
-        return [TokenBucketAtomicActionType.LIMIT.value]
+        return [LeakingBucketAtomicActionType.LIMIT.value]
 
     def _prepare(self, key: str) -> Tuple[str, float, int]:
         rate: float = self.quota.get_limit() / self.quota.get_period_sec()
@@ -130,15 +126,17 @@ class TokenBucketRateLimiter(BaseRateLimiter):
 
     def _limit(self, key: str, cost: int = 1) -> RateLimitResult:
         formatted_key, rate, capacity = self._prepare(key)
-        limited, tokens = self._atomic_actions[
-            TokenBucketAtomicActionType.LIMIT.value
-        ].do([formatted_key], [rate, capacity, cost, now_sec()])
-        reset_after: int = math.ceil((capacity - tokens) / rate)
+        action: BaseAtomicAction = self._atomic_actions[
+            LeakingBucketAtomicActionType.LIMIT.value
+        ]
+        limited, tokens = action.do([formatted_key], [rate, capacity, cost, now_sec()])
 
         return RateLimitResult(
             limited=bool(limited),
             state=RateLimitState(
-                limit=capacity, remaining=tokens, reset_after=reset_after
+                limit=capacity,
+                remaining=tokens,
+                reset_after=math.ceil((capacity - tokens) / rate),
             ),
         )
 
@@ -147,11 +145,14 @@ class TokenBucketRateLimiter(BaseRateLimiter):
         formatted_key, rate, capacity = self._prepare(key)
 
         bucket: StoreDictValueT = self._store.hgetall(formatted_key)
-        last_tokens: int = bucket.get("tokens", capacity)
+        last_tokens: int = bucket.get("tokens", 0)
         last_refreshed: int = bucket.get("last_refreshed", now)
 
         time_elapsed: int = max(0, now - last_refreshed)
-        tokens: int = min(capacity, last_tokens + (math.floor(time_elapsed * rate)))
-        reset_after: int = math.ceil((capacity - tokens) / rate)
+        tokens: int = max(0, last_tokens - math.floor(time_elapsed * rate))
 
-        return RateLimitState(limit=capacity, remaining=tokens, reset_after=reset_after)
+        return RateLimitState(
+            limit=capacity,
+            remaining=capacity - tokens,
+            reset_after=math.ceil(tokens / rate),
+        )
