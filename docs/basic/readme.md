@@ -39,9 +39,7 @@
 * `period-2` 已接收 3 个请求，后续请求被拒绝。
 
 <div align="left">
-  <img src="./images/2-1-1.png" 
-       style="max-width: 50%; height: auto; border: 1px solid #eee;"
-       alt="">
+  <img src="./images/2-1-1.png" width="50%">
 </div>
 
 #### 2.1.2 优点
@@ -62,9 +60,7 @@
 * `period-1` 后半段 / `period-2` 前半段组成的 1 min 窗口，一共通过 6 个请求，是配额的 2 倍。
 
 <div align="left">
-  <img src="./images/2-1-2.png" 
-       style="max-width: 50%; height: auto; border: 1px solid #eee;"
-       alt="">
+  <img src="./images/2-1-2.png" width="50%">
 </div>
 
 ### 2.2 滑动窗口
@@ -85,9 +81,7 @@
 * `00:01:25` 进入一个请求，超过阈值，拒绝请求。
 
 <div align="left">
-  <img src="./images/2-2-1.png" 
-       style="max-width: 50%; height: auto; border: 1px solid #eee;"
-       alt="">
+  <img src="./images/2-2-1.png" width="50%">
 </div>
 
 #### 2.2.2 优点
@@ -114,10 +108,9 @@
 * 又来了一个请求，被拒绝。
 
 <div align="left">
-  <img src="./images/2-2-4.png" 
-       style="max-width: 50%; height: auto; border: 1px solid #eee;"
-       alt="">
+  <img src="./images/2-2-4.png" width="50%">
 </div>
+
 
 
 
@@ -146,10 +139,9 @@
 * c：到达 1 个请求，未到令牌补充时间，此时没有足够的令牌，请求拒绝。
 
 <div align="left">
-  <img src="./images/2-3-1.png" 
-       style="max-width: 75%; height: auto; border: 1px solid #eee;"
-       alt="">
+  <img src="./images/2-3-1.png" width="70%">
 </div>
+
 
 #### 2.3.2 优点
 
@@ -175,17 +167,20 @@
 
 如果一段时间内「注水量」大于「漏水量」，桶可能被灌满，溢出的水便是拒绝的请求。
 
+<div align="left">
+  <img src="./images/2-4-0.png" width="50%">
+</div>
+
+
 漏桶有两种实现方式：
 
 * [As a queue](https://en.wikipedia.org/wiki/Leaky_bucket#As_a_queue)：通过 FIFO（先进先出队列），以**固定速率**处理桶里的请求。
 
 * [As a meter](https://en.wikipedia.org/wiki/Leaky_bucket#As_a_meter)：「漏水」非匀速，在处理请求的同时计算漏水量，本次请求若导致水溢出则拒绝。
 
-
-
 As a queue 通常需要借助分布式消息队列来实现固定速率漏水，这意味着需要有多个 Worker 来扮演生产者 / 消费者。
 
-[throttled-py](https://github.com/ZhuoZhuoCrayon/throttled-py) 更希望提供轻量、无多余服务进程的限流功能，故基于「As a meter」实现漏桶算法，下文将介绍实现原理：
+[throttled-py](https://github.com/ZhuoZhuoCrayon/throttled-py) 更希望提供轻量、无额外服务进程的限流功能，故基于「As a meter」实现漏桶算法，下文将介绍实现原理：
 
 1）维护一个初始状态为空的桶，桶具有「最大令牌容量」，以及「令牌丢弃速率」。
 
@@ -200,20 +195,19 @@ As a queue 通常需要借助分布式消息队列来实现固定速率漏水，
 
 4）下图给出一个具体示例：
 
-* 当前状态：桶最大令牌容量为 4，每秒丢弃 1 个令牌，目前桶内有 2 个令牌，已丢弃 1 个令牌，假设「间隔 1 秒」先后发生 a、b、c。
-* a（时间：00:00）：到达 1 个请求，请求加入后没有溢出（1 + 2 = 3 <= 4），加入后桶里剩余 3 个。
+* 当前状态：桶最大令牌容量为 **4**，每秒丢弃 **1** 个令牌，目前桶内有 **2** 个令牌，已丢弃 **1** 个令牌，假设「间隔 1 秒」先后发生 a、b、c。
+* a（时间：00:00）：到达 1 个请求，请求加入后没有溢出（1 + 2 = 3 <= 4），加入后桶里剩余 3 个 Token。
 * b（时间：00:01）：
-  * 距离 a 已过去 1 秒，需要丢弃 1 个令牌，剩 2 个（3 - 1 x 1 = 2）。
-  * 到达 2 个请求，请求加入后没有溢出（2 + 2 <= 4），加入后桶里剩余 4 个。
+  * 距离 a 已过去 1 秒，需要丢弃 1 个令牌，剩 2 个 Token（3 - 1 x 1 = 2）。
+  * 到达 2 个请求，请求加入后没有溢出（2 + 2 <= 4），加入后桶里剩余 4 个 Token。
 * c（时间：00:02）：
-  * 距离 b 已过去 1 秒，需要丢弃 1 个令牌，剩 3 个（4 - 1 x 1 = 3）。
+  * 距离 b 已过去 1 秒，需要丢弃 1 个令牌，剩 3 个 Token（4 - 1 x 1 = 3）。
   * 到达 2 个请求，请求加入后桶会溢出（**3 + 2 > 4**），拒绝请求。
 
 <div align="left">
-  <img src="./images/2-4-1.png" 
-       style="max-width: 70%; height: auto; border: 1px solid #eee;"
-       alt="">
+  <img src="./images/2-4-1.png" width="65%" alt="">
 </div>
+
 
 #### 2.4.2 优点
 
@@ -223,13 +217,17 @@ As a queue 通常需要借助分布式消息队列来实现固定速率漏水，
 
 1）「As a meter」相比于「As a queue」，缺少固定速率处理请求的能力，不适用于需要严格控制请求速率的场景。
 
+2）「As a queue」需要**额外**的工作进程来回调业务请求以实现「漏水」，这意味着需要时刻确保进程存活，否则可能会因为桶溢出，导致请求被错误限流。
+
 ### 2.5 GCRA
 > 等待更新...
 
 
+
+
 ## last. Reference
 
-* [分布式限流：基于 Redis 实现](https://pandaychen.github.io/2020/09/21/A-DISTRIBUTE-GOREDIS-RATELIMITER-ANALYSIS/)
+* [熊喵君 / 分布式限流：基于 Redis 实现](https://pandaychen.github.io/2020/09/21/A-DISTRIBUTE-GOREDIS-RATELIMITER-ANALYSIS/)
 * [凤凰架构 / 流量控制](https://icyfenix.cn/distribution/traffic-management/traffic-control.html)
 * [系统设计面试：内幕指南 / 第04章：设计一个限流器](https://learning-guide.gitbook.io/system-design-interview/xi-tong-she-ji-mian-shi-nei-mu-zhi-nan-di-yi-juan/chapter-04-design-a-rate-limiter)
 * [Rate Limiting, Cells, and GCRA]()
