@@ -77,6 +77,8 @@ class RateLimitState:
     # initial state. In the initial state, Limit=Remaining.
     reset_after: float
 
+    # TODO RetryAfter represents the time in seconds for the request to be retried.
+
 
 @dataclass
 class RateLimitResult:
