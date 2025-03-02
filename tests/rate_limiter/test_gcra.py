@@ -98,3 +98,8 @@ class TestGCRARateLimiter:
         state: RateLimitState = rate_limiter.peek(key)
         assert state.limit == 10 and state.remaining == 6
         assert 4 - state.reset_after < 0.1
+
+        rate_limiter.limit(key, cost=6)
+        state: RateLimitState = rate_limiter.peek(key)
+        assert state.remaining == 0
+        assert 10 - state.reset_after < 0.1
