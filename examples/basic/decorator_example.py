@@ -10,11 +10,9 @@ def ping() -> str:
 def demo():
     ping()
     try:
-        # 当触发限流时，抛出 LimitedError。
-        ping()
+        ping()  # 当触发限流时，抛出 LimitedError。
     except exceptions.LimitedError as exc:
-        # Rate limit exceeded: remaining=0, reset_after=60
-        print(exc)
+        print(exc)  # Rate limit exceeded: remaining=0, reset_after=60
         # 在异常中获取限流结果：RateLimitResult(limited=True,
         # state=RateLimitState(limit=1, remaining=0, reset_after=60))
         print(exc.rate_limit_result)

@@ -18,9 +18,9 @@
 
 ### 1) Storage
 
-| Redis              | In-Memory          |
-|--------------------|--------------------|
-| :white_check_mark: | :white_check_mark: |
+| Redis              | In-Memory(Thread-Safety) |
+|--------------------|--------------------------|
+| :white_check_mark: | :white_check_mark:       |
 
 ### 2) Rate Limiting Algorithms
 
@@ -42,8 +42,8 @@ $ pip install throttled-py
 
 #### Core API
 
-* `limit`: Deduct requests and return **RateLimitResult**.
-* `peek`: Check current rate limit state for a key (returns **RateLimitState**).
+* `limit`: Deduct requests and return [**RateLimitResult**](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_EN.md#1-ratelimitresult).
+* `peek`: Check current rate limit state for a key (returns [**RateLimitState**](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_EN.md#2-ratelimitstate)).
 
 ```python
 from throttled import Throttled
@@ -102,12 +102,12 @@ products()  # Raises LimitedError
 
 #### In-Memory
 
-If you want to throttle the same Key at different locations in your program, make sure that Throttled receives the same MemoryStore and uses a consistent Quota.
+If you want to throttle the same Key at different locations in your program, make sure that Throttled receives the same MemoryStore and uses a consistent [`Quota`](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_EN.md#3-quota).
 
 The following example uses memory as the storage backend and throttles the same Key on ping and pong:
 
 ```python
-from throttled import RateLimiterType, Throttled, rate_limter, store
+from throttled import Throttled, rate_limter, store
 
 mem_store = store.MemoryStore()
 
@@ -132,11 +132,15 @@ The rate limiting algorithm is specified by the **`using`** parameter. The suppo
 * [Generic Cell Rate Algorithm, GCRA)](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#25-gcra): `RateLimiterType.GCRA.value`
 
 ```python
+from throttled import RateLimiterType, Throttled, rate_limter, store
+
 throttle = Throttled(
-    using=RateLimiterType.FIXED_WINDOW.value,  # Algorithm type
+    # 🌟Specifying a current limiting algorithm
+    using=RateLimiterType.FIXED_WINDOW.value, 
     quota=rate_limter.per_min(1),
     store=store.MemoryStore()
 )
+assert throttle.limit("key", 2).limited is True
 ```
 
 ### 4) Quota Configuration
@@ -146,19 +150,19 @@ throttle = Throttled(
 ```python
 from throttled import rate_limter
 
-rate_limter.per_sec(60)   # 60/sec
-rate_limter.per_min(60)   # 60/min
-rate_limter.per_hour(60)  # 60/hour
-rate_limter.per_day(60)   # 60/day
+rate_limter.per_sec(60)   # 60 / sec
+rate_limter.per_min(60)   # 60 / min
+rate_limter.per_hour(60)  # 60 / hour
+rate_limter.per_day(60)   # 60 / day
 ```
 
 #### Burst Capacity
 
 The **`burst`** parameter can be used to adjust the ability of the throttling object to handle burst traffic. This is valid for the following algorithms:
 
-* [Token Bucket](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#23-%E4%BB%A4%E7%89%8C%E6%A1%B6): `RateLimiterType.TOKEN_BUCKET.value`
-* [Leaky Bucket](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#24-%E6%BC%8F%E6%A1%B6): `RateLimiterType.LEAKING_BUCKET.value`
-* [Generic Cell Rate Algorithm, GCRA)](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#25-gcra): `RateLimiterType.GCRA.value`
+* `TOKEN_BUCKET`
+* `LEAKING_BUCKET`
+* `GCRA`
 
 ```python
 from throttled import rate_limter

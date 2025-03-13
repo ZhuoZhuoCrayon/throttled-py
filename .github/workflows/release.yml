@@ -6,14 +6,14 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Build and publish to Pypi
-        uses: JRubics/poetry-publish@v1.17
+        uses: JRubics/poetry-publish@v2.1
         with:
           python_version: "3.11.3"
-          poetry_version: "==1.8.2"
-          ignore_dev_requirements: "yes"
+          poetry_version: "==1.8.5"
+          poetry_install_options: "--without dev"
           repository_name: "throttled-py"
           pypi_token: ${{ secrets.PYPI_TOKEN }}

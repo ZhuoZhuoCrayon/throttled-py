@@ -19,7 +19,7 @@
 
 ### 1）存储
 
-| Redis              | 内存                 |
+| Redis              | 内存（线程安全）           |
 |--------------------|--------------------|
 | :white_check_mark: | :white_check_mark: |
 
@@ -45,8 +45,8 @@ $ pip install throttled-py
 
 #### 通用 API
 
-* limit：消耗请求，返回 **RateLimitResult**。
-* peek：获取指定 Key 的限流器状态，返回 **RateLimitState**。
+* `limit`：消耗请求，返回 [**RateLimitResult**](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#1ratelimitresult)。
+* `peek`：获取指定 Key 的限流器状态，返回 [**RateLimitState**](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#2ratelimitstate)。
 
 ```python
 from throttled import Throttled
@@ -78,11 +78,9 @@ def ping() -> str:
 ping()
 
 try:
-    # 当触发限流时，抛出 LimitedError。
-    ping()
+    ping()      # 当触发限流时，抛出 LimitedError。
 except exceptions.LimitedError as exc:
-    # Rate limit exceeded: remaining=0, reset_after=60
-    print(exc)
+    print(exc)  # Rate limit exceeded: remaining=0, reset_after=60
     # 在异常中获取限流结果：RateLimitResult(limited=True, 
     # state=RateLimitState(limit=1, remaining=0, reset_after=60))
     print(exc.rate_limit_result)
@@ -112,12 +110,12 @@ products()
 
 #### Memory
 
-如果你希望在程序的不同位置，对同一个 Key 进行限流，请确保 `Throttled` 接收到的是同一个 `MemoryStore`，并使用一致的 `Quota`。
+如果你希望在程序的不同位置，对同一个 Key 进行限流，请确保 `Throttled` 接收到的是同一个 `MemoryStore`，并使用一致的 [`Quota`](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#3quota)。
 
 下方样例使用内存作为存储后端，并在 `ping`、`pong` 上对同一个 Key 进行限流：
 
 ```python
-from throttled import RateLimiterType, Throttled, rate_limter, store
+from throttled import Throttled, rate_limter, store
 
 # 🌟 使用 Memory 作为存储后端
 mem_store = store.MemoryStore()
@@ -149,13 +147,12 @@ pong()
 from throttled import RateLimiterType, Throttled, rate_limter, store
 
 throttle = Throttled(
-    key="key",
-    # 🌟 指定限流算法
+    # 🌟指定限流算法
     using=RateLimiterType.FIXED_WINDOW.value,
     quota=rate_limter.per_min(1),
     store=store.MemoryStore()
 )
-assert throttle.limit(2).limited is True
+assert throttle.limit("key", 2).limited is True
 ```
 
 ### 4）指定容量
@@ -165,23 +162,19 @@ assert throttle.limit(2).limited is True
 ```python
 from throttled import rate_limter
 
-# 60 / s
-rate_limter.per_sec(60)
-# 60 / min
-rate_limter.per_min(60)
-# 60 / h
-rate_limter.per_hour(60)
-# 60 / d
-rate_limter.per_day(60)
+rate_limter.per_sec(60)   # 60 / sec
+rate_limter.per_min(60)   # 60 / min
+rate_limter.per_hour(60)  # 60 / hour
+rate_limter.per_day(60)   # 60 / day
 ```
 
 #### 调整突发限制
 
 通过 **`burst`** 参数，可以调节限流对象处理突发流量的能力 ，对以下算法有效：
 
-* [令牌桶](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#23-%E4%BB%A4%E7%89%8C%E6%A1%B6)：`RateLimiterType.TOKEN_BUCKET.value`
-* [漏桶](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#24-%E6%BC%8F%E6%A1%B6)：`RateLimiterType.LEAKING_BUCKET.value`
-* [通用信元速率算法（Generic Cell Rate Algorithm, GCRA）](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#25-gcra)：`RateLimiterType.GCRA.value`
+* `TOKEN_BUCKET`
+* `LEAKING_BUCKET`
+* `GCRA`
 
 ```python
 from throttled import rate_limter
