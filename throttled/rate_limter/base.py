@@ -40,22 +40,28 @@ class Quota:
         return self.rate.limit
 
 
-def per_sec(limit: int, burst: int = 0) -> Quota:
+def per_sec(limit: int, burst: Optional[int] = None) -> Quota:
     """Create a quota representing the maximum requests and burst per second."""
+    if burst is None:
+        burst = limit
     return Quota(Rate(period=timedelta(seconds=1), limit=limit), burst=burst)
 
 
-def per_min(limit: int, burst: int = 0) -> Quota:
+def per_min(limit: int, burst: Optional[int] = None) -> Quota:
     """Create a quota representing the maximum requests and burst per minute."""
+    if burst is None:
+        burst = limit
     return Quota(Rate(period=timedelta(minutes=1), limit=limit), burst=burst)
 
 
-def per_hour(limit: int, burst: int = 0) -> Quota:
+def per_hour(limit: int, burst: Optional[int] = None) -> Quota:
     """Create a quota representing the maximum requests and burst per hour."""
+    if burst is None:
+        burst = limit
     return Quota(Rate(period=timedelta(hours=1), limit=limit), burst=burst)
 
 
-def per_day(limit: int, burst: int = 0) -> Quota:
+def per_day(limit: int, burst: Optional[int] = None) -> Quota:
     """Create a quota representing the maximum requests and burst per day."""
     return Quota(Rate(period=timedelta(days=1), limit=limit), burst=burst)
 
@@ -111,7 +117,6 @@ class RateLimiterRegistry:
 
 class RateLimiterMeta(abc.ABCMeta):
     def __new__(cls, name, bases, attrs):
-        print(name, bases, attrs)
         new_cls = super().__new__(cls, name, bases, attrs)
         if not [b for b in bases if isinstance(b, RateLimiterMeta)]:
             return new_cls

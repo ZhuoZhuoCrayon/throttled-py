@@ -1,3 +1,4 @@
+from .constants import RateLimiterType
 from .rate_limter import (
     BaseRateLimiter,
     Quota,
@@ -50,4 +51,6 @@ __all__ = [
     "RedisStore",
     # throttled
     "Throttled",
+    # constants
+    "RateLimiterType",
 ]
