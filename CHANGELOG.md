@@ -8,7 +8,7 @@
 * feat: 实现滑动窗口限流器 by @ZhuoZhuoCrayon in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/2
 * feat: 实现令牌桶限流器 by @ZhuoZhuoCrayon in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/3
 * feat: 实现漏桶限流器 by @ZhuoZhuoCrayon in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/8
-* fate: 实现 GCRA 限流器 by @ZhuoZhuoCrayon in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/9
+* feat: 实现 GCRA 限流器 by @ZhuoZhuoCrayon in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/9
 
 ### 新贡献者
 * @ZhuoZhuoCrayon 在 https://github.com/ZhuoZhuoCrayon/throttled-py/pull/1 完成首次贡献
