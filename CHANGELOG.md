@@ -13,6 +13,6 @@
 ### 新贡献者
 * @ZhuoZhuoCrayon 在 https://github.com/ZhuoZhuoCrayon/throttled-py/pull/1 完成首次贡献
 
-**完整更新日志**: https://github.com/ZhuoZhuoCrayon/throttled-py/commits/v1.0.0
+**完整更新日志**: https://github.com/ZhuoZhuoCrayon/throttled-py/commits/v1.0.1
 
 ---

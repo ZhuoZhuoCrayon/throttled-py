@@ -13,4 +13,4 @@
 ### New Contributors
 * @ZhuoZhuoCrayon made their first contribution in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/1
 
-**Full Changelog**: https://github.com/ZhuoZhuoCrayon/throttled-py/commits/v1.0.0
+**Full Changelog**: https://github.com/ZhuoZhuoCrayon/throttled-py/commits/v1.0.1
