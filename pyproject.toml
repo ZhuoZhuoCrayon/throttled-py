@@ -1,12 +1,14 @@
 [tool.poetry]
 name = "throttled-py"
-version = "1.0.0"
+version = "1.0.1"
 description = "🔧 High-performance Python rate limiting library with multiple algorithms (Fixed Window, Sliding Window, Token Bucket, Leaky Bucket & GCRA) and storage backends (Redis, In-Memory)."
 authors = ["ZhuoZhuoCrayon <crayon.ccxx@gmail.com>"]
 readme = "README.md"
 packages = [
     { include = "throttled" },
 ]
+homepage = "https://github.com/ZhuoZhuoCrayon/throttled-py"
+repository = "https://github.com/ZhuoZhuoCrayon/throttled-py"
 
 [tool.poetry.dependencies]
 python = ">=3.8,<4.0"

@@ -12,34 +12,34 @@
     </a>
 </p>
 
-[English Documents Available](./README_EN.md) | 简体中文
+[English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_EN.md) | 简体中文
 
 
-## :rocket: 功能
+## 🚀 功能
 
 ### 1）存储
 
-| Redis              | 内存（线程安全）           |
-|--------------------|--------------------|
-| :white_check_mark: | :white_check_mark: |
+| Redis | 内存（线程安全） |
+|-------|----------|
+| ✅     | ✅        |
 
 ### 2）限流算法
 
 | [固定窗口](https://github.com/ZhuoZhuoCrayon/throttled-py/tree/main/docs/basic#21-%E5%9B%BA%E5%AE%9A%E7%AA%97%E5%8F%A3%E8%AE%A1%E6%95%B0%E5%99%A8) | [滑动窗口](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#22-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3) | [令牌桶](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#23-%E4%BB%A4%E7%89%8C%E6%A1%B6) | [漏桶](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#24-%E6%BC%8F%E6%A1%B6) | [通用信元速率算法（Generic Cell Rate Algorithm, GCRA）](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#25-gcra) |
 |------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------|
-| :white_check_mark:                                                                                                                             | :white_check_mark:                                                                                                            | :white_check_mark:                                                                                                  | :white_check_mark:                                                                                        | :white_check_mark:                                                                                                                   |
+| ✅                                                                                                                                              | ✅                                                                                                                             | ✅                                                                                                                   | ✅                                                                                                         | ✅                                                                                                                                    |
 
 我们提供以上限流算法的原理分析，你可以点击具体的限流算法跳转到相应的介绍。
 
 
-## :beginner: 安装
+## 🔰 安装
 
 ```shell
 $ pip install throttled-py
 ```
 
 
-## :memo: 使用
+## 📝 使用
 
 ### 1）基础
 
@@ -194,7 +194,7 @@ from throttled.rate_limter import Quota, Rate
 Quota(Rate(period=timedelta(minutes=2), limit=120), burst=150)
 ```
 
-## :gear: 数据模型与配置
+## ⚙️ 数据模型与配置
 
 ### 1）RateLimitResult
 
@@ -270,10 +270,10 @@ MemoryStore 本质是一个基于内存实现的，带过期时间的 [LRU Cache
 | `MAX_SIZE` | 最大容量，存储的键值对数量超过 `MAX_SIZE` 时，将按 LRU 策略淘汰。 | `1024` |
 
 
-## :books: Version History
+## 📚 Version History
 
-[See CHANGELOG.md](./CHANGELOG.md)
+[See CHANGELOG.md](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.md)
 
-## :page_facing_up: License
+## 📄 License
 
-[The MIT License](./LICENSE)
+[The MIT License](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/LICENSE)

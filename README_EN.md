@@ -12,31 +12,31 @@
     </a>
 </p>
 
-[简体中文](./README.md) | English
+[简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README.md) | English
 
-## :rocket: Features
+## 🚀 Features
 
 ### 1) Storage
 
-| Redis              | In-Memory(Thread-Safety) |
-|--------------------|--------------------------|
-| :white_check_mark: | :white_check_mark:       |
+| Redis | In-Memory(Thread-Safety) |
+|-------|--------------------------|
+| ✅     | ✅                        |
 
 ### 2) Rate Limiting Algorithms
 
 | [Fixed Window](https://github.com/ZhuoZhuoCrayon/throttled-py/tree/main/docs/basic#21-%E5%9B%BA%E5%AE%9A%E7%AA%97%E5%8F%A3) | [Sliding Window](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#22-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3) | [Token Bucket](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#23-%E4%BB%A4%E7%89%8C%E6%A1%B6) | [Leaky Bucket](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#24-%E6%BC%8F%E6%A1%B6) | [GCRA](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#25-gcra) |
 |-----------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------|
-| :white_check_mark:                                                                                                          | :white_check_mark:                                                                                                                      | :white_check_mark:                                                                                                           | :white_check_mark:                                                                                                  | :white_check_mark:                                                                            |
+| ✅                                                                                                                           | ✅                                                                                                                                       | ✅                                                                                                                            | ✅                                                                                                                   | ✅                                                                                             |
 
 We provide algorithm analysis documents - click any algorithm name to view implementation details.
 
-## :beginner: Installation
+## 🔰 Installation
 
 ```shell
 $ pip install throttled-py
 ```
 
-## :memo: Usage
+## 📝 Usage
 
 ### 1) Basic Usage
 
@@ -182,7 +182,7 @@ from throttled.rate_limter import Quota, Rate
 Quota(Rate(period=timedelta(minutes=2), limit=120), burst=150)
 ```
 
-## :gear: Data Models & Configuration
+## ⚙️ Data Models & Configuration
 
 ### 1) RateLimitResult
 
@@ -257,11 +257,10 @@ MemoryStore is essentially a [LRU Cache](https://en.wikipedia.org/wiki/Cache_rep
 |------------|--------------------------------------------------------------------------------------------------------------------------------------|---------|
 | `MAX_SIZE` | Maximum capacity. When the number of stored key-value pairs exceeds `MAX_SIZE`, they will be eliminated according to the LRU policy. | `1024`  |
 
-## :books: Version History
+## 📚 Version History
 
-[See CHANGELOG_EN.md](./CHANGELOG_EN.md)
+[See CHANGELOG_EN.md](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md)
 
-## :page_facing_up: License
+## 📄 License
 
-[The MIT License](./LICENSE)
-
+[The MIT License](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/LICENSE)
