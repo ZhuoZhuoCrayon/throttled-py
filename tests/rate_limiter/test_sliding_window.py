@@ -1,4 +1,3 @@
-from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from typing import Callable, List
 
@@ -15,7 +14,7 @@ from throttled import (
     per_min,
 )
 from throttled.constants import RateLimiterType
-from throttled.utils import now_sec
+from throttled.utils import Benchmark, now_sec
 
 
 @pytest.fixture
@@ -70,20 +69,17 @@ class TestSlidingWindowRateLimiter:
     @pytest.mark.parametrize("requests_num", [10, 100, 1_000, 10_000])
     def test_limit__current(
         self,
+        benchmark: Benchmark,
         rate_limiter_constructor: Callable[[Quota], BaseRateLimiter],
         quota: Quota,
         requests_num: int,
     ):
-        def _task(_idx: int) -> bool:
-            _result: RateLimitResult = rate_limiter.limit(key)
-            return _result.limited
-
-        key: str = "key"
         now: int = now_sec()
         rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
-        with ThreadPoolExecutor(max_workers=32) as executor:
-            results: List[bool] = list(executor.map(_task, range(requests_num)))
-            cost: int = now_sec() - now
+        results: List[bool] = benchmark.current(
+            task=lambda: rate_limiter.limit("key").limited, batch=requests_num
+        )
+        cost: int = now_sec() - now
 
         accessed_num: int = requests_num - sum(results)
         limit: int = min(requests_num, quota.get_limit())

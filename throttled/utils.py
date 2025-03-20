@@ -25,9 +25,11 @@
 # ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
+import asyncio
 import time
+from concurrent.futures import ThreadPoolExecutor
 from importlib import import_module
+from typing import Any, Callable, Coroutine, List
 
 
 def now_sec() -> int:
@@ -36,6 +38,114 @@ def now_sec() -> int:
 
 def now_ms() -> int:
     return int(time.time() * 1000)
+
+
+class Benchmark:
+    def __init__(self):
+        self.handled_ns_list: List[int] = []
+        self.start_times: List[int] = []
+        self.end_times: List[int] = []
+        self.last_avg: float = 0
+        self.last_qps: float = 0
+
+        self._loop = None
+
+    def __enter__(self):
+        self.clear()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.stats()
+
+    async def __aenter__(self):
+        self.clear()
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        self.clear()
+
+    def stats(self):
+        total: int = len(self.handled_ns_list)
+        avg: float = sum(self.handled_ns_list) / total
+        qps: int = int(total / ((max(self.end_times) - min(self.start_times)) / 1e9))
+
+        growth: str = "--"
+        growth_rate: float = 0
+        if self.last_qps:
+            growth_rate: float = (qps - self.last_qps) * 100 / self.last_qps
+            growth = f"{('⬆️', '⬇️')[growth_rate < 0]}{growth_rate:.2f}%"
+
+        growth_emo: str = ("🚀", "💤")[growth_rate < 0]
+        print(
+            f"✅Total: {total}, "
+            f"🕒Latency: {avg / 1e6:.4f} ms/op, "
+            f"{growth_emo}Throughput: {qps} req/s ({growth})"
+        )
+
+        self.last_qps = qps
+        self.last_avg = avg
+
+    def clear(self):
+        self.handled_ns_list.clear()
+        self.end_times.clear()
+        self.start_times.clear()
+
+    def _timer(self, task: Callable[..., Any]) -> Callable[..., Any]:
+        def inner(*args, **kwargs):
+            start: int = time.perf_counter_ns()
+            self.start_times.append(start)
+            ret: Any = task(*args, **kwargs)
+            end: int = time.perf_counter_ns()
+            self.end_times.append(end)
+            self.handled_ns_list.append(end - start)
+            return ret
+
+        return inner
+
+    def current(
+        self, task: Callable[..., Any], batch: int, workers: int = 32, *args, **kwargs
+    ) -> List[Any]:
+        with self:
+            with ThreadPoolExecutor(max_workers=workers) as executor:
+                return list(
+                    executor.map(
+                        lambda _: self._timer(task)(*args, **kwargs), range(batch)
+                    )
+                )
+
+    def _atimer(self, task: Callable[..., Coroutine]) -> Callable[..., Coroutine]:
+        async def inner(*args, **kwargs):
+            start: int = time.perf_counter_ns()
+            self.start_times.append(start)
+            ret = await task(*args, **kwargs)
+            end: int = time.perf_counter_ns()
+            self.end_times.append(end)
+            self.handled_ns_list.append(end - start)
+            return ret
+
+        return inner
+
+    async def async_current(
+        self,
+        task: Callable[..., Coroutine],
+        batch: int,
+        workers: int = 32,
+        *args,
+        **kwargs,
+    ) -> List[Any]:
+        if not self._loop:
+            self._loop = asyncio.get_event_loop()
+
+        sem = asyncio.Semaphore(workers)
+
+        async def limited_task():
+            async with sem:
+                return await self._atimer(task)(*args, **kwargs)
+
+        with self:
+            return await asyncio.gather(*[limited_task() for __ in range(batch)])
+
+    def serial(self, task: Callable[..., Any], batch: int, *args, **kwargs) -> List[Any]:
+        with self:
+            return [self._timer(task)(*args, **kwargs) for __ in range(batch)]
 
 
 def import_string(dotted_path: str):
