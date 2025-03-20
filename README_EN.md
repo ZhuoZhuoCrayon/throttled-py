@@ -48,7 +48,7 @@ $ pip install throttled-py
 ```python
 from throttled import Throttled
 
-# Default: In-Memory storage, Token Bucket algorithm, 60 reqs / sec.
+# Default: In-Memory storage, Token Bucket algorithm, 60 reqs / min.
 throttle = Throttled()
 
 # Deduct 1 request -> RateLimitResult(limited=False,

@@ -51,7 +51,7 @@ $ pip install throttled-py
 ```python
 from throttled import Throttled
 
-# 参数全部缺省时，默认初始化一个基于「内存」、每秒允许通过 60 个请求、使用「令牌桶算法」的限流器。
+# 参数全部缺省时，默认初始化一个基于「内存」、每分钟允许通过 60 个请求、使用「令牌桶算法」的限流器。
 throttle = Throttled()
 
 # 消耗 1 次请求，输出：RateLimitResult(limited=False,
@@ -61,7 +61,7 @@ print(throttle.limit("key", 1))
 print(throttle.peek("key"))
 
 # 消耗 60 次请求，触发限流，输出：RateLimitResult(limited=True,
-# # state=RateLimitState(limit=60, remaining=59, reset_after=1))
+# state=RateLimitState(limit=60, remaining=59, reset_after=1))
 print(throttle.limit("key", 60))
 ```
 
@@ -78,9 +78,11 @@ def ping() -> str:
 ping()
 
 try:
-    ping()      # 当触发限流时，抛出 LimitedError。
+    # 当触发限流时，抛出 LimitedError。
+    ping()
 except exceptions.LimitedError as exc:
-    print(exc)  # Rate limit exceeded: remaining=0, reset_after=60
+    # Rate limit exceeded: remaining=0, reset_after=60
+    print(exc)
     # 在异常中获取限流结果：RateLimitResult(limited=True, 
     # state=RateLimitState(limit=1, remaining=0, reset_after=60))
     print(exc.rate_limit_result)
