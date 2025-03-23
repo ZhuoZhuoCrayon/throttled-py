@@ -14,7 +14,7 @@ if current == cost then
     redis.call("EXPIRE", KEYS[1], period)
 end
 
--- Return [is_limited, current_count]
+-- Return [limited, current]
 -- is_limited: 1 if over limit, 0 otherwise.
--- current_count: current count in current window.
+-- current: current count in current window.
 return {current > limit and 1 or 0, current}

@@ -35,5 +35,9 @@ if remaining < 1 then
     retry_after = time_elapsed * -1
 end
 
--- use tostring to avoid lost precision.
+-- Return [limited, remaining, reset_after, retry_after]
+-- limited: 1 if the request is limited, 0 otherwise.
+-- remaining: Available tokens after the current request.
+-- reset_after: Time in seconds until rate limiter resets(string to preserve precision).
+-- retry_after: Time in seconds until the request is allowed(string to preserve precision).
 return {limited, remaining, tostring(reset_after), tostring(retry_after)}
