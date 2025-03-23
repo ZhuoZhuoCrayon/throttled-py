@@ -1,8 +1,6 @@
 from enum import Enum
 from typing import List, Optional, Sequence, Tuple, Type
 
-from redis.commands.core import Script
-
 from ..constants import RateLimiterType, StoreType
 from ..store import BaseAtomicAction, MemoryStoreBackend, RedisStoreBackend
 from ..types import AtomicActionTypeT, KeyT, RateLimiterTypeT, StoreValueT
@@ -36,12 +34,30 @@ class RedisLimitAtomicAction(BaseAtomicAction):
     """
 
     def __init__(self, backend: RedisStoreBackend):
-        self._script: Script = backend.get_client().register_script(self.SCRIPTS)
+        # In single command scenario, lua has no performance advantage, and even causes
+        # a decrease in performance due to the increase in transmission content.
+        # Benchmarks()
+        # >> Redis baseline
+        # command -> set key value
+        # serial  -> 🕒Latency: 0.0609 ms/op, 🚀Throughput: 16271 req/s
+        # current -> 🕒Latency: 0.4515 ms/op, 💤Throughput: 12100 req/s
+        # >> Lua
+        # serial  -> 🕒Latency: 0.0805 ms/op, 🚀Throughput: 12319 req/s
+        # current -> 🕒Latency: 0.6959 ms/op, 💤Throughput: 10301 req/s
+        # >> 👍 Single Command
+        # serial  -> 🕒Latency: 0.0659 ms/op, 🚀Throughput: 15040 req/s
+        # current -> 🕒Latency: 0.9084 ms/op, 💤Throughput: 11539 req/s
+        # self._script: Script = backend.get_client().register_script(self.SCRIPTS)
+        self._backend: RedisStoreBackend = backend
 
     def do(
         self, keys: Sequence[KeyT], args: Optional[Sequence[StoreValueT]]
     ) -> Tuple[int, int]:
-        return self._script(keys, args)
+        period, limit, cost = args[0], args[1], args[2]
+        current: int = self._backend.get_client().incrby(keys[0], cost)
+        if current == cost:
+            self._backend.get_client().expire(keys[0], period)
+        return [0, 1][current > limit], current
 
 
 class MemoryLimitAtomicAction(BaseAtomicAction):
@@ -56,12 +72,11 @@ class MemoryLimitAtomicAction(BaseAtomicAction):
     def do(
         self, keys: Sequence[KeyT], args: Optional[Sequence[StoreValueT]]
     ) -> Tuple[int, int]:
+        key: str = keys[0]
+        period: int = args[0]
+        limit: int = args[1]
+        cost: int = args[2]
         with self._backend.lock:
-            key: str = keys[0]
-            period: int = args[0]
-            limit: int = args[1]
-            cost: int = args[2]
-
             current: Optional[int] = self._backend.get(key)
             if current is None:
                 current = cost
@@ -70,7 +85,7 @@ class MemoryLimitAtomicAction(BaseAtomicAction):
                 current += cost
                 self._backend.get_client()[key] = current
 
-            return (0, 1)[current > limit], current
+        return (0, 1)[current > limit], current
 
 
 class FixedWindowRateLimiter(BaseRateLimiter):
