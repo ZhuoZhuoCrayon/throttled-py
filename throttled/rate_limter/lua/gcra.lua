@@ -45,5 +45,9 @@ else
     redis.call("SET", KEYS[1], tat, "EX", math.ceil(reset_after))
 end
 
--- use tostring to avoid lost precision.
+-- Return [limited, remaining, reset_after, retry_after]
+-- limited: 1 if the request is limited, 0 otherwise.
+-- remaining: Available tokens after the current request.
+-- reset_after: Time in seconds until rate limiter resets(string to preserve precision).
+-- retry_after: Time in seconds until the request is allowed(string to preserve precision).
 return {limited, remaining, tostring(reset_after), tostring(retry_after)}

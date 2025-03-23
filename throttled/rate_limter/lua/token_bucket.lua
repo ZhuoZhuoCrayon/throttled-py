@@ -41,4 +41,7 @@ local fill_time = capacity / rate
 redis.call("HSET", KEYS[1], "tokens", tokens, "last_refreshed", now)
 redis.call("EXPIRE", KEYS[1], math.floor(2 * fill_time))
 
+-- Return [limited, tokens]
+-- limited: 1 if over limit, 0 otherwise.
+-- tokens: number of tokens remaining in bucket.
 return {limited, tokens}
