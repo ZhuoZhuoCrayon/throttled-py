@@ -53,8 +53,8 @@ class Benchmark:
 
         growth_emo: str = ("🚀", "💤")[growth_rate < 0]
         print(
-            f"✅Total: {total}, "
-            f"🕒Latency: {avg / 1e6:.4f} ms/op, "
+            f"✅ Total: {total}, "
+            f"🕒 Latency: {avg / 1e6:.4f} ms/op, "
             f"{growth_emo}Throughput: {qps} req/s ({growth})"
         )
 

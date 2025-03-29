@@ -14,6 +14,7 @@
 
 [简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README.md) | English
 
+
 ## 🚀 Features
 
 ### 1) Storage
@@ -30,6 +31,42 @@
 
 We provide algorithm analysis documents - click any algorithm name to view implementation details.
 
+
+## 🔥 Quick Start
+
+### 1) Core API
+
+* `limit`: Deduct requests and return [**RateLimitResult**](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#1ratelimitresult)
+* `peek`: Check current rate limit state for a key (returns [**RateLimitState**](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#2ratelimitstate))
+
+### 2) Example
+
+```python
+from throttled import RateLimiterType, Throttled, rate_limter, store, utils
+
+throttle = Throttled(
+    # 📈 Use Token Bucket algorithm
+    using=RateLimiterType.TOKEN_BUCKET.value,
+    # 🪣 Set quota: 1000 tokens per second (limit), bucket size 1000 (burst)
+    quota=rate_limter.per_sec(1_000, burst=1_000),
+    # 📁 Use In-Memory storage
+    store=store.MemoryStore(),
+)
+
+def call_api() -> bool:
+    # 💧 Deduct 1 token for key="/ping"
+    result = throttle.limit("/ping", cost=1)
+    return result.limited
+
+if __name__ == "__main__":
+    # ✅ Total: 100000, 🕒 Latency: 0.5463 ms/op, 🚀 Throughput: 55630 req/s (--)
+    # ❌ Denied: 96314 requests
+    benchmark: utils.Benchmark = utils.Benchmark()
+    denied_num: int = sum(benchmark.concurrent(call_api, 100_000, workers=32))
+    print(f"❌ Denied: {denied_num} requests")
+```
+
+
 ## 🔰 Installation
 
 ```shell
@@ -40,10 +77,7 @@ $ pip install throttled-py
 
 ### 1) Basic Usage
 
-#### Core API
-
-* `limit`: Deduct requests and return [**RateLimitResult**](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_EN.md#1-ratelimitresult).
-* `peek`: Check current rate limit state for a key (returns [**RateLimitState**](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_EN.md#2-ratelimitstate)).
+#### Function Call
 
 ```python
 from throttled import Throttled
@@ -182,6 +216,7 @@ from throttled.rate_limter import Quota, Rate
 Quota(Rate(period=timedelta(minutes=2), limit=120), burst=150)
 ```
 
+
 ## ⚙️ Data Models & Configuration
 
 ### 1) RateLimitResult
@@ -257,9 +292,11 @@ MemoryStore is essentially a [LRU Cache](https://en.wikipedia.org/wiki/Cache_rep
 |------------|--------------------------------------------------------------------------------------------------------------------------------------|---------|
 | `MAX_SIZE` | Maximum capacity. When the number of stored key-value pairs exceeds `MAX_SIZE`, they will be eliminated according to the LRU policy. | `1024`  |
 
+
 ## 📚 Version History
 
 [See CHANGELOG_EN.md](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md)
+
 
 ## 📄 License
 
