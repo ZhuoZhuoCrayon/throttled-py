@@ -110,8 +110,8 @@ class SlidingWindowRateLimiter(BaseRateLimiter):
     def _prepare(self, key: str) -> Tuple[str, str, int, int]:
         period: int = self.quota.get_period_sec()
         current_idx: int = now_sec() // period
-        current_key: str = f"{key}:period:{current_idx}"
-        previous_key: str = f"{key}:period:{current_idx - 1}"
+        current_key: str = self._prepare_key(f"{key}:period:{current_idx}")
+        previous_key: str = self._prepare_key(f"{key}:period:{current_idx - 1}")
         return current_key, previous_key, period, self.quota.get_limit()
 
     def _limit(self, key: str, cost: int = 1) -> RateLimitResult:

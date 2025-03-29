@@ -128,6 +128,11 @@ class RateLimiterMeta(abc.ABCMeta):
 class BaseRateLimiter(metaclass=RateLimiterMeta):
     """Base class for RateLimiter."""
 
+    KEY_PREFIX: str = "throttled:v1:"
+
+    class Meta:
+        type: RateLimiterTypeT = ""
+
     def __init__(
         self,
         quota: Quota,
@@ -195,6 +200,31 @@ class BaseRateLimiter(metaclass=RateLimiterMeta):
                 pass
 
         self._validate_registered_atomic_actions()
+
+    def _prepare_key(self, key: str) -> str:
+        """Prepare the key by adding the prefix.
+        :param key: The unique identifier for the rate limit subject.
+        :return: The formatted key with prefix.
+
+        # Benchmarks(TokenBucket)
+        # Python 3.13.1 (main, Mar 29 2025, 16:29:36) [Clang 15.0.0 (clang-1500.3.9.4)]
+        # Implementation: CPython
+        # OS: Darwin 23.6.0, Arch: arm64
+        #
+        # >> Redis baseline
+        # command    -> set key value
+        # serial     -> 🕒Latency: 0.0589 ms/op, 🚀Throughput: 16828 req/s (--)
+        # concurrent -> 🕒Latency: 1.9032 ms/op, 💤Throughput: 16729 req/s (⬇️-0.59%)
+        #
+        # >> Before preparing key
+        # serial     -> 🕒Latency: 0.0722 ms/op, 🚀Throughput: 13740 req/s (--)
+        # concurrent -> 🕒Latency: 2.3197 ms/op, 🚀Throughput: 13742 req/s (⬆️0.01%)
+        #
+        # >> After preparing key
+        # serial     -> 🕒Latency: 0.0724 ms/op, 🚀Throughput: 13712 req/s (--)
+        # concurrent -> 🕒Latency: 2.3126 ms/op, 🚀Throughput: 13782 req/s (⬆️0.51%)
+        """
+        return f"{self.KEY_PREFIX}{self.Meta.type}:{key}"
 
     def limit(self, key: str, cost: int = 1) -> RateLimitResult:
         """Apply rate limiting logic to a given key with a specified cost.
