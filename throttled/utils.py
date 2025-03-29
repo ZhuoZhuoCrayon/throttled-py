@@ -1,4 +1,6 @@
 import asyncio
+import platform
+import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 from importlib import import_module
@@ -22,14 +24,17 @@ class Benchmark:
         self.last_qps: float = 0
 
         self._loop = None
+        self._has_checked_environment: bool = False
 
     def __enter__(self):
+        self._checked_environment()
         self.clear()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.stats()
 
     async def __aenter__(self):
+        self._checked_environment()
         self.clear()
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -60,6 +65,19 @@ class Benchmark:
         self.handled_ns_list.clear()
         self.end_times.clear()
         self.start_times.clear()
+
+    def _checked_environment(self):
+        if self._has_checked_environment:
+            return
+
+        self._has_checked_environment = True
+
+        print(f"Python {sys.version}")
+        print(f"Implementation: {platform.python_implementation()}")
+        print(
+            f"OS: {platform.system()} {platform.release()}, "
+            f"Arch: {platform.machine()} \n"
+        )
 
     def _timer(self, task: Callable[..., Any]) -> Callable[..., Any]:
         def inner(*args, **kwargs):

@@ -57,7 +57,7 @@ class TestGCRARateLimiter:
         [per_min(1, 1), per_min(10, 10), per_min(100, 100), per_min(1_000, 1_000)],
     )
     @pytest.mark.parametrize("requests_num", [10, 100, 1_000, 10_000])
-    def test_limit__current(
+    def test_limit__concurrent(
         self,
         benchmark: Benchmark,
         rate_limiter_constructor: Callable[[Quota], BaseRateLimiter],
