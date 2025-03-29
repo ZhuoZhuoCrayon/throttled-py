@@ -223,7 +223,7 @@ class GCRARateLimiter(BaseRateLimiter):
 
     def _prepare(self, key: str) -> Tuple[str, float, int]:
         emission_interval: float = self.quota.get_period_sec() / self.quota.get_limit()
-        return key, emission_interval, self.quota.burst
+        return self._prepare_key(key), emission_interval, self.quota.burst
 
     def _limit(self, key: str, cost: int = 1) -> RateLimitResult:
         formatted_key, emission_interval, capacity = self._prepare(key)

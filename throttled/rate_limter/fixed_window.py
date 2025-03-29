@@ -36,17 +36,17 @@ class RedisLimitAtomicAction(BaseAtomicAction):
     def __init__(self, backend: RedisStoreBackend):
         # In single command scenario, lua has no performance advantage, and even causes
         # a decrease in performance due to the increase in transmission content.
-        # Benchmarks()
+        # Benchmarks(Python 3.8, Darwin 23.6.0, Arm)
         # >> Redis baseline
-        # command -> set key value
-        # serial  -> 🕒Latency: 0.0609 ms/op, 🚀Throughput: 16271 req/s
-        # current -> 🕒Latency: 0.4515 ms/op, 💤Throughput: 12100 req/s
+        # command    -> set key value
+        # serial     -> 🕒Latency: 0.0609 ms/op, 🚀Throughput: 16271 req/s
+        # concurrent -> 🕒Latency: 0.4515 ms/op, 💤Throughput: 12100 req/s
         # >> Lua
-        # serial  -> 🕒Latency: 0.0805 ms/op, 🚀Throughput: 12319 req/s
-        # current -> 🕒Latency: 0.6959 ms/op, 💤Throughput: 10301 req/s
+        # serial     -> 🕒Latency: 0.0805 ms/op, 🚀Throughput: 12319 req/s
+        # concurrent -> 🕒Latency: 0.6959 ms/op, 💤Throughput: 10301 req/s
         # >> 👍 Single Command
-        # serial  -> 🕒Latency: 0.0659 ms/op, 🚀Throughput: 15040 req/s
-        # current -> 🕒Latency: 0.9084 ms/op, 💤Throughput: 11539 req/s
+        # serial     -> 🕒Latency: 0.0659 ms/op, 🚀Throughput: 15040 req/s
+        # concurrent -> 🕒Latency: 0.9084 ms/op, 💤Throughput: 11539 req/s
         # self._script: Script = backend.get_client().register_script(self.SCRIPTS)
         self._backend: RedisStoreBackend = backend
 
@@ -105,7 +105,7 @@ class FixedWindowRateLimiter(BaseRateLimiter):
     def _prepare(self, key: str) -> Tuple[str, int, int]:
         period: int = self.quota.get_period_sec()
         period_key: str = f"{key}:period:{now_sec() // period}"
-        return period_key, period, self.quota.get_limit()
+        return self._prepare_key(period_key), period, self.quota.get_limit()
 
     def _limit(self, key: str, cost: int = 1) -> RateLimitResult:
         period_key, period, limit = self._prepare(key)

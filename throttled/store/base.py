@@ -125,6 +125,12 @@ class BaseStore(abc.ABC):
         value: Optional[StoreValueT] = None,
         mapping: Optional[StoreDictValueT] = None,
     ) -> None:
+        """Set a value for the specified key in the specified hash.
+        :param name: The name of the hash.
+        :param key: The key in the hash.
+        :param value: The value to set.
+        :param mapping: A dictionary of key-value pairs to set.
+        """
         raise NotImplementedError
 
     @abc.abstractmethod

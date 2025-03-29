@@ -122,7 +122,7 @@ class LeakingBucketRateLimiter(BaseRateLimiter):
 
     def _prepare(self, key: str) -> Tuple[str, float, int]:
         rate: float = self.quota.get_limit() / self.quota.get_period_sec()
-        return key, rate, self.quota.burst
+        return self._prepare_key(key), rate, self.quota.burst
 
     def _limit(self, key: str, cost: int = 1) -> RateLimitResult:
         formatted_key, rate, capacity = self._prepare(key)
