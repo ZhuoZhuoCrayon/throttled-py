@@ -66,7 +66,7 @@ class TestTokenBucketRateLimiter:
     ):
         now: int = now_sec()
         rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
-        results = benchmark.current(
+        results = benchmark.concurrent(
             task=lambda: rate_limiter.limit("key").limited, batch=requests_num
         )
         cost: int = now_sec() - now

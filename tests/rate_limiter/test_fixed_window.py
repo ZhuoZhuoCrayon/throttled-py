@@ -73,7 +73,7 @@ class TestFixedWindowRateLimiter:
         requests_num: int,
     ):
         rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
-        results: List[bool] = benchmark.current(
+        results: List[bool] = benchmark.concurrent(
             task=lambda: rate_limiter.limit("key").limited, batch=requests_num
         )
 
