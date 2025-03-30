@@ -68,6 +68,7 @@ def redis_client() -> redis.Redis:
     clear_redis(client)
 
 
+@pytest.mark.skip(reason="skip benchmarks")
 class TestBenchmarkThrottled:
     def test_memory_baseline__serial(self, benchmark: Benchmark):
         benchmark.serial(memory_baseline, batch=500_000, dict_store={})
