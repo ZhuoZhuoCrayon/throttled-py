@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import List
 
 from .types import RateLimiterTypeT
 
@@ -19,3 +20,13 @@ class RateLimiterType(Enum):
     LEAKING_BUCKET: RateLimiterTypeT = "leaking_bucket"
     TOKEN_BUCKET: RateLimiterTypeT = "token_bucket"
     GCRA: RateLimiterTypeT = "gcra"
+
+    @classmethod
+    def choice(cls) -> List[RateLimiterTypeT]:
+        return [
+            cls.FIXED_WINDOW.value,
+            cls.SLIDING_WINDOW.value,
+            cls.LEAKING_BUCKET.value,
+            cls.TOKEN_BUCKET.value,
+            cls.GCRA.value,
+        ]
