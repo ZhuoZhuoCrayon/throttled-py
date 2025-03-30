@@ -17,11 +17,11 @@
 
 ## 🚀 功能
 
-* 提供线程安全的存储后端：Redis（基于 Lua 实现限流算法）、内存（基于 threading.RLock）。
+* 提供线程安全的存储后端：Redis（基于 Lua 实现限流算法）、内存（基于 threading.RLock，支持 Key 过期淘汰）。
 * 支持多种限流算法：[固定窗口](https://github.com/ZhuoZhuoCrayon/throttled-py/tree/main/docs/basic#21-%E5%9B%BA%E5%AE%9A%E7%AA%97%E5%8F%A3%E8%AE%A1%E6%95%B0%E5%99%A8)、[滑动窗口](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#22-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3)、[令牌桶](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#23-%E4%BB%A4%E7%89%8C%E6%A1%B6)、[漏桶](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#24-%E6%BC%8F%E6%A1%B6) & [通用信元速率算法（Generic Cell Rate Algorithm, GCRA）](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#25-gcra)。
 * 提供灵活的限流策略、配额设置 API，文档详尽。
 * 支持装饰器模式。
-* 良好的性能，详见 [Benchmarks](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#-benchmarks)：
+* 良好的性能，单次限流 API 执行耗时换算如下（详见 [Benchmarks](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#-benchmarks)）：
   * 内存：约为 2.5 ~ 4.5 次 `dict[key] += 1` 操作。
   * Redis：约为 1.06 ~ 1.37 次 `INCRBY key increment` 操作。
 
@@ -96,7 +96,7 @@ print(throttle.limit("key", 60))
 ```python
 from throttled import Throttled, rate_limter, exceptions
 
-# 创建一个每秒允许通过 1 次的限流器。
+# 创建一个每分钟允许通过 1 次的限流器。
 @Throttled(key="/ping", quota=rate_limter.per_min(1))
 def ping() -> str:
     return "ping"
@@ -232,14 +232,14 @@ Quota(Rate(period=timedelta(minutes=2), limit=120), burst=150)
 
 ### 2）性能（单位：吞吐量 req/s，延迟 ms/op）
 
-| 算法类型           | 内存（串行）           | 内存（并发，16 线程）      | Redis（串行）       | Redis（并发，16 线程） |
-| ------------------ | ---------------------- | -------------------------- | ------------------- | ---------------------- |
-| **对比基准** *[1]* | **1,692,307 / 0.0002** | **135,018 / 0.0004** *[2]* | **17,324 / 0.0571** | **16,803 / 0.9478**    |
-| 固定窗口           | 369,635 / 0.0023       | 57,275 / 0.2533            | 16,233 / 0.0610     | 15,835 / 1.0070        |
-| 滑动窗口           | 265,215 / 0.0034       | 49,721 / 0.2996            | 12,605 / 0.0786     | 13,371 / 1.1923        |
-| 令牌桶             | 365,678 / 0.0023       | 54,597 / 0.2821            | 13,643 / 0.0727     | 13,219 / 1.2057        |
-| 漏桶               | 364,296 / 0.0023       | 54,136 / 0.2887            | 13,628 / 0.0727     | 12,579 / 1.2667        |
-| GCRA               | 373,906 / 0.0023       | 53,994 / 0.2895            | 12,901 / 0.0769     | 12,861 / 1.2391        |
+| 算法类型           | 内存（串行）                 | 内存（并发，16 线程）               | Redis（串行）           | Redis（并发，16 线程）     |
+|----------------|------------------------|----------------------------|---------------------|---------------------|
+| **对比基准** *[1]* | **1,692,307 / 0.0002** | **135,018 / 0.0004** *[2]* | **17,324 / 0.0571** | **16,803 / 0.9478** |
+| 固定窗口           | 369,635 / 0.0023       | 57,275 / 0.2533            | 16,233 / 0.0610     | 15,835 / 1.0070     |
+| 滑动窗口           | 265,215 / 0.0034       | 49,721 / 0.2996            | 12,605 / 0.0786     | 13,371 / 1.1923     |
+| 令牌桶            | 365,678 / 0.0023       | 54,597 / 0.2821            | 13,643 / 0.0727     | 13,219 / 1.2057     |
+| 漏桶             | 364,296 / 0.0023       | 54,136 / 0.2887            | 13,628 / 0.0727     | 12,579 / 1.2667     |
+| GCRA           | 373,906 / 0.0023       | 53,994 / 0.2895            | 12,901 / 0.0769     | 12,861 / 1.2391     |
 
 * *[1] 对比基准：内存 - `dict[key] += 1`，Redis - `INCRBY key increment`。*
 * *[2] 在内存并发对比基准中，使用 `threading.RLock` 保证线程安全。*
