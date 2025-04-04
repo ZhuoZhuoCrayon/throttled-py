@@ -117,7 +117,7 @@ class RedisPeekAtomicAction(RedisLimitAtomicAction):
     if remaining < 1 then
         limited = 1
         remaining = 0
-        retry_after = time_elapsed * -1
+        retry_after = math.abs(time_elapsed)
     end
 
     -- use tostring to avoid lost precision.
@@ -195,7 +195,7 @@ class MemoryPeekAtomicAction(MemoryLimitAtomicAction):
             if remaining < 1:
                 limited: int = 1
                 remaining: int = 0
-                retry_after: float = -time_elapsed
+                retry_after: float = math.fabs(time_elapsed)
             else:
                 limited: int = 0
                 retry_after: float = 0
@@ -227,22 +227,28 @@ class GCRARateLimiter(BaseRateLimiter):
 
     def _limit(self, key: str, cost: int = 1) -> RateLimitResult:
         formatted_key, emission_interval, capacity = self._prepare(key)
-        limited, remaining, reset_after, __ = self._atomic_actions[
+        limited, remaining, reset_after, retry_after = self._atomic_actions[
             GCRAAtomicActionType.LIMIT.value
         ].do([formatted_key], [emission_interval, capacity, cost])
 
         return RateLimitResult(
             limited=bool(limited),
             state=RateLimitState(
-                limit=capacity, remaining=remaining, reset_after=reset_after
+                limit=capacity,
+                remaining=remaining,
+                reset_after=reset_after,
+                retry_after=retry_after,
             ),
         )
 
     def _peek(self, key: str) -> RateLimitState:
         formatted_key, emission_interval, capacity = self._prepare(key)
-        limited, remaining, reset_after, __ = self._atomic_actions[
+        limited, remaining, reset_after, retry_after = self._atomic_actions[
             GCRAAtomicActionType.PEEK.value
         ].do([formatted_key], [emission_interval, capacity])
         return RateLimitState(
-            limit=capacity, remaining=remaining, reset_after=reset_after
+            limit=capacity,
+            remaining=remaining,
+            reset_after=reset_after,
+            retry_after=retry_after,
         )

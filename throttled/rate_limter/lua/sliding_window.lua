@@ -34,7 +34,19 @@ local current_proportion = (now_ms % period_ms) / period_ms
 previous = math.floor((1 - current_proportion) * previous)
 local used = previous + current
 
+local retry_after = 0
+local limited = used > limit
+if limited then
+    if cost <= previous then
+        retry_after = (1 - current_proportion) * period * cost / previous
+    else
+        -- |-- previous --|- current -|------- new period -------|
+        retry_after = (1- current_proportion) * period
+    end
+end
+
 -- Return [limited, current]
 -- limited: 1 if over limit, 0 otherwise.
 -- current: current count in current window.
-return {used > limit and 1 or 0, used}
+-- retry_after: time in seconds to wait before retrying.
+return {limited, used, tostring(retry_after)}
