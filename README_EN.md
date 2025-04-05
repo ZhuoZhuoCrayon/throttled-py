@@ -219,14 +219,14 @@ Quota(Rate(period=timedelta(minutes=2), limit=120), burst=150)
 
 ### 2) Performance Metrics (Throughput in req/s, Latency in ms/op)
 
-| Algorithm Type      | In-Memory (Single-thread) | In-Memory (16 threads)   | Redis (Single-thread)  | Redis (16 threads)    |
-|---------------------|--------------------------|-------------------------|-----------------------|----------------------|
-| **Baseline** *[1]*  | **1,692,307 / 0.0002**   | **135,018 / 0.0004** *[2]* | **17,324 / 0.0571**   | **16,803 / 0.9478**  |
-| Fixed Window        | 369,635 / 0.0023      | 57,275 / 0.2533        | 16,233 / 0.0610       | 15,835 / 1.0070      |
-| Sliding Window      | 265,215 / 0.0034      | 49,721 / 0.2996        | 12,605 / 0.0786       | 13,371 / 1.1923      |
-| Token Bucket        | 365,678 / 0.0023      | 54,597 / 0.2821        | 13,643 / 0.0727       | 13,219 / 1.2057      |
-| Leaky Bucket        | 364,296 / 0.0023      | 54,136 / 0.2887        | 13,628 / 0.0727       | 12,579 / 1.2667      |
-| GCRA                | 373,906 / 0.0023      | 53,994 / 0.2895        | 12,901 / 0.0769       | 12,861 / 1.2391      |
+| Algorithm Type     | In-Memory (Single-thread) | In-Memory (16 threads)     | Redis (Single-thread) | Redis (16 threads)  |
+|--------------------|---------------------------|----------------------------|-----------------------|---------------------|
+| **Baseline** *[1]* | **1,692,307 / 0.0002**    | **135,018 / 0.0004** *[2]* | **17,324 / 0.0571**   | **16,803 / 0.9478** |
+| Fixed Window       | 369,635 / 0.0023          | 57,275 / 0.2533            | 16,233 / 0.0610       | 15,835 / 1.0070     |
+| Sliding Window     | 265,215 / 0.0034          | 49,721 / 0.2996            | 12,605 / 0.0786       | 13,371 / 1.1923     |
+| Token Bucket       | 365,678 / 0.0023          | 54,597 / 0.2821            | 13,643 / 0.0727       | 13,219 / 1.2057     |
+| Leaky Bucket       | 364,296 / 0.0023          | 54,136 / 0.2887            | 13,628 / 0.0727       | 12,579 / 1.2667     |
+| GCRA               | 373,906 / 0.0023          | 53,994 / 0.2895            | 12,901 / 0.0769       | 12,861 / 1.2391     |
 
 * *[1] Baseline: In-Memory - `dict[key] += 1`, Redis - `INCRBY key increment`*.
 * *[2] In-Memory concurrent baseline uses `threading.RLock` for thread safety.*
@@ -254,6 +254,7 @@ RateLimitState represents the current state of the rate limiter for the given ke
 | `limit`       | int   | Limit represents the maximum number of requests allowed to pass in the initial state.                                                |
 | `remaining`   | int   | Remaining represents the maximum number of requests allowed to pass for the given key in the current state.                          |
 | `reset_after` | float | ResetAfter represents the time in seconds for the RateLimiter to return to its initial state. In the initial state, Limit=Remaining. |
+| `retry_after` | float | RetryAfter represents the time in seconds for the request to be retried, 0 if the request is allowed.                                |
 
 ### 3) Quota
 

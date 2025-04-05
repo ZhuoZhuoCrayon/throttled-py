@@ -267,6 +267,7 @@ RateLimitState 表示给定 Key 的限流器当前状态。
 | `limit`       | int   | 表示在初始状态下允许通过的最大请求数量。                                    |
 | `remaining`   | int   | 表示在当前状态下，针对给定键允许通过的最大请求数量。                              |
 | `reset_after` | float | 表示限流器恢复到初始状态所需的时间（以秒为单位）。在初始状态下，`limit` 等于 `remaining`。 |
+| `retry_after` | float | 表示被拒绝请求的重试等待时间（以秒为单位），请求允许通过时，`retry_after` 为 0。        |
 
 ### 3）Quota
 

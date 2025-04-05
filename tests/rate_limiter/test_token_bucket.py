@@ -30,27 +30,31 @@ class TestTokenBucketRateLimiter:
         quota: Quota = per_min(limit=60, burst=10)
         rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
 
+        def _assert(_remaining: int, _result: RateLimitResult):
+            assert _result.state.remaining == _remaining
+            assert _result.state.reset_after == quota.burst - _remaining
+            if _result.limited:
+                assert _result.state.retry_after == 1
+            else:
+                assert _result.state.retry_after == 0
+
         time.sleep(1)
         result: RateLimitResult = rate_limiter.limit(key)
+        _assert(9, result)
         assert result.limited is False
-        assert result.state.remaining == 9
-        assert result.state.reset_after == 1
 
         time.sleep(1)
         result: RateLimitResult = rate_limiter.limit(key, cost=5)
+        _assert(5, result)
         assert result.limited is False
-        assert result.state.remaining == 5
-        assert result.state.reset_after == 5
 
         result: RateLimitResult = rate_limiter.limit(key, cost=5)
+        _assert(0, result)
         assert result.limited is False
-        assert result.state.remaining == 0
-        assert result.state.reset_after == 10
 
         result: RateLimitResult = rate_limiter.limit(key)
+        _assert(0, result)
         assert result.limited is True
-        assert result.state.remaining == 0
-        assert result.state.reset_after == 10
 
     @pytest.mark.parametrize(
         "quota",
