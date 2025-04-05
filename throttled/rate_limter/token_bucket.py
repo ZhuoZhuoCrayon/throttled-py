@@ -132,11 +132,16 @@ class TokenBucketRateLimiter(BaseRateLimiter):
             TokenBucketAtomicActionType.LIMIT.value
         ].do([formatted_key], [rate, capacity, cost, now_sec()])
         reset_after: int = math.ceil((capacity - tokens) / rate)
-
+        retry_after: int = 0
+        if limited:
+            retry_after = math.ceil(cost / rate)
         return RateLimitResult(
             limited=bool(limited),
             state=RateLimitState(
-                limit=capacity, remaining=tokens, reset_after=reset_after
+                limit=capacity,
+                remaining=tokens,
+                reset_after=reset_after,
+                retry_after=retry_after,
             ),
         )
 

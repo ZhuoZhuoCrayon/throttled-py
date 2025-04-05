@@ -30,8 +30,8 @@ class TestFixedWindowRateLimiter:
         limit: int = 5
         period: int = 60
         quota: Quota = Quota(Rate(period=timedelta(minutes=1), limit=limit))
-        assert quota.get_limit() == 5
-        assert quota.get_period_sec() == 60
+        assert quota.get_limit() == limit
+        assert quota.get_period_sec() == period
 
         key: str = "key"
         rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
@@ -39,26 +39,27 @@ class TestFixedWindowRateLimiter:
         store_key: str = f"throttled:v1:fixed_window:key:period:{now_sec() // period}"
         assert rate_limiter._store.exists(store_key) is False
 
+        def _assert(_remaining: int, _result: RateLimitResult):
+            assert _result.state.limit == limit
+            assert _result.state.remaining == _remaining
+            assert _result.state.reset_after == period - (now_sec() % period)
+            if _result.limited:
+                assert _result.state.retry_after == _result.state.reset_after
+
         result: RateLimitResult = rate_limiter.limit(key)
+        _assert(4, result)
         assert result.limited is False
-        assert result.state == RateLimitState(
-            limit=limit, remaining=4, reset_after=period
-        )
         assert rate_limiter._store.get(store_key) == 1
         assert rate_limiter._store.ttl(store_key) == period
 
         result: RateLimitResult = rate_limiter.limit(key, cost=4)
+        _assert(0, result)
         assert result.limited is False
-        assert result.state == RateLimitState(
-            limit=limit, remaining=0, reset_after=period
-        )
         assert rate_limiter._store.get(store_key) == 5
 
         result: RateLimitResult = rate_limiter.limit(key, cost=4)
+        _assert(0, result)
         assert result.limited is True
-        assert result.state == RateLimitState(
-            limit=limit, remaining=0, reset_after=period
-        )
         assert rate_limiter._store.get(store_key) == 9
 
     @pytest.mark.parametrize(
@@ -85,10 +86,17 @@ class TestFixedWindowRateLimiter:
     def test_peek(self, rate_limiter_constructor: Callable[[Quota], BaseRateLimiter]):
         key: str = "key"
         rate_limiter: BaseRateLimiter = rate_limiter_constructor(per_min(1))
-        assert rate_limiter.peek(key) == RateLimitState(
-            limit=1, remaining=1, reset_after=60
-        )
+
+        def _assert(_state: RateLimitState):
+            assert _state.limit == 1
+            assert _state.reset_after == 60 - (now_sec() % 60)
+
+        state: RateLimitState = rate_limiter.peek(key)
+        _assert(state)
+        assert state.remaining == 1
+
         rate_limiter.limit(key)
-        assert rate_limiter.peek(key) == RateLimitState(
-            limit=1, remaining=0, reset_after=60
-        )
+
+        state: RateLimitState = rate_limiter.peek(key)
+        assert state.remaining == 0
+        _assert(state)

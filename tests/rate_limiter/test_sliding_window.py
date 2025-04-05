@@ -32,8 +32,8 @@ class TestSlidingWindowRateLimiter:
         limit: int = 5
         period: int = 60
         quota: Quota = Quota(Rate(period=timedelta(minutes=1), limit=limit))
-        assert quota.get_limit() == 5
-        assert quota.get_period_sec() == 60
+        assert quota.get_limit() == limit
+        assert quota.get_period_sec() == period
 
         key: str = "key"
         rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
@@ -41,26 +41,25 @@ class TestSlidingWindowRateLimiter:
         store_key: str = f"throttled:v1:sliding_window:key:period:{now_sec() // period}"
         assert rate_limiter._store.exists(store_key) is False
 
+        def _assert(_remaining: int, _result: RateLimitResult):
+            assert _result.state.limit == limit
+            assert _result.state.remaining == _remaining
+            assert _result.state.reset_after == period
+
         result: RateLimitResult = rate_limiter.limit(key)
+        _assert(4, result)
         assert result.limited is False
-        assert result.state == RateLimitState(
-            limit=limit, remaining=4, reset_after=period
-        )
         assert rate_limiter._store.get(store_key) == 1
         assert rate_limiter._store.ttl(store_key) == 3 * period
 
         result: RateLimitResult = rate_limiter.limit(key, cost=4)
+        _assert(0, result)
         assert result.limited is False
-        assert result.state == RateLimitState(
-            limit=limit, remaining=0, reset_after=period
-        )
         assert rate_limiter._store.get(store_key) == 5
 
         result: RateLimitResult = rate_limiter.limit(key, cost=4)
+        _assert(0, result)
         assert result.limited is True
-        assert result.state == RateLimitState(
-            limit=limit, remaining=0, reset_after=period
-        )
         assert rate_limiter._store.get(store_key) == 9
 
     @pytest.mark.parametrize(

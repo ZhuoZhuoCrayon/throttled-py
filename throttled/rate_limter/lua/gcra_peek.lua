@@ -32,7 +32,7 @@ local remaining = math.floor(time_elapsed / emission_interval)
 if remaining < 1 then
     limited = 1
     remaining = 0
-    retry_after = time_elapsed * -1
+    retry_after = math.abs(time_elapsed)
 end
 
 -- Return [limited, remaining, reset_after, retry_after]

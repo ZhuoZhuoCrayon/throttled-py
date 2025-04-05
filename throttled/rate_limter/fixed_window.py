@@ -102,26 +102,36 @@ class FixedWindowRateLimiter(BaseRateLimiter):
     def _supported_atomic_action_types(cls) -> List[AtomicActionTypeT]:
         return [FixedWindowAtomicActionType.LIMIT.value]
 
-    def _prepare(self, key: str) -> Tuple[str, int, int]:
+    def _prepare(self, key: str) -> Tuple[str, int, int, int]:
+        now: int = now_sec()
         period: int = self.quota.get_period_sec()
-        period_key: str = f"{key}:period:{now_sec() // period}"
-        return self._prepare_key(period_key), period, self.quota.get_limit()
+        period_key: str = f"{key}:period:{now // period}"
+        return self._prepare_key(period_key), period, self.quota.get_limit(), now
 
     def _limit(self, key: str, cost: int = 1) -> RateLimitResult:
-        period_key, period, limit = self._prepare(key)
+        period_key, period, limit, now = self._prepare(key)
         limited, current = self._atomic_actions[
             FixedWindowAtomicActionType.LIMIT.value
         ].do([period_key], [period, limit, cost])
+
+        # |-- now % period --|-- reset_after --|----- next period -----|
+        # |--------------- period -------------|
+        reset_after: float = period - (now % period)
         return RateLimitResult(
             limited=bool(limited),
             state=RateLimitState(
-                limit=limit, remaining=max(0, limit - current), reset_after=period
+                limit=limit,
+                remaining=max(0, limit - current),
+                reset_after=reset_after,
+                retry_after=(0, reset_after)[limited],
             ),
         )
 
     def _peek(self, key: str) -> RateLimitState:
-        period_key, period, limit = self._prepare(key)
+        period_key, period, limit, now = self._prepare(key)
         current: int = int(self._store.get(period_key) or 0)
         return RateLimitState(
-            limit=limit, remaining=max(0, limit - current), reset_after=period
+            limit=limit,
+            remaining=max(0, limit - current),
+            reset_after=period - (now % period),
         )

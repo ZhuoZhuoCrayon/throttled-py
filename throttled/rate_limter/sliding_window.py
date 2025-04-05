@@ -44,7 +44,17 @@ class RedisLimitAtomicAction(BaseAtomicAction):
     previous = math.floor((1 - current_proportion) * previous)
     local used = previous + current
 
-    return {used > limit and 1 or 0, used}
+    local retry_after = 0
+    local limited = used > limit
+    if limited then
+        if cost <= previous then
+            retry_after = (1 - current_proportion) * period * cost / previous
+        else
+            retry_after = (1- current_proportion) * period
+        end
+    end
+
+    return {limited, used, tostring(retry_after)}
     """
 
     def __init__(self, backend: RedisStoreBackend):
@@ -52,8 +62,9 @@ class RedisLimitAtomicAction(BaseAtomicAction):
 
     def do(
         self, keys: Sequence[KeyT], args: Optional[Sequence[StoreValueT]]
-    ) -> Tuple[int, int]:
-        return self._script(keys, args)
+    ) -> Tuple[int, int, float]:
+        limited, used, retry_after = self._script(keys, args)
+        return limited, used, float(retry_after)
 
 
 class MemoryLimitAtomicAction(BaseAtomicAction):
@@ -67,7 +78,7 @@ class MemoryLimitAtomicAction(BaseAtomicAction):
 
     def do(
         self, keys: Sequence[KeyT], args: Optional[Sequence[StoreValueT]]
-    ) -> Tuple[int, int]:
+    ) -> Tuple[int, int, float]:
         with self._backend.lock:
             current_key: str = keys[0]
             previous_key: str = keys[1]
@@ -90,7 +101,16 @@ class MemoryLimitAtomicAction(BaseAtomicAction):
             )
 
             used: int = previous + current
-            return (0, 1)[used > limit], used
+            limited: int = (0, 1)[used > limit]
+            if limited:
+                if cost <= previous:
+                    retry_after = (1 - current_proportion) * period * cost / previous
+                else:
+                    retry_after = (1 - current_proportion) * period
+            else:
+                retry_after = 0
+
+            return limited, used, retry_after
 
 
 class SlidingWindowRateLimiter(BaseRateLimiter):
@@ -116,13 +136,16 @@ class SlidingWindowRateLimiter(BaseRateLimiter):
 
     def _limit(self, key: str, cost: int = 1) -> RateLimitResult:
         current_key, previous_key, period, limit = self._prepare(key)
-        limited, used = self._atomic_actions[
+        limited, used, retry_after = self._atomic_actions[
             SlidingWindowAtomicActionType.LIMIT.value
         ].do([current_key, previous_key], [period, limit, cost, now_ms()])
         return RateLimitResult(
             limited=bool(limited),
             state=RateLimitState(
-                limit=limit, remaining=max(0, limit - used), reset_after=period
+                limit=limit,
+                remaining=max(0, limit - used),
+                reset_after=period,
+                retry_after=retry_after,
             ),
         )
 

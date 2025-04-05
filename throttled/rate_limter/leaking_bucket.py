@@ -130,13 +130,16 @@ class LeakingBucketRateLimiter(BaseRateLimiter):
             LeakingBucketAtomicActionType.LIMIT.value
         ]
         limited, tokens = action.do([formatted_key], [rate, capacity, cost, now_sec()])
-
+        retry_after: int = 0
+        if limited:
+            retry_after = math.ceil(cost / rate)
         return RateLimitResult(
             limited=bool(limited),
             state=RateLimitState(
                 limit=capacity,
                 remaining=tokens,
                 reset_after=math.ceil((capacity - tokens) / rate),
+                retry_after=retry_after,
             ),
         )
 
