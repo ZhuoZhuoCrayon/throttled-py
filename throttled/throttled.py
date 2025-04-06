@@ -194,7 +194,7 @@ class Throttled:
         # TODO: When cost > limit, return early instead of waiting.
         start_time: float = now_sec_f()
         while True:
-            if result.state.retry_after > timeout or timeout < result.state.retry_after:
+            if result.state.retry_after > timeout:
                 break
 
             self._wait(timeout, result.state.retry_after)
