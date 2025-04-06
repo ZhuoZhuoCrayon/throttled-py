@@ -18,8 +18,8 @@
 
 * Provides thread-safe storage backends: Redis (rate limiting algorithms implemented in Lua), In-Memory (based on threading.RLock with key expiration eviction).
 * Supports multiple rate limiting algorithms: [Fixed Window](https://github.com/ZhuoZhuoCrayon/throttled-py/tree/main/docs/basic#21-%E5%9B%BA%E5%AE%9A%E7%AA%97%E5%8F%A3%E8%AE%A1%E6%95%B0%E5%99%A8), [Sliding Window](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#22-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3), [Token Bucket](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#23-%E4%BB%A4%E7%89%8C%E6%A1%B6), [Leaky Bucket](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#24-%E6%BC%8F%E6%A1%B6) & [Generic Cell Rate Algorithm (GCRA)](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#25-gcra).
-* Provides flexible rate limiting policies and quota configuration APIs with comprehensive documentation.
-* Supports decorator pattern.
+* Provides flexible rate limiting policies, quota configuration, and detailed documentation.
+* Supports immediate response and wait-retry modes, and provides function call and decorator modes.
 * Excellent performance,  The execution time for a single rate limiting API call is equivalent to(see [Benchmarks](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_EN.md#-benchmarks) for details):
   * In-Memory: ~2.5-4.5x `dict[key] += 1` operations.
   * Redis: ~1.06-1.37x `INCRBY key increment` operations.
@@ -105,6 +105,38 @@ try:
 except exceptions.LimitedError as exc:
     print(exc)  # "Rate limit exceeded: remaining=0, reset_after=60"
     print(exc.rate_limit_result)  # Access RateLimitResult
+```
+
+#### Wait & Retry
+
+By default, rate limiting returns [**RateLimitResult**](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_EN.md#1-ratelimitresult) immediately.
+
+You can specify a **`timeout`** to enable wait-and-retry behavior. The rate limiter will wait according to the `retry_after` value in [**RateLimitState**](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_EN.md#2-ratelimitstate) and retry automatically.
+
+Returns the final [**RateLimitResult**](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_EN.md#1-ratelimitresult) when the request is allowed or timeout reached.
+
+```python
+from throttled import RateLimiterType, Throttled, rate_limter, utils
+
+throttle = Throttled(
+    using=RateLimiterType.TOKEN_BUCKET.value,
+    quota=rate_limter.per_sec(1_000, burst=1_000),
+    # ⏳ Set timeout=1 to enable wait-and-retry (max wait 1 second)
+    timeout=1,
+)
+
+def call_api() -> bool:
+    # ⬆️⏳ Function-level timeout overrides global timeout
+    result = throttle.limit("/ping", cost=1, timeout=1)
+    return result.limited
+
+if __name__ == "__main__":
+    # 👇 The actual QPS is close to the preset quota (1_000 req/s):
+    # ✅ Total: 10000, 🕒 Latency: 14.7883 ms/op, 🚀Throughput: 1078 req/s (--)
+    # ❌ Denied: 54 requests
+    benchmark: utils.Benchmark = utils.Benchmark()
+    denied_num: int = sum(benchmark.concurrent(call_api, 10_000, workers=16))
+    print(f"❌ Denied: {denied_num} requests")
 ```
 
 ### 2) Storage Backends

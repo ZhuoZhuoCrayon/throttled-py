@@ -19,8 +19,8 @@
 
 * 提供线程安全的存储后端：Redis（基于 Lua 实现限流算法）、内存（基于 threading.RLock，支持 Key 过期淘汰）。
 * 支持多种限流算法：[固定窗口](https://github.com/ZhuoZhuoCrayon/throttled-py/tree/main/docs/basic#21-%E5%9B%BA%E5%AE%9A%E7%AA%97%E5%8F%A3%E8%AE%A1%E6%95%B0%E5%99%A8)、[滑动窗口](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#22-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3)、[令牌桶](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#23-%E4%BB%A4%E7%89%8C%E6%A1%B6)、[漏桶](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#24-%E6%BC%8F%E6%A1%B6) & [通用信元速率算法（Generic Cell Rate Algorithm, GCRA）](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#25-gcra)。
-* 提供灵活的限流策略、配额设置 API，文档详尽。
-* 支持装饰器模式。
+* 提供灵活的限流算法、配额设置，文档详尽。
+* 支持即刻返回及等待重试，提供函数调用、装饰器模式。
 * 良好的性能，单次限流 API 执行耗时换算如下（详见 [Benchmarks](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#-benchmarks)）：
   * 内存：约为 2.5 ~ 4.5 次 `dict[key] += 1` 操作。
   * Redis：约为 1.06 ~ 1.37 次 `INCRBY key increment` 操作。
@@ -47,7 +47,7 @@ from throttled import RateLimiterType, Throttled, rate_limter, store, utils
 throttle = Throttled(
     # 📈 使用令牌桶作为限流算法。
     using=RateLimiterType.TOKEN_BUCKET.value,
-    # 🪣 设置配额：每分钟填充 1000 个 Token（limit），桶大小为 1000（burst）。
+    # 🪣 设置配额：每秒填充 1000 个 Token（limit），桶大小为 1000（burst）。
     quota=rate_limter.per_sec(1_000, burst=1_000),
     # 📁 使用内存作为存储
     store=store.MemoryStore(),
@@ -112,6 +112,38 @@ except exceptions.LimitedError as exc:
     # 在异常中获取限流结果：RateLimitResult(limited=True, 
     # state=RateLimitState(limit=1, remaining=0, reset_after=60))
     print(exc.rate_limit_result)
+```
+
+#### 等待重试
+
+默认情况下，限流判断将「即刻」返回 [**RateLimitResult**](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#1ratelimitresult)。
+
+你可以通过  **`timeout`** 指定等待重试的超时时间，限流器将根据  [**RateLimitState**](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#2ratelimitstate) 的 `retry_after` 进行若干次等待及重试。
+
+一旦请求通过或超时，返回最后一次的  [**RateLimitResult**](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#1ratelimitresult)。
+
+```python
+from throttled import RateLimiterType, Throttled, rate_limter, utils
+
+throttle = Throttled(
+    using=RateLimiterType.TOKEN_BUCKET.value,
+    quota=rate_limter.per_sec(1_000, burst=1_000),
+    # ⏳ 设置超时时间为 1 秒，表示允许等待重试，等待时间超过 1 秒返回最后一次限流结果。
+    timeout=1,
+)
+
+def call_api() -> bool:
+    # ⬆️⏳ 函数调用传入 timeout 将覆盖全局设置的 timeout。
+    result = throttle.limit("/ping", cost=1, timeout=1)
+    return result.limited
+
+if __name__ == "__main__":
+    # 👇 实际 QPS 接近预设容量（1_000 req/s）：
+    # ✅ Total: 10000, 🕒 Latency: 14.7883 ms/op, 🚀Throughput: 1078 req/s (--)
+    # ❌ Denied: 54 requests
+    benchmark: utils.Benchmark = utils.Benchmark()
+    denied_num: int = sum(benchmark.concurrent(call_api, 10_000, workers=16))
+    print(f"❌ Denied: {denied_num} requests")
 ```
 
 ### 2）指定存储后端

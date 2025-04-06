@@ -3,7 +3,7 @@ from throttled import RateLimiterType, Throttled, rate_limter, store, utils
 throttle = Throttled(
     # 📈 使用令牌桶作为限流算法。
     using=RateLimiterType.TOKEN_BUCKET.value,
-    # 🪣 设置配额：每分钟填充 1000 个 Token（limit），桶大小为 1000（burst）。
+    # 🪣 设置配额：每秒填充 1_000 个 Token（limit），桶大小为 1_000（burst）。
     quota=rate_limter.per_sec(1_000, burst=1_000),
     # 📁 使用内存作为存储
     store=store.MemoryStore(),

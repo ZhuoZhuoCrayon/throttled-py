@@ -11,6 +11,10 @@ def now_sec() -> int:
     return int(time.time())
 
 
+def now_sec_f() -> float:
+    return time.time()
+
+
 def now_ms() -> int:
     return int(time.time() * 1000)
 
