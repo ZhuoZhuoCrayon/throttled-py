@@ -1,3 +1,4 @@
+import math
 import threading
 from collections import OrderedDict
 from typing import Any, Dict, Optional
@@ -7,7 +8,7 @@ from typing import Type
 from ..constants import StoreTTLState, StoreType
 from ..exceptions import DataError, SetUpError
 from ..types import KeyT, StoreBucketValueT, StoreDictValueT, StoreValueT
-from ..utils import now_sec
+from ..utils import now_sec_f
 from .base import BaseAtomicAction, BaseStore, BaseStoreBackend
 
 
@@ -44,10 +45,10 @@ class MemoryStoreBackend(BaseStoreBackend):
                 return StoreTTLState.NOT_EXIST.value
             return StoreTTLState.NOT_TTL.value
 
-        ttl: int = int(exp) - now_sec()
+        ttl: float = exp - now_sec_f()
         if ttl <= 0:
             return StoreTTLState.NOT_EXIST.value
-        return ttl
+        return math.ceil(ttl)
 
     def check_and_evict(self, key: KeyT) -> None:
         is_full: bool = len(self._client) >= self.max_size
@@ -56,7 +57,7 @@ class MemoryStoreBackend(BaseStoreBackend):
             self.expire_info.pop(pop_key, None)
 
     def expire(self, key: KeyT, timeout: int) -> None:
-        self.expire_info[key] = now_sec() + timeout
+        self.expire_info[key] = now_sec_f() + timeout
 
     def get(self, key: KeyT) -> Optional[StoreValueT]:
         if self.has_expired(key):

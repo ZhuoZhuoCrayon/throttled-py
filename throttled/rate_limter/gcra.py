@@ -158,7 +158,7 @@ class MemoryLimitAtomicAction(BaseAtomicAction):
             if remaining < 0:
                 limited: int = 1
                 retry_after: float = -time_elapsed
-                reset_after: float = max(0, last_tat - now)
+                reset_after: float = max(0.0, last_tat - now)
                 remaining: int = min(capacity, cost + remaining)
             else:
                 limited: int = 0
@@ -190,7 +190,7 @@ class MemoryPeekAtomicAction(MemoryLimitAtomicAction):
             allow_at: float = max(now, tat) - fill_time_for_capacity
             time_elapsed: float = now - allow_at
 
-            reset_after: float = max(0, tat - now)
+            reset_after: float = max(0.0, tat - now)
             remaining: int = math.floor(time_elapsed / emission_interval)
             if remaining < 1:
                 limited: int = 1
