@@ -3,6 +3,21 @@
 [简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.md) | English
 
 
+## v1.0.3 - 2025-04-10
+
+[简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.md#v103---2025-04-10) | English
+
+### What's Changed
+* feat: add retry_after to RateLimitState by @ZhuoZhuoCrayon in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/28
+* feat: add wait-retry mode with timeout configuration by @ZhuoZhuoCrayon in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/29
+* fix: gcra double traffic issue from inaccurate MemoryStore expiration by @ZhuoZhuoCrayon in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/30
+* test: add benchmark tests and update README by @ZhuoZhuoCrayon in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/26
+
+**Full Changelog**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v1.0.2...v1.0.3
+
+---
+
+
 ## v1.0.2 - 2025-03-29
 
 [简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.md#v102---2025-03-29) | English
@@ -13,7 +28,7 @@
 * perf: optimize the implementation of "Fixed Window" Rate Limiter based on Redis by @ZhuoZhuoCrayon in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/19
 * docs: resolve doc formatting issues by @JasperLinnn in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/15
 * test: add Benchmark class for performance testing by @ZhuoZhuoCrayon in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/16
-* ci: add github actions workflow for commit linting by @ZhuoZhuoCrayon in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/22
+* ci: add GitHub actions workflow for commit linting by @ZhuoZhuoCrayon in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/22
 
 ### New Contributors
 * @JasperLinnn made their first contribution in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/15

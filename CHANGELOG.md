@@ -3,6 +3,21 @@
 [English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md) | 简体中文
 
 
+## v1.0.3 - 2025-04-10
+
+[English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md#v103---2025-04-10) | 简体中文
+
+### 更新内容
+* feat: 新增「retry_after」到 RateLimitState by @ZhuoZhuoCrayon in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/28
+* feat: 新增「等待-重试」模式，并支持超时配置 by @ZhuoZhuoCrayon in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/29
+* fix: 修复因 MemoryStore 过期时间精度不准确导致的「GCRA」限流器双倍流量问题 by @ZhuoZhuoCrayon in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/30
+* test: 新增基准测试用例并在文档中增加 Benchmarks 说明 by @ZhuoZhuoCrayon in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/26
+
+**完整更新日志**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v1.0.2...v1.0.3
+
+---
+
+
 ## v1.0.2 - 2025-03-29
 
 [English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md#v102---2025-03-29) | 简体中文
