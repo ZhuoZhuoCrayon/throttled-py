@@ -17,7 +17,7 @@
 
 ## ✨ 功能
 
-* 提供线程安全的存储后端：Redis（基于 Lua 实现限流算法）、内存（基于 threading.RLock，支持 Key 过期淘汰）。
+* 提供线程安全的存储后端：Redis、内存（支持 Key 过期淘汰）。
 * 支持多种限流算法：[固定窗口](https://github.com/ZhuoZhuoCrayon/throttled-py/tree/main/docs/basic#21-%E5%9B%BA%E5%AE%9A%E7%AA%97%E5%8F%A3%E8%AE%A1%E6%95%B0%E5%99%A8)、[滑动窗口](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#22-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3)、[令牌桶](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#23-%E4%BB%A4%E7%89%8C%E6%A1%B6)、[漏桶](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#24-%E6%BC%8F%E6%A1%B6) & [通用信元速率算法（Generic Cell Rate Algorithm, GCRA）](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#25-gcra)。
 * 提供灵活的限流算法、配额设置，文档详尽。
 * 支持即刻返回及等待重试，提供函数调用、装饰器模式。
@@ -356,9 +356,15 @@ MemoryStore 本质是一个基于内存实现的，带过期时间的 [LRU Cache
 | `MAX_SIZE` | 最大容量，存储的键值对数量超过 `MAX_SIZE` 时，将按 LRU 策略淘汰。 | `1024` |
 
 
+## 🍃 灵感
+
+* [Rate Limiting, Cells, and GCRA](https://brandur.org/rate-limiting), by [Brandur Leach](https://github.com/brandur)
+
+
 ## 📚 Version History
 
 [See CHANGELOG.md](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.md)
+
 
 ## 📄 License
 
