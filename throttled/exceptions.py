@@ -28,9 +28,10 @@ class LimitedError(BaseThrottledError):
         else:
             message: str = (
                 "Rate limit exceeded: remaining={remaining}, "
-                "reset_after={reset_after}"
+                "reset_after={reset_after}, retry_after={retry_after}"
             ).format(
                 remaining=self.rate_limit_result.state.remaining,
                 reset_after=self.rate_limit_result.state.reset_after,
+                retry_after=self.rate_limit_result.state.retry_after,
             )
         super().__init__(message)

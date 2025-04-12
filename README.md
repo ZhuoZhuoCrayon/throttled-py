@@ -79,13 +79,13 @@ from throttled import Throttled
 throttle = Throttled()
 
 # Deduct 1 request -> RateLimitResult(limited=False,
-# state=RateLimitState(limit=60, remaining=59, reset_after=1)
+# state=RateLimitState(limit=60, remaining=59, reset_after=1, retry_after=0))
 print(throttle.limit("key", 1))
-# Check state -> RateLimitState(limit=60, remaining=59, reset_after=1)
+# Check state -> RateLimitState(limit=60, remaining=59, reset_after=1, retry_after=0)
 print(throttle.peek("key"))
 
 # Deduct 60 requests (limited) -> RateLimitResult(limited=True,
-# state=RateLimitState(limit=60, remaining=59, reset_after=1))
+# state=RateLimitState(limit=60, remaining=59, reset_after=1, retry_after=60))
 print(throttle.limit("key", 60))
 ```
 
@@ -98,13 +98,12 @@ from throttled import Throttled, rate_limter, exceptions
 def ping() -> str:
     return "ping"
 
-ping()  # Success
+ping()
 
 try:
     ping()  # Raises LimitedError
 except exceptions.LimitedError as exc:
-    print(exc)  # "Rate limit exceeded: remaining=0, reset_after=60"
-    print(exc.rate_limit_result)  # Access RateLimitResult
+    print(exc)  # Rate limit exceeded: remaining=0, reset_after=60, retry_after=60
 ```
 
 #### Wait & Retry

@@ -81,20 +81,20 @@ from throttled import Throttled
 throttle = Throttled()
 
 # 消耗 1 次请求，输出：RateLimitResult(limited=False,
-# state=RateLimitState(limit=60, remaining=59, reset_after=1))
+# state=RateLimitState(limit=60, remaining=59, reset_after=1, retry_after=0))
 print(throttle.limit("key", 1))
-# 获取限流器状态，输出：RateLimitState(limit=60, remaining=59, reset_after=1)
+# 获取限流器状态，输出：RateLimitState(limit=60, remaining=59, reset_after=1, retry_after=0)
 print(throttle.peek("key"))
 
 # 消耗 60 次请求，触发限流，输出：RateLimitResult(limited=True,
-# state=RateLimitState(limit=60, remaining=59, reset_after=1))
+# state=RateLimitState(limit=60, remaining=59, reset_after=1, retry_after=60))
 print(throttle.limit("key", 60))
 ```
 
 #### 作为装饰器
 
 ```python
-from throttled import Throttled, rate_limter, exceptions
+from throttled import Throttled, exceptions, rate_limter
 
 # 创建一个每分钟允许通过 1 次的限流器。
 @Throttled(key="/ping", quota=rate_limter.per_min(1))
@@ -102,16 +102,10 @@ def ping() -> str:
     return "ping"
 
 ping()
-
 try:
-    # 当触发限流时，抛出 LimitedError。
-    ping()
+    ping()  # 当触发限流时，抛出 LimitedError。
 except exceptions.LimitedError as exc:
-    # Rate limit exceeded: remaining=0, reset_after=60
-    print(exc)
-    # 在异常中获取限流结果：RateLimitResult(limited=True, 
-    # state=RateLimitState(limit=1, remaining=0, reset_after=60))
-    print(exc.rate_limit_result)
+    print(exc)  # Rate limit exceeded: remaining=0, reset_after=60, retry_after=60
 ```
 
 #### 等待重试
