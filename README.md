@@ -16,7 +16,7 @@
 
 ## ✨ Features
 
-* Provides thread-safe storage backends: Redis (rate limiting algorithms implemented in Lua), In-Memory (based on threading.RLock with key expiration eviction).
+* Provides thread-safe storage backends: Redis, In-Memory (with support for key expiration and eviction).
 * Supports multiple rate limiting algorithms: [Fixed Window](https://github.com/ZhuoZhuoCrayon/throttled-py/tree/main/docs/basic#21-%E5%9B%BA%E5%AE%9A%E7%AA%97%E5%8F%A3%E8%AE%A1%E6%95%B0%E5%99%A8), [Sliding Window](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#22-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3), [Token Bucket](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#23-%E4%BB%A4%E7%89%8C%E6%A1%B6), [Leaky Bucket](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#24-%E6%BC%8F%E6%A1%B6) & [Generic Cell Rate Algorithm (GCRA)](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#25-gcra).
 * Provides flexible rate limiting policies, quota configuration, and detailed documentation.
 * Supports immediate response and wait-retry modes, and provides function call and decorator modes.
@@ -29,8 +29,8 @@
 
 ### 1) Core API
 
-* `limit`: Deduct requests and return [**RateLimitResult**](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#1ratelimitresult)
-* `peek`: Check current rate limit state for a key (returns [**RateLimitState**](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#2ratelimitstate))
+* `limit`: Deduct requests and return [**RateLimitResult**](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#1-ratelimitresult)
+* `peek`: Check current rate limit state for a key (returns [**RateLimitState**](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#2-ratelimitstate))
 
 ### 2) Example
 
@@ -109,11 +109,11 @@ except exceptions.LimitedError as exc:
 
 #### Wait & Retry
 
-By default, rate limiting returns [**RateLimitResult**](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#1ratelimitresult) immediately.
+By default, rate limiting returns [**RateLimitResult**](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#1-ratelimitresult) immediately.
 
-You can specify a **`timeout`** to enable wait-and-retry behavior. The rate limiter will wait according to the `retry_after` value in [**RateLimitState**](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#2ratelimitstate) and retry automatically.
+You can specify a **`timeout`** to enable wait-and-retry behavior. The rate limiter will wait according to the `retry_after` value in [**RateLimitState**](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#2-ratelimitstate) and retry automatically.
 
-Returns the final [**RateLimitResult**](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#1ratelimitresult) when the request is allowed or timeout reached.
+Returns the final [**RateLimitResult**](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#1-ratelimitresult) when the request is allowed or timeout reached.
 
 ```python
 from throttled import RateLimiterType, Throttled, rate_limter, utils
@@ -161,7 +161,7 @@ products()  # Raises LimitedError
 
 #### In-Memory
 
-If you want to throttle the same Key at different locations in your program, make sure that Throttled receives the same MemoryStore and uses a consistent [`Quota`](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#3quota).
+If you want to throttle the same Key at different locations in your program, make sure that Throttled receives the same MemoryStore and uses a consistent [`Quota`](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#3-quota).
 
 The following example uses memory as the storage backend and throttles the same Key on ping and pong:
 
@@ -341,6 +341,11 @@ MemoryStore is essentially a [LRU Cache](https://en.wikipedia.org/wiki/Cache_rep
 | Parameter  | Description                                                                                                                          | Default |
 |------------|--------------------------------------------------------------------------------------------------------------------------------------|---------|
 | `MAX_SIZE` | Maximum capacity. When the number of stored key-value pairs exceeds `MAX_SIZE`, they will be eliminated according to the LRU policy. | `1024`  |
+
+
+## 🍃 Inspiration
+
+* [Rate Limiting, Cells, and GCRA](https://brandur.org/rate-limiting), by [Brandur Leach](https://github.com/brandur)
 
 
 ## 📚 Version History
