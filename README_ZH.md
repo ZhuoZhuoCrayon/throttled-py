@@ -12,7 +12,7 @@
     </a>
 </p>
 
-[English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README.md) | 简体中文
+[English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py) | 简体中文
 
 
 ## ✨ 功能
@@ -20,7 +20,7 @@
 * 提供线程安全的存储后端：Redis、内存（支持 Key 过期淘汰）。
 * 支持多种限流算法：[固定窗口](https://github.com/ZhuoZhuoCrayon/throttled-py/tree/main/docs/basic#21-%E5%9B%BA%E5%AE%9A%E7%AA%97%E5%8F%A3%E8%AE%A1%E6%95%B0%E5%99%A8)、[滑动窗口](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#22-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3)、[令牌桶](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#23-%E4%BB%A4%E7%89%8C%E6%A1%B6)、[漏桶](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#24-%E6%BC%8F%E6%A1%B6) & [通用信元速率算法（Generic Cell Rate Algorithm, GCRA）](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#25-gcra)。
 * 提供灵活的限流算法、配额设置，文档详尽。
-* 支持即刻返回及等待重试，提供函数调用、装饰器模式。
+* 支持即刻返回及等待重试，提供函数调用、装饰器、上下文管理器模式。
 * 良好的性能，单次限流 API 执行耗时换算如下（详见 [Benchmarks](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#-benchmarks)）：
   * 内存：约为 2.5 ~ 4.5 次 `dict[key] += 1` 操作。
   * Redis：约为 1.06 ~ 1.37 次 `INCRBY key increment` 操作。
@@ -104,6 +104,30 @@ def ping() -> str:
 ping()
 try:
     ping()  # 当触发限流时，抛出 LimitedError。
+except exceptions.LimitedError as exc:
+    print(exc)  # Rate limit exceeded: remaining=0, reset_after=60, retry_after=60
+```
+
+#### 上下文管理器
+
+你可以使用「上下文管理器」对代码块进行限流，允许通过时，返回 [**RateLimitResult**](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#1ratelimitresult)。
+
+触发限流或重试超时，抛出 [**LimitedError**](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#limitederror)。
+
+```python
+from throttled import Throttled, exceptions, rate_limter
+
+def call_api():
+    print("doing something...")
+
+throttle: Throttled = Throttled(key="/api/v1/users/", quota=rate_limter.per_min(1))
+with throttle as rate_limit_result:
+    print(f"limited: {rate_limit_result.limited}")
+    call_api()
+
+try:
+    with throttle:
+        call_api()
 except exceptions.LimitedError as exc:
     print(exc)  # Rate limit exceeded: remaining=0, reset_after=60, retry_after=60
 ```
@@ -350,9 +374,26 @@ MemoryStore 本质是一个基于内存实现的，带过期时间的 [LRU Cache
 | `MAX_SIZE` | 最大容量，存储的键值对数量超过 `MAX_SIZE` 时，将按 LRU 策略淘汰。 | `1024` |
 
 
+### 6）Exception
+
+所有异常都继承自 `throttled.exceptions.BaseThrottledError`。
+
+#### LimitedError
+
+当请求被限流时抛出该异常，例如：`Rate limit exceeded: remaining=0, reset_after=60, retry_after=60.`。
+
+| 字段                  | 类型                | 描述                             |
+|---------------------|-------------------|--------------------------------|
+| `rate_limit_result` | `RateLimitResult` | 表示对给定 Key 执行 `limit` 操作后返回的结果。 |
+
+#### DataError
+
+参数错误时抛出该异常，例如：`Invalid key: None, must be a non-empty key.`。
+
+
 ## 🍃 灵感
 
-* [Rate Limiting, Cells, and GCRA](https://brandur.org/rate-limiting), by [Brandur Leach](https://github.com/brandur)
+[Rate Limiting, Cells, and GCRA](https://brandur.org/rate-limiting), by [Brandur Leach](https://github.com/brandur)
 
 
 ## 📚 Version History

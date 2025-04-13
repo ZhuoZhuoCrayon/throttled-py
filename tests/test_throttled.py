@@ -96,3 +96,26 @@ class TestThrottled:
         start_time: float = now_sec_f()
         assert throttle.limit("key", timeout=0.5).limited
         assert 0 <= now_sec_f() - start_time < 0.1
+
+    def test_enter(self):
+        mem_store: store.MemoryStore = store.MemoryStore()
+        construct_kwargs: Dict[str, Any] = {
+            "key": "key",
+            "quota": per_sec(1),
+            "store": mem_store,
+        }
+        throttle: Throttled = Throttled(**construct_kwargs)
+        with throttle as rate_limit_result:
+            assert not rate_limit_result.limited
+
+        try:
+            with throttle:
+                pass
+        except LimitedError as e:
+            assert e.rate_limit_result.limited
+            assert e.rate_limit_result.state.remaining == 0
+            assert e.rate_limit_result.state.reset_after == 1
+            assert e.rate_limit_result.state.retry_after == 1
+
+        with Throttled(**construct_kwargs, timeout=1) as rate_limit_result:
+            assert not rate_limit_result.limited

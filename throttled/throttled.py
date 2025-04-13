@@ -1,5 +1,6 @@
 import threading
 import time
+from types import TracebackType
 from typing import Callable, Optional, Type
 
 from .constants import RateLimiterType
@@ -76,6 +77,24 @@ class Throttled:
 
             self._limiter = self._limiter_cls(self._quota, self._store)
             return self._limiter
+
+    def __enter__(self) -> RateLimitResult:
+        """Context manager to apply rate limiting to a block of code.
+        :return: RateLimitResult
+        :raise: LimitedError if rate limit is exceeded.
+        """
+        result: RateLimitResult = self.limit()
+        if result.limited:
+            raise LimitedError(rate_limit_result=result)
+        return result
+
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ):
+        pass
 
     def __call__(self, func: Callable) -> Callable:
         """Decorator to apply rate limiting to a function."""
