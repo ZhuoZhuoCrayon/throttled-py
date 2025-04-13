@@ -19,10 +19,17 @@
 * Provides thread-safe storage backends: Redis, In-Memory (with support for key expiration and eviction).
 * Supports multiple rate limiting algorithms: [Fixed Window](https://github.com/ZhuoZhuoCrayon/throttled-py/tree/main/docs/basic#21-%E5%9B%BA%E5%AE%9A%E7%AA%97%E5%8F%A3%E8%AE%A1%E6%95%B0%E5%99%A8), [Sliding Window](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#22-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3), [Token Bucket](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#23-%E4%BB%A4%E7%89%8C%E6%A1%B6), [Leaky Bucket](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#24-%E6%BC%8F%E6%A1%B6) & [Generic Cell Rate Algorithm (GCRA)](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#25-gcra).
 * Provides flexible rate limiting policies, quota configuration, and detailed documentation.
-* Supports immediate response and wait-retry modes, and provides function call and decorator modes.
+* Supports immediate response and wait-retry modes, and provides function call, decorator, and context manager modes.
 * Excellent performance,  The execution time for a single rate limiting API call is equivalent to(see [Benchmarks](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#-benchmarks) for details):
   * In-Memory: ~2.5-4.5x `dict[key] += 1` operations.
   * Redis: ~1.06-1.37x `INCRBY key increment` operations.
+
+
+## 🔰 Installation
+
+```shell
+$ pip install throttled-py
+```
 
 
 ## 🎨 Quick Start
@@ -60,12 +67,6 @@ if __name__ == "__main__":
 ```
 
 
-## 🔰 Installation
-
-```shell
-$ pip install throttled-py
-```
-
 ## 📝 Usage
 
 ### 1) Basic Usage
@@ -102,6 +103,30 @@ ping()
 
 try:
     ping()  # Raises LimitedError
+except exceptions.LimitedError as exc:
+    print(exc)  # Rate limit exceeded: remaining=0, reset_after=60, retry_after=60
+```
+
+#### Context Manager
+
+You can use the context manager to limit the code block. When access is allowed, return [**RateLimitResult**](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#1-ratelimitresult).
+
+If the limit is exceeded or the retry timeout is exceeded, it will raise [**LimitedError**](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#limitederror).
+
+```python
+from throttled import Throttled, exceptions, rate_limter
+
+def call_api():
+    print("doing something...")
+
+throttle: Throttled = Throttled(key="/api/v1/users/", quota=rate_limter.per_min(1))
+with throttle as rate_limit_result:
+    print(f"limited: {rate_limit_result.limited}")
+    call_api()
+
+try:
+    with throttle:
+        call_api()
 except exceptions.LimitedError as exc:
     print(exc)  # Rate limit exceeded: remaining=0, reset_after=60, retry_after=60
 ```
@@ -340,6 +365,22 @@ MemoryStore is essentially a [LRU Cache](https://en.wikipedia.org/wiki/Cache_rep
 | Parameter  | Description                                                                                                                          | Default |
 |------------|--------------------------------------------------------------------------------------------------------------------------------------|---------|
 | `MAX_SIZE` | Maximum capacity. When the number of stored key-value pairs exceeds `MAX_SIZE`, they will be eliminated according to the LRU policy. | `1024`  |
+
+### 6) Exception
+
+All exceptions inherit from `throttled.exceptions.BaseThrottledError`.
+
+#### LimitedError
+
+When a request is throttled, an exception is thrown, such as: `Rate limit exceeded: remaining=0, reset_after=60, retry_after=60.`.
+
+| Field               | Type              | Description                                                   |
+|---------------------|-------------------|---------------------------------------------------------------|
+| `rate_limit_result` | `RateLimitResult` | The result after executing the RateLimiter for the given key. |
+
+#### DataError
+
+Thrown when the parameter is invalid, such as: `Invalid key: None, must be a non-empty key.`.
 
 
 ## 🍃 Inspiration
