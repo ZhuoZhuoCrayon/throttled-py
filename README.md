@@ -42,13 +42,13 @@ $ pip install throttled-py
 ### 2) Example
 
 ```python
-from throttled import RateLimiterType, Throttled, rate_limter, store, utils
+from throttled import RateLimiterType, Throttled, rate_limiter, store, utils
 
 throttle = Throttled(
     # 📈 Use Token Bucket algorithm
     using=RateLimiterType.TOKEN_BUCKET.value,
     # 🪣 Set quota: 1000 tokens per second (limit), bucket size 1000 (burst)
-    quota=rate_limter.per_sec(1_000, burst=1_000),
+    quota=rate_limiter.per_sec(1_000, burst=1_000),
     # 📁 Use In-Memory storage
     store=store.MemoryStore(),
 )
@@ -93,9 +93,9 @@ print(throttle.limit("key", 60))
 #### Decorator
 
 ```python
-from throttled import Throttled, rate_limter, exceptions
+from throttled import Throttled, rate_limiter, exceptions
 
-@Throttled(key="/ping", quota=rate_limter.per_min(1))
+@Throttled(key="/ping", quota=rate_limiter.per_min(1))
 def ping() -> str:
     return "ping"
 
@@ -114,12 +114,12 @@ You can use the context manager to limit the code block. When access is allowed,
 If the limit is exceeded or the retry timeout is exceeded, it will raise [**LimitedError**](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#limitederror).
 
 ```python
-from throttled import Throttled, exceptions, rate_limter
+from throttled import Throttled, exceptions, rate_limiter
 
 def call_api():
     print("doing something...")
 
-throttle: Throttled = Throttled(key="/api/v1/users/", quota=rate_limter.per_min(1))
+throttle: Throttled = Throttled(key="/api/v1/users/", quota=rate_limiter.per_min(1))
 with throttle as rate_limit_result:
     print(f"limited: {rate_limit_result.limited}")
     call_api()
@@ -140,11 +140,11 @@ You can specify a **`timeout`** to enable wait-and-retry behavior. The rate limi
 Returns the final [**RateLimitResult**](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#1-ratelimitresult) when the request is allowed or timeout reached.
 
 ```python
-from throttled import RateLimiterType, Throttled, rate_limter, utils
+from throttled import RateLimiterType, Throttled, rate_limiter, utils
 
 throttle = Throttled(
     using=RateLimiterType.TOKEN_BUCKET.value,
-    quota=rate_limter.per_sec(1_000, burst=1_000),
+    quota=rate_limiter.per_sec(1_000, burst=1_000),
     # ⏳ Set timeout=1 to enable wait-and-retry (max wait 1 second)
     timeout=1,
 )
@@ -168,12 +168,12 @@ if __name__ == "__main__":
 #### Redis
 
 ```python
-from throttled import RateLimiterType, Throttled, rate_limter, store
+from throttled import RateLimiterType, Throttled, rate_limiter, store
 
 @Throttled(
     key="/api/products",
     using=RateLimiterType.TOKEN_BUCKET.value,
-    quota=rate_limter.per_min(1),
+    quota=rate_limiter.per_min(1),
     store=store.RedisStore(server="redis://127.0.0.1:6379/0", options={"PASSWORD": ""}),
 )
 def products() -> list:
@@ -190,14 +190,14 @@ If you want to throttle the same Key at different locations in your program, mak
 The following example uses memory as the storage backend and throttles the same Key on ping and pong:
 
 ```python
-from throttled import Throttled, rate_limter, store
+from throttled import Throttled, rate_limiter, store
 
 mem_store = store.MemoryStore()
 
-@Throttled(key="ping-pong", quota=rate_limter.per_min(1), store=mem_store)
+@Throttled(key="ping-pong", quota=rate_limiter.per_min(1), store=mem_store)
 def ping() -> str: return "ping"
 
-@Throttled(key="ping-pong", quota=rate_limter.per_min(1), store=mem_store)
+@Throttled(key="ping-pong", quota=rate_limiter.per_min(1), store=mem_store)
 def pong() -> str: return "pong"
 
 ping()  # Success
@@ -215,12 +215,12 @@ The rate limiting algorithm is specified by the **`using`** parameter. The suppo
 * [Generic Cell Rate Algorithm, GCRA)](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#25-gcra): `RateLimiterType.GCRA.value`
 
 ```python
-from throttled import RateLimiterType, Throttled, rate_limter, store
+from throttled import RateLimiterType, Throttled, rate_limiter, store
 
 throttle = Throttled(
     # 🌟Specifying a current limiting algorithm
     using=RateLimiterType.FIXED_WINDOW.value, 
-    quota=rate_limter.per_min(1),
+    quota=rate_limiter.per_min(1),
     store=store.MemoryStore()
 )
 assert throttle.limit("key", 2).limited is True
@@ -231,12 +231,12 @@ assert throttle.limit("key", 2).limited is True
 #### Quick Setup
 
 ```python
-from throttled import rate_limter
+from throttled import rate_limiter
 
-rate_limter.per_sec(60)   # 60 / sec
-rate_limter.per_min(60)   # 60 / min
-rate_limter.per_hour(60)  # 60 / hour
-rate_limter.per_day(60)   # 60 / day
+rate_limiter.per_sec(60)   # 60 / sec
+rate_limiter.per_min(60)   # 60 / min
+rate_limiter.per_hour(60)  # 60 / hour
+rate_limiter.per_day(60)   # 60 / day
 ```
 
 #### Burst Capacity
@@ -248,18 +248,18 @@ The **`burst`** parameter can be used to adjust the ability of the throttling ob
 * `GCRA`
 
 ```python
-from throttled import rate_limter
+from throttled import rate_limiter
 
 # Allow 120 burst requests.
 # When burst is not specified, the default setting is the limit passed in.
-rate_limter.per_min(60, burst=120)
+rate_limiter.per_min(60, burst=120)
 ```
 
 #### Custom Quota
 
 ```python
 from datetime import timedelta
-from throttled.rate_limter import Quota, Rate
+from throttled.rate_limiter import Quota, Rate
 
 # A total of 120 requests are allowed in two minutes, and a burst of 150 requests is allowed.
 Quota(Rate(period=timedelta(minutes=2), limit=120), burst=150)

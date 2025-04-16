@@ -5,7 +5,7 @@ from typing import Callable, Optional, Type
 
 from .constants import RateLimiterType
 from .exceptions import DataError, LimitedError
-from .rate_limter import (
+from .rate_limiter import (
     BaseRateLimiter,
     Quota,
     RateLimiterRegistry,

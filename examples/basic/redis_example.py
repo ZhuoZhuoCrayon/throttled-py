@@ -1,10 +1,10 @@
-from throttled import RateLimiterType, Throttled, rate_limter, store
+from throttled import RateLimiterType, Throttled, rate_limiter, store
 
 
 @Throttled(
     key="/api/products",
     using=RateLimiterType.TOKEN_BUCKET.value,
-    quota=rate_limter.per_min(1),
+    quota=rate_limiter.per_min(1),
     # use Redis as storage
     store=store.RedisStore(server="redis://127.0.0.1:6379/0", options={"PASSWORD": ""}),
 )

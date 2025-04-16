@@ -1,11 +1,11 @@
-from throttled import Throttled, exceptions, rate_limter
+from throttled import Throttled, exceptions, rate_limiter
 
 
 def call_api():
     print("doing something...")
 
 
-throttle: Throttled = Throttled(key="/api/v1/users/", quota=rate_limter.per_min(1))
+throttle: Throttled = Throttled(key="/api/v1/users/", quota=rate_limiter.per_min(1))
 with throttle as rate_limit_result:
     print(f"limited: {rate_limit_result.limited}")
     call_api()

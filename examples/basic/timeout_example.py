@@ -1,8 +1,8 @@
-from throttled import RateLimiterType, Throttled, rate_limter, utils
+from throttled import RateLimiterType, Throttled, rate_limiter, utils
 
 throttle = Throttled(
     using=RateLimiterType.TOKEN_BUCKET.value,
-    quota=rate_limter.per_sec(1_000, burst=1_000),
+    quota=rate_limiter.per_sec(1_000, burst=1_000),
     # ⏳ 设置超时时间为 1 秒，表示允许等待重试，等待时间超过 1 秒返回最后一次限流结果。
     timeout=1,
 )
