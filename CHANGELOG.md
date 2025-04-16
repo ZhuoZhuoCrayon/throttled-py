@@ -3,6 +3,20 @@
 [English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md) | 简体中文
 
 
+## v1.1.0 - 2025-04-17
+
+[English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md#v110---2025-04-17) | 简体中文
+
+### 更新内容
+* feat: 新增「retry_after」到 LimitedError 的异常信息 by @ZhuoZhuoCrayon in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/34
+* feat: 新增上下文管理器支持 by @ZhuoZhuoCrayon in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/35
+* fix: 修正「rate_limter」拼写为「rate_limiter」 (fixed #38) by @ZhuoZhuoCrayon in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/39
+
+**完整更新日志**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v1.0.3...v1.1.0
+
+---
+
+
 ## v1.0.3 - 2025-04-10
 
 [English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md#v103---2025-04-10) | 简体中文
