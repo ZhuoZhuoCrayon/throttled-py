@@ -3,6 +3,20 @@
 [简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.md) | English
 
 
+## v1.1.0 - 2025-04-17
+
+[简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.md#v110---2025-04-17) | English
+
+### What's Changed
+* feat: add retry_after to LimitedError message by @ZhuoZhuoCrayon in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/34
+* feat: implement context manager support for Throttled by @ZhuoZhuoCrayon in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/35
+* fix: correct the spelling of "rate_limter" to "rate_limiter" (fixed #38) by @ZhuoZhuoCrayon in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/39
+
+**Full Changelog**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v1.0.3...v1.1.0
+
+---
+
+
 ## v1.0.3 - 2025-04-10
 
 [简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.md#v103---2025-04-10) | English
