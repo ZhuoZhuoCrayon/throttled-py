@@ -1,8 +1,8 @@
-from throttled import Throttled, exceptions, rate_limter
+from throttled import Throttled, exceptions, rate_limiter
 
 
 # 创建一个每分钟允许通过 1 次的限流器。
-@Throttled(key="/ping", quota=rate_limter.per_min(1))
+@Throttled(key="/ping", quota=rate_limiter.per_min(1))
 def ping() -> str:
     return "ping"
 

@@ -1,5 +1,7 @@
+from . import rate_limiter
+from . import rate_limiter as rate_limter
 from .constants import RateLimiterType
-from .rate_limter import (
+from .rate_limiter import (
     BaseRateLimiter,
     Quota,
     Rate,
@@ -30,6 +32,11 @@ __all__ = [
     "types",
     "utils",
     # rate_limiter
+    # Compatibility note: Use the correct spelling of "rate_limiter" and keep the
+    # misspelled "rate_limter" before v2.0.0.
+    # Related issue: https://github.com/ZhuoZhuoCrayon/throttled-py/issues/38.
+    "rate_limter",
+    "rate_limiter",
     "per_sec",
     "per_min",
     "per_hour",

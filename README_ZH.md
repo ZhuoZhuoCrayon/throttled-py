@@ -42,13 +42,13 @@ $ pip install throttled-py
 ### 2）样例
 
 ```python
-from throttled import RateLimiterType, Throttled, rate_limter, store, utils
+from throttled import RateLimiterType, Throttled, rate_limiter, store, utils
 
 throttle = Throttled(
     # 📈 使用令牌桶作为限流算法。
     using=RateLimiterType.TOKEN_BUCKET.value,
     # 🪣 设置配额：每秒填充 1000 个 Token（limit），桶大小为 1000（burst）。
-    quota=rate_limter.per_sec(1_000, burst=1_000),
+    quota=rate_limiter.per_sec(1_000, burst=1_000),
     # 📁 使用内存作为存储
     store=store.MemoryStore(),
 )
@@ -94,10 +94,10 @@ print(throttle.limit("key", 60))
 #### 作为装饰器
 
 ```python
-from throttled import Throttled, exceptions, rate_limter
+from throttled import Throttled, exceptions, rate_limiter
 
 # 创建一个每分钟允许通过 1 次的限流器。
-@Throttled(key="/ping", quota=rate_limter.per_min(1))
+@Throttled(key="/ping", quota=rate_limiter.per_min(1))
 def ping() -> str:
     return "ping"
 
@@ -115,12 +115,12 @@ except exceptions.LimitedError as exc:
 触发限流或重试超时，抛出 [**LimitedError**](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#limitederror)。
 
 ```python
-from throttled import Throttled, exceptions, rate_limter
+from throttled import Throttled, exceptions, rate_limiter
 
 def call_api():
     print("doing something...")
 
-throttle: Throttled = Throttled(key="/api/v1/users/", quota=rate_limter.per_min(1))
+throttle: Throttled = Throttled(key="/api/v1/users/", quota=rate_limiter.per_min(1))
 with throttle as rate_limit_result:
     print(f"limited: {rate_limit_result.limited}")
     call_api()
@@ -141,11 +141,11 @@ except exceptions.LimitedError as exc:
 一旦请求通过或超时，返回最后一次的  [**RateLimitResult**](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#1ratelimitresult)。
 
 ```python
-from throttled import RateLimiterType, Throttled, rate_limter, utils
+from throttled import RateLimiterType, Throttled, rate_limiter, utils
 
 throttle = Throttled(
     using=RateLimiterType.TOKEN_BUCKET.value,
-    quota=rate_limter.per_sec(1_000, burst=1_000),
+    quota=rate_limiter.per_sec(1_000, burst=1_000),
     # ⏳ 设置超时时间为 1 秒，表示允许等待重试，等待时间超过 1 秒返回最后一次限流结果。
     timeout=1,
 )
@@ -169,12 +169,12 @@ if __name__ == "__main__":
 #### Redis
 
 ```python
-from throttled import RateLimiterType, Throttled, rate_limter, store
+from throttled import RateLimiterType, Throttled, rate_limiter, store
 
 @Throttled(
     key="/api/products",
     using=RateLimiterType.TOKEN_BUCKET.value,
-    quota=rate_limter.per_min(1),
+    quota=rate_limiter.per_min(1),
     # 🌟 使用 Redis 作为存储后端
     store=store.RedisStore(server="redis://127.0.0.1:6379/0", options={"PASSWORD": ""}),
 )
@@ -193,16 +193,16 @@ products()
 下方样例使用内存作为存储后端，并在 `ping`、`pong` 上对同一个 Key 进行限流：
 
 ```python
-from throttled import Throttled, rate_limter, store
+from throttled import Throttled, rate_limiter, store
 
 # 🌟 使用 Memory 作为存储后端
 mem_store = store.MemoryStore()
 
-@Throttled(key="ping-pong", quota=rate_limter.per_min(1), store=mem_store)
+@Throttled(key="ping-pong", quota=rate_limiter.per_min(1), store=mem_store)
 def ping() -> str:
     return "ping"
 
-@Throttled(key="ping-pong", quota=rate_limter.per_min(1), store=mem_store)
+@Throttled(key="ping-pong", quota=rate_limiter.per_min(1), store=mem_store)
 def pong() -> str:
     return "pong"
   
@@ -222,12 +222,12 @@ pong()
 * [通用信元速率算法（Generic Cell Rate Algorithm, GCRA）](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#25-gcra)：`RateLimiterType.GCRA.value`
 
 ```python
-from throttled import RateLimiterType, Throttled, rate_limter, store
+from throttled import RateLimiterType, Throttled, rate_limiter, store
 
 throttle = Throttled(
     # 🌟指定限流算法
     using=RateLimiterType.FIXED_WINDOW.value,
-    quota=rate_limter.per_min(1),
+    quota=rate_limiter.per_min(1),
     store=store.MemoryStore()
 )
 assert throttle.limit("key", 2).limited is True
@@ -238,12 +238,12 @@ assert throttle.limit("key", 2).limited is True
 #### 快捷创建方式
 
 ```python
-from throttled import rate_limter
+from throttled import rate_limiter
 
-rate_limter.per_sec(60)   # 60 / sec
-rate_limter.per_min(60)   # 60 / min
-rate_limter.per_hour(60)  # 60 / hour
-rate_limter.per_day(60)   # 60 / day
+rate_limiter.per_sec(60)   # 60 / sec
+rate_limiter.per_min(60)   # 60 / min
+rate_limiter.per_hour(60)  # 60 / hour
+rate_limiter.per_day(60)   # 60 / day
 ```
 
 #### 调整突发限制
@@ -255,18 +255,18 @@ rate_limter.per_day(60)   # 60 / day
 * `GCRA`
 
 ```python
-from throttled import rate_limter
+from throttled import rate_limiter
 
 # 允许突发处理 120 个请求
 # 未指定 burst 时，默认设置为 limit 传入值
-rate_limter.per_min(60, burst=120)
+rate_limiter.per_min(60, burst=120)
 ```
 
 #### 自定义配额
 
 ```python
 from datetime import timedelta
-from throttled.rate_limter import Quota, Rate
+from throttled.rate_limiter import Quota, Rate
 
 # 两分钟一共允许 120 个请求，允许突发处理 150 个请求
 Quota(Rate(period=timedelta(minutes=2), limit=120), burst=150)

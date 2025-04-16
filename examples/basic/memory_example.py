@@ -1,15 +1,15 @@
-from throttled import Throttled, rate_limter, store
+from throttled import Throttled, rate_limiter, store
 
 # 🌟 使用 Memory 作为存储后端
 mem_store = store.MemoryStore()
 
 
-@Throttled(key="ping-pong", quota=rate_limter.per_min(1), store=mem_store)
+@Throttled(key="ping-pong", quota=rate_limiter.per_min(1), store=mem_store)
 def ping() -> str:
     return "ping"
 
 
-@Throttled(key="ping-pong", quota=rate_limter.per_min(1), store=mem_store)
+@Throttled(key="ping-pong", quota=rate_limiter.per_min(1), store=mem_store)
 def pong() -> str:
     return "pong"
 

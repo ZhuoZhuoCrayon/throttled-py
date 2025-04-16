@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from throttled.rate_limter import RateLimitResult
+    from throttled.rate_limiter import RateLimitResult
 
 
 class BaseThrottledError(Exception):
