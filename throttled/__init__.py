@@ -10,9 +10,11 @@ from .rate_limiter import (
     RateLimitResult,
     RateLimitState,
     per_day,
+    per_duration,
     per_hour,
     per_min,
     per_sec,
+    per_week,
 )
 from .store import (
     BaseAtomicAction,
@@ -41,6 +43,8 @@ __all__ = [
     "per_min",
     "per_hour",
     "per_day",
+    "per_week",
+    "per_duration",
     "Rate",
     "Quota",
     "RateLimitState",

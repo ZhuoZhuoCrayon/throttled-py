@@ -36,8 +36,8 @@ $ pip install throttled-py
 
 ### 1) Core API
 
-* `limit`: Deduct requests and return [**RateLimitResult**](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#1-ratelimitresult)
-* `peek`: Check current rate limit state for a key (returns [**RateLimitState**](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#2-ratelimitstate))
+* `limit`: Deduct requests and return [**RateLimitResult**](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#1-ratelimitresult).
+* `peek`: Check current rate limit state for a key (returns [**RateLimitState**](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#2-ratelimitstate)).
 
 ### 2) Example
 
@@ -233,10 +233,11 @@ assert throttle.limit("key", 2).limited is True
 ```python
 from throttled import rate_limiter
 
-rate_limiter.per_sec(60)   # 60 / sec
-rate_limiter.per_min(60)   # 60 / min
-rate_limiter.per_hour(60)  # 60 / hour
-rate_limiter.per_day(60)   # 60 / day
+rate_limiter.per_sec(60)    # 60 req/sec
+rate_limiter.per_min(60)    # 60 req/min
+rate_limiter.per_hour(60)   # 60 req/hour
+rate_limiter.per_day(60)    # 60 req/day
+rate_limiter.per_week(60)   # 60 req/week
 ```
 
 #### Burst Capacity
@@ -259,10 +260,10 @@ rate_limiter.per_min(60, burst=120)
 
 ```python
 from datetime import timedelta
-from throttled.rate_limiter import Quota, Rate
+from throttled import rate_limiter
 
 # A total of 120 requests are allowed in two minutes, and a burst of 150 requests is allowed.
-Quota(Rate(period=timedelta(minutes=2), limit=120), burst=150)
+rate_limiter.per_duration(timedelta(minutes=2), limit=120, burst=150)
 ```
 
 
@@ -385,7 +386,7 @@ Thrown when the parameter is invalid, such as: `Invalid key: None, must be a non
 
 ## 🍃 Inspiration
 
-* [Rate Limiting, Cells, and GCRA](https://brandur.org/rate-limiting), by [Brandur Leach](https://github.com/brandur)
+[Rate Limiting, Cells, and GCRA](https://brandur.org/rate-limiting), by [Brandur Leach](https://github.com/brandur)
 
 
 ## 📚 Version History
