@@ -5,7 +5,8 @@ import pytest
 from throttled import Throttled, per_sec, rate_limiter, store
 from throttled.constants import RateLimiterType
 from throttled.exceptions import BaseThrottledError, DataError, LimitedError
-from throttled.utils import now_sec_f
+
+from .utils import Timer
 
 
 @pytest.fixture
@@ -83,19 +84,19 @@ class TestThrottled:
         throttle: Throttled = Throttled(timeout=1, quota=per_sec(1))
         assert not throttle.limit("key").limited
 
-        start_time: float = now_sec_f()
-        assert not throttle.limit("key").limited
-        assert 1 <= now_sec_f() - start_time < 2
+        with Timer() as timer:
+            assert not throttle.limit("key").limited
+            assert 1 <= timer.elapsed() < 2
 
         # case: retry_after > timeout
-        start_time: float = now_sec_f()
-        assert throttle.limit("key", cost=2).limited
-        assert 0 <= now_sec_f() - start_time < 0.1
+        with Timer() as timer:
+            assert throttle.limit("key", cost=2).limited
+            assert 0 <= timer.elapsed() < 0.1
 
         # case: timeout < retry_after
-        start_time: float = now_sec_f()
-        assert throttle.limit("key", timeout=0.5).limited
-        assert 0 <= now_sec_f() - start_time < 0.1
+        with Timer() as timer:
+            assert throttle.limit("key", timeout=0.5).limited
+            assert 0 <= timer.elapsed() < 0.1
 
     def test_enter(self):
         mem_store: store.MemoryStore = store.MemoryStore()

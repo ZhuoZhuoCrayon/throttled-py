@@ -16,6 +16,8 @@ from throttled import (
 from throttled.constants import RateLimiterType
 from throttled.utils import Benchmark, now_sec
 
+from ..utils import Timer
+
 
 @pytest.fixture
 def rate_limiter_constructor(store: BaseStore) -> Callable[[Quota], BaseRateLimiter]:
@@ -73,12 +75,12 @@ class TestSlidingWindowRateLimiter:
         quota: Quota,
         requests_num: int,
     ):
-        now: int = now_sec()
-        rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
-        results: List[bool] = benchmark.concurrent(
-            task=lambda: rate_limiter.limit("key").limited, batch=requests_num
-        )
-        cost: int = now_sec() - now
+        with Timer() as timer:
+            rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
+            results: List[bool] = benchmark.concurrent(
+                task=lambda: rate_limiter.limit("key").limited, batch=requests_num
+            )
+            cost: float = timer.elapsed()
 
         accessed_num: int = requests_num - sum(results)
         limit: int = min(requests_num, quota.get_limit())

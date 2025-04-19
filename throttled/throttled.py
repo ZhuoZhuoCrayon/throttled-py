@@ -15,7 +15,7 @@ from .rate_limiter import (
 )
 from .store import BaseStore, MemoryStore
 from .types import KeyT, RateLimiterTypeT
-from .utils import now_sec_f
+from .utils import now_mono_f
 
 
 class Throttled:
@@ -164,7 +164,7 @@ class Throttled:
         if retry_after <= 0:
             return
 
-        start_time: float = now_sec_f()
+        start_time: float = now_mono_f()
         while True:
             # WAIT_INTERVAL: Chunked waiting interval to avoid long blocking periods.
             # Also helps reduce actual wait time considering thread context switches.
@@ -180,7 +180,7 @@ class Throttled:
             # Due to additional context switching overhead in multithread contexts,
             # we don't directly use sleep_time to calculate elapsed time.
             # Instead, we re-fetch the current time and subtract it from the start time.
-            elapsed: float = now_sec_f() - start_time
+            elapsed: float = now_mono_f() - start_time
             if elapsed >= retry_after or elapsed >= timeout:
                 break
 
@@ -211,7 +211,7 @@ class Throttled:
             return result
 
         # TODO: When cost > limit, return early instead of waiting.
-        start_time: float = now_sec_f()
+        start_time: float = now_mono_f()
         while True:
             if result.state.retry_after > timeout:
                 break
@@ -222,7 +222,7 @@ class Throttled:
             if not result.limited:
                 break
 
-            elapsed: float = now_sec_f() - start_time
+            elapsed: float = now_mono_f() - start_time
             if elapsed >= timeout:
                 break
 

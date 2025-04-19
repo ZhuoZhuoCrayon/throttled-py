@@ -212,7 +212,7 @@ The rate limiting algorithm is specified by the **`using`** parameter. The suppo
 * [Sliding window](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#22-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3): `RateLimiterType.SLIDING_WINDOW.value`
 * [Token Bucket](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#23-%E4%BB%A4%E7%89%8C%E6%A1%B6): `RateLimiterType.TOKEN_BUCKET.value`
 * [Leaky Bucket](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#24-%E6%BC%8F%E6%A1%B6): `RateLimiterType.LEAKING_BUCKET.value`
-* [Generic Cell Rate Algorithm, GCRA)](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#25-gcra): `RateLimiterType.GCRA.value`
+* [Generic Cell Rate Algorithm, GCRA](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#25-gcra): `RateLimiterType.GCRA.value`
 
 ```python
 from throttled import RateLimiterType, Throttled, rate_limiter, store
