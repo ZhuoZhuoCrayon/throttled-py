@@ -33,39 +33,50 @@ class Quota:
     # Default is 0, which means no burst capacity.
     burst: int = 0
 
+    # The period in seconds.
+    _period_sec: int = None
+
+    def __post_init__(self):
+        self._period_sec = int(self.rate.period.total_seconds())
+
     def get_period_sec(self) -> int:
-        return int(self.rate.period.total_seconds())
+        """Get the period in seconds."""
+        return self._period_sec
 
     def get_limit(self) -> int:
         return self.rate.limit
 
 
-def per_sec(limit: int, burst: Optional[int] = None) -> Quota:
-    """Create a quota representing the maximum requests and burst per second."""
+def per_duration(duration: timedelta, limit: int, burst: Optional[int] = None) -> Quota:
+    """Create a quota representing the maximum requests and burst per duration."""
     if burst is None:
         burst = limit
-    return Quota(Rate(period=timedelta(seconds=1), limit=limit), burst=burst)
+    return Quota(Rate(period=duration, limit=limit), burst=burst)
+
+
+def per_sec(limit: int, burst: Optional[int] = None) -> Quota:
+    """Create a quota representing the maximum requests and burst per second."""
+    return per_duration(timedelta(seconds=1), limit, burst)
 
 
 def per_min(limit: int, burst: Optional[int] = None) -> Quota:
     """Create a quota representing the maximum requests and burst per minute."""
-    if burst is None:
-        burst = limit
-    return Quota(Rate(period=timedelta(minutes=1), limit=limit), burst=burst)
+    return per_duration(timedelta(minutes=1), limit, burst)
 
 
 def per_hour(limit: int, burst: Optional[int] = None) -> Quota:
     """Create a quota representing the maximum requests and burst per hour."""
-    if burst is None:
-        burst = limit
-    return Quota(Rate(period=timedelta(hours=1), limit=limit), burst=burst)
+    return per_duration(timedelta(hours=1), limit, burst)
 
 
 def per_day(limit: int, burst: Optional[int] = None) -> Quota:
     """Create a quota representing the maximum requests and burst per day."""
-    if burst is None:
-        burst = limit
-    return Quota(Rate(period=timedelta(days=1), limit=limit), burst=burst)
+    return per_duration(timedelta(days=1), limit, burst)
+
+
+def per_week(limit: int, burst: Optional[int] = None) -> Quota:
+    """Create a quota representing the maximum requests and burst per week."""
+    return per_duration(timedelta(weeks=1), limit, burst)
 
 
 @dataclass

@@ -7,9 +7,11 @@ from .base import (
     RateLimitResult,
     RateLimitState,
     per_day,
+    per_duration,
     per_hour,
     per_min,
     per_sec,
+    per_week,
 )
 
 # Trigger to register RateLimiter
@@ -24,6 +26,8 @@ __all__ = [
     "per_min",
     "per_hour",
     "per_day",
+    "per_week",
+    "per_duration",
     "Rate",
     "Quota",
     "RateLimitState",
