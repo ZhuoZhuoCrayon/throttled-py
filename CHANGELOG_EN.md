@@ -3,6 +3,20 @@
 [简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.md) | English
 
 
+## v1.1.1 - 2025-04-19
+
+[简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.md#v111---2025-04-19) | English
+
+### What's Changed
+* refactor: replace `time.time()` with `time.monotonic()` to reduce the impact of system clock updates by @ZhuoZhuoCrayon in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/41
+* feat: add `per_duration` and `per_week` to Quota definition by @ZhuoZhuoCrayon in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/43
+* fix: fixed the inaccurate calculation of `per_day` time span by @ZhuoZhuoCrayon in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/42
+
+**Full Changelog**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v1.1.0...v1.1.1
+
+---
+
+
 ## v1.1.0 - 2025-04-17
 
 [简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.md#v110---2025-04-17) | English
