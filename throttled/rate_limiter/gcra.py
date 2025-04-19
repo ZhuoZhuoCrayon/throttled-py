@@ -1,5 +1,4 @@
 import math
-import time
 from enum import Enum
 from typing import List, Optional, Sequence, Tuple, Type
 
@@ -8,6 +7,7 @@ from redis.commands.core import Script
 from ..constants import RateLimiterType, StoreType
 from ..store import BaseAtomicAction, MemoryStoreBackend, RedisStoreBackend
 from ..types import AtomicActionTypeT, KeyT, RateLimiterTypeT, StoreValueT
+from ..utils import now_mono_f
 from . import BaseRateLimiter, RateLimitResult, RateLimitState
 
 
@@ -145,7 +145,7 @@ class MemoryLimitAtomicAction(BaseAtomicAction):
             capacity: int = args[1]
             cost: int = args[2]
 
-            now: float = time.time()
+            now: float = now_mono_f()
             last_tat: float = self._backend.get(key) or now
 
             fill_time_for_cost: float = cost * emission_interval
@@ -184,7 +184,7 @@ class MemoryPeekAtomicAction(MemoryLimitAtomicAction):
             emission_interval: float = args[0]
             capacity: int = args[1]
 
-            now: float = time.time()
+            now: float = now_mono_f()
             tat: float = self._backend.get(key) or now
             fill_time_for_capacity: float = capacity * emission_interval
             allow_at: float = max(now, tat) - fill_time_for_capacity

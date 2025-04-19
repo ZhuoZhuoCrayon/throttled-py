@@ -19,6 +19,8 @@ from throttled.utils import Benchmark
 
 REDIS_URL: str = "redis://127.0.0.1:6379/0"
 
+WORKERS: int = 8
+
 
 def clear_redis(client: redis.Redis) -> None:
     keys: List[str] = client.keys("throttled*")
@@ -77,7 +79,7 @@ class TestBenchmarkThrottled:
         benchmark.concurrent(
             memory_with_lock_baseline,
             batch=100_000,
-            workers=16,
+            workers=WORKERS,
             lock=threading.RLock(),
             dict_store={},
         )
@@ -91,7 +93,7 @@ class TestBenchmarkThrottled:
         self, benchmark: Benchmark, redis_client: redis.Redis
     ):
         benchmark.concurrent(
-            redis_baseline, batch=100_000, workers=16, client=redis_client
+            redis_baseline, batch=100_000, workers=WORKERS, client=redis_client
         )
 
     @pytest.mark.parametrize("using", RateLimiterType.choice())
@@ -116,4 +118,4 @@ class TestBenchmarkThrottled:
         quota: Quota,
     ):
         throttle = Throttled(using=using, quota=quota, store=store)
-        benchmark.concurrent(call_api, batch=100_000, workers=16, throttle=throttle)
+        benchmark.concurrent(call_api, batch=100_000, workers=WORKERS, throttle=throttle)

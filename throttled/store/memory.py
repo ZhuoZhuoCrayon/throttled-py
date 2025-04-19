@@ -8,7 +8,7 @@ from typing import Type
 from ..constants import StoreTTLState, StoreType
 from ..exceptions import DataError, SetUpError
 from ..types import KeyT, StoreBucketValueT, StoreDictValueT, StoreValueT
-from ..utils import now_sec_f
+from ..utils import now_mono_f
 from .base import BaseAtomicAction, BaseStore, BaseStoreBackend
 
 
@@ -45,7 +45,7 @@ class MemoryStoreBackend(BaseStoreBackend):
                 return StoreTTLState.NOT_EXIST.value
             return StoreTTLState.NOT_TTL.value
 
-        ttl: float = exp - now_sec_f()
+        ttl: float = exp - now_mono_f()
         if ttl <= 0:
             return StoreTTLState.NOT_EXIST.value
         return math.ceil(ttl)
@@ -57,7 +57,7 @@ class MemoryStoreBackend(BaseStoreBackend):
             self.expire_info.pop(pop_key, None)
 
     def expire(self, key: KeyT, timeout: int) -> None:
-        self.expire_info[key] = now_sec_f() + timeout
+        self.expire_info[key] = now_mono_f() + timeout
 
     def get(self, key: KeyT) -> Optional[StoreValueT]:
         if self.has_expired(key):
