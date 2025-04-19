@@ -3,6 +3,20 @@
 [English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md) | 简体中文
 
 
+## v1.1.1 - 2025-04-19
+
+[English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md#v111---2025-04-19) | 简体中文
+
+### 更新内容
+* refactor: 用 `time.monotonic()` 替换 `time.time()`，以减少系统时钟更新的影响 by @ZhuoZhuoCrayon in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/41
+* feat: 增加 `per_duration` 和 `per_week` 的 Quota 快捷创建方式 by @ZhuoZhuoCrayon in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/43
+* fix: 修复 `per_day` 时间跨度计算不准确的问题 by @ZhuoZhuoCrayon in https://github.com/ZhuoZhuoCrayon/throttled-py/pull/42
+
+**完整更新日志**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v1.1.0...v1.1.1
+
+---
+
+
 ## v1.1.0 - 2025-04-17
 
 [English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md#v110---2025-04-17) | 简体中文
