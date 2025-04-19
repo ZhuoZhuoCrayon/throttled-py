@@ -34,7 +34,7 @@ class Quota:
     burst: int = 0
 
     def get_period_sec(self) -> int:
-        return int(self.rate.period.seconds)
+        return int(self.rate.period.total_seconds())
 
     def get_limit(self) -> int:
         return self.rate.limit
@@ -63,6 +63,8 @@ def per_hour(limit: int, burst: Optional[int] = None) -> Quota:
 
 def per_day(limit: int, burst: Optional[int] = None) -> Quota:
     """Create a quota representing the maximum requests and burst per day."""
+    if burst is None:
+        burst = limit
     return Quota(Rate(period=timedelta(days=1), limit=limit), burst=burst)
 
 
