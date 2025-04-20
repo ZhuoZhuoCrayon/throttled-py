@@ -1,7 +1,7 @@
 name-template: "v$RESOLVED_VERSION"
 tag-template: "v$RESOLVED_VERSION"
 change-template: "- $TITLE @$AUTHOR (#$NUMBER)"
-change-title-escapes: "\<*_&"
+change-title-escapes: '\<*_&'
 category-template: "### $TITLE"
 version-resolver:
   major:
@@ -17,7 +17,6 @@ version-resolver:
       - "SemVer/PATCH"
   default: patch
 
-# Exclude labels from the changelog.
 excludeLabels:
   - "ci/skip-changelog"
 
@@ -75,11 +74,9 @@ categories:
 
 template: |
   ## v$RESOLVED_VERSION - ${{date 'YYYY-MM-DD'}}
-  
-  [简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.md#vxxx---${{date 'YYYY-MM-DD'}}) | English
+
+  [简体中文](REPO/blob/main/CHANGELOG.md#vxxx---${{date 'YYYY-MM-DD'}}) | English
 
   $CHANGES
 
-  **Full Changelog**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
-  
-  ---
+  **Full Changelog**: REPO/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
