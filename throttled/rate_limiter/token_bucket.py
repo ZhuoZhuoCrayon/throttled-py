@@ -1,11 +1,9 @@
 import math
 from enum import Enum
-from typing import List, Optional, Sequence, Tuple, Type
-
-from redis.commands.core import Script
+from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple, Type
 
 from ..constants import RateLimiterType, StoreType
-from ..store import BaseAtomicAction, MemoryStoreBackend, RedisStoreBackend
+from ..store import BaseAtomicAction
 from ..types import (
     AtomicActionTypeT,
     KeyT,
@@ -15,6 +13,11 @@ from ..types import (
 )
 from ..utils import now_sec
 from . import BaseRateLimiter, RateLimitResult, RateLimitState
+
+if TYPE_CHECKING:
+    from redis.commands.core import Script
+
+    from ..store import MemoryStoreBackend, RedisStoreBackend
 
 
 class TokenBucketAtomicActionType(Enum):

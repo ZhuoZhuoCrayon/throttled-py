@@ -1,11 +1,14 @@
 from enum import Enum
-from typing import List, Optional, Sequence, Tuple, Type
+from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple, Type
 
 from ..constants import RateLimiterType, StoreType
-from ..store import BaseAtomicAction, MemoryStoreBackend, RedisStoreBackend
+from ..store import BaseAtomicAction
 from ..types import AtomicActionTypeT, KeyT, RateLimiterTypeT, StoreValueT
 from ..utils import now_sec
 from . import BaseRateLimiter, RateLimitResult, RateLimitState
+
+if TYPE_CHECKING:
+    from ..store import MemoryStoreBackend, RedisStoreBackend
 
 
 class FixedWindowAtomicActionType(Enum):
@@ -33,7 +36,7 @@ class RedisLimitAtomicAction(BaseAtomicAction):
     return {current > limit and 1 or 0, current}
     """
 
-    def __init__(self, backend: RedisStoreBackend):
+    def __init__(self, backend: "RedisStoreBackend"):
         # In single command scenario, lua has no performance advantage, and even causes
         # a decrease in performance due to the increase in transmission content.
         # Benchmarks(Python 3.8, Darwin 23.6.0, Arm)
@@ -66,7 +69,7 @@ class MemoryLimitAtomicAction(BaseAtomicAction):
     TYPE: AtomicActionTypeT = FixedWindowAtomicActionType.LIMIT.value
     STORE_TYPE: str = StoreType.MEMORY.value
 
-    def __init__(self, backend: MemoryStoreBackend):
+    def __init__(self, backend: "MemoryStoreBackend"):
         self._backend: MemoryStoreBackend = backend
 
     def do(
