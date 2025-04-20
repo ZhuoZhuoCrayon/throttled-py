@@ -17,7 +17,7 @@ version-resolver:
       - "SemVer/PATCH"
   default: patch
 
-excludeLabels:
+exclude-labels:
   - "ci/skip-changelog"
 
 autolabeler:
@@ -73,10 +73,10 @@ categories:
       - "kind/ci"
 
 template: |
-  ## v$RESOLVED_VERSION - ${{date 'YYYY-MM-DD'}}
+  ## v$RESOLVED_VERSION - YYYY-MM-DD
 
-  [简体中文](REPO/blob/main/CHANGELOG.md#vxxx---${{date 'YYYY-MM-DD'}}) | English
+  [简体中文](https://github.com/$OWNER/$REPOSITORY/blob/main/CHANGELOG.md#vxxx---YYYY-MM-DD) | English
 
   $CHANGES
 
-  **Full Changelog**: REPO/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
+  **Full Changelog**: https://github.com/$OWNER/$REPOSITORY/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
