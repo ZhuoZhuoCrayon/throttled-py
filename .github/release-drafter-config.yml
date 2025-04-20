@@ -1,0 +1,85 @@
+name-template: "v$RESOLVED_VERSION"
+tag-template: "v$RESOLVED_VERSION"
+change-template: "- $TITLE @$AUTHOR (#$NUMBER)"
+change-title-escapes: "\<*_&"
+category-template: "### $TITLE"
+version-resolver:
+  major:
+    labels:
+      - "SemVer/MAJOR"
+      - "kind/breaking-change"
+  minor:
+    labels:
+      - "SemVer/MINOR"
+      - "kind/feat"
+  patch:
+    labels:
+      - "SemVer/PATCH"
+  default: patch
+
+# Exclude labels from the changelog.
+excludeLabels:
+  - "ci/skip-changelog"
+
+autolabeler:
+  - label: "kind/breaking-change"
+    body: "/.*BREAKING CHANGE.*/"
+  - label: "ci/skip-changelog"
+    body: "/docs: release.+/"
+  - label: "kind/feat"
+    title: "/^feat: .*/"
+  - label: "kind/fix"
+    title: "/^fix: .*/"
+  - label: "kind/perf"
+    title: "/^perf: .*/"
+  - label: "kind/refactor"
+    title: "/^refactor: .*/"
+  - label: "kind/test"
+    title: "/^test: .*/"
+  - label: "kind/docs"
+    title: "/^docs: .*/"
+  - label: "kind/style"
+    title: "/^style: .*/"
+  - label: "kind/build"
+    title: "/^build: .*/"
+  - label: "kind/ci"
+    title: "/^ci: .*/"
+
+categories:
+  - title: "🔥 Breaking Changes"
+    labels:
+      - "kind/breaking-change"
+  - title: "🐛 Bug Fixes"
+    labels:
+      - "kind/fix"
+  - title: "🚀 New Features"
+    labels:
+      - "kind/feat"
+  - title: "🧪 Tests"
+    labels:
+      - "kind/test"
+  - title: "📝 Documentation"
+    labels:
+      - "kind/docs"
+  - title: "✨ Improvements"
+    labels:
+      - "kind/perf"
+      - "kind/refactor"
+  - title: "📦 Dependencies"
+    labels:
+      - "kind/build"
+  - title: "🍃 Maintenance"
+    labels:
+      - "kind/style"
+      - "kind/ci"
+
+template: |
+  ## v$RESOLVED_VERSION - ${{date 'YYYY-MM-DD'}}
+  
+  [简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.md#vxxx---${{date 'YYYY-MM-DD'}}) | English
+
+  $CHANGES
+
+  **Full Changelog**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
+  
+  ---
