@@ -63,7 +63,7 @@ class RedisLimitAtomicAction(BaseAtomicAction):
     return {limited, tokens}
     """
 
-    def __init__(self, backend: RedisStoreBackend):
+    def __init__(self, backend: "RedisStoreBackend"):
         self._script: Script = backend.get_client().register_script(self.SCRIPTS)
 
     def do(
@@ -78,7 +78,7 @@ class MemoryLimitAtomicAction(BaseAtomicAction):
     TYPE: AtomicActionTypeT = TokenBucketAtomicActionType.LIMIT.value
     STORE_TYPE: str = StoreType.MEMORY.value
 
-    def __init__(self, backend: MemoryStoreBackend):
+    def __init__(self, backend: "MemoryStoreBackend"):
         self._backend: MemoryStoreBackend = backend
 
     def do(
