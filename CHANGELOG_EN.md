@@ -3,6 +3,34 @@
 [简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.md) | English
 
 
+## v2.0.0 - 2025-04-22
+
+[简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.md#v200---2025-04-22) | English
+
+### 🔥 Breaking Changes
+
+- build: make store dependencies optional via extras (#45) @ZhuoZhuoCrayon (#50)
+    - For more details, please refer to the [Optional Dependencies](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#1-optional-dependencies) section.
+
+- fix: remove deprecated "rate_limter" misspelled alias (#38) @ZhuoZhuoCrayon (#51)
+
+### 🐛 Bug Fixes
+
+- fix: remove deprecated "rate_limter" misspelled alias (#38) @ZhuoZhuoCrayon (#51)
+
+### 📦 Dependencies
+
+- build: make store dependencies optional via extras (#45) @ZhuoZhuoCrayon (#50)
+
+### 🍃 Maintenance
+
+- ci: implement automated release drafting workflow @ZhuoZhuoCrayon (#47)
+
+**Full Changelog**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v1.1.1...v2.0.0
+
+---
+
+
 ## v1.1.1 - 2025-04-19
 
 [简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.md#v111---2025-04-19) | English

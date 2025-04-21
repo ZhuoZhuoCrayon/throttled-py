@@ -3,6 +3,34 @@
 [English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md) | 简体中文
 
 
+## v2.0.0 - 2025-04-22
+
+[English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md#v200---2025-04-22) | 简体中文
+
+### 🔥 破坏性变更
+
+- build: 通过 extras 使存储依赖项可选 (#45) @ZhuoZhuoCrayon (#50)
+    - 更多详情请参考 [额外依赖](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#1%E9%A2%9D%E5%A4%96%E4%BE%9D%E8%B5%96) 部分。
+
+- fix: 移除已弃用的拼写错误别名 "rate_limter" (#38) @ZhuoZhuoCrayon (#51)
+
+### 🐛 Bug 修复
+
+- fix: 移除已弃用的拼写错误别名 "rate_limter" (#38) @ZhuoZhuoCrayon (#51)
+
+### 📦 依赖项更新
+
+- build: 通过 extras 使存储依赖项变为可选 (#45) @ZhuoZhuoCrayon (#50)
+
+### 🍃 维护工作
+
+- ci: 实现自动化发布草稿工作流 @ZhuoZhuoCrayon (#47)
+
+**完整更新日志**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v1.1.1...v2.0.0
+
+---
+
+
 ## v1.1.1 - 2025-04-19
 
 [English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md#v111---2025-04-19) | 简体中文
