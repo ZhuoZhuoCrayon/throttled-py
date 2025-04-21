@@ -3,32 +3,32 @@ from typing import Any, Callable, Dict, Optional
 
 import pytest
 
-from throttled import Quota, rate_limter
+from throttled import Quota, rate_limiter
 
 
 class TestQuota:
     @pytest.mark.parametrize(
         "per_xx,constructor_kwargs,expect",
         [
-            [rate_limter.per_sec, {"limit": 10}, {"limit": 10, "burst": 10, "sec": 1}],
-            [rate_limter.per_min, {"limit": 10}, {"limit": 10, "burst": 10, "sec": 60}],
+            [rate_limiter.per_sec, {"limit": 10}, {"limit": 10, "burst": 10, "sec": 1}],
+            [rate_limiter.per_min, {"limit": 10}, {"limit": 10, "burst": 10, "sec": 60}],
             [
-                rate_limter.per_hour,
+                rate_limiter.per_hour,
                 {"limit": 10},
                 {"limit": 10, "burst": 10, "sec": 3600},
             ],
             [
-                rate_limter.per_day,
+                rate_limiter.per_day,
                 {"limit": 10},
                 {"limit": 10, "burst": 10, "sec": 86400},
             ],
             [
-                rate_limter.per_week,
+                rate_limiter.per_week,
                 {"limit": 10},
                 {"limit": 10, "burst": 10, "sec": 604800},
             ],
             [
-                rate_limter.per_sec,
+                rate_limiter.per_sec,
                 {"limit": 10, "burst": 5},
                 {"limit": 10, "burst": 5, "sec": 1},
             ],
@@ -46,7 +46,7 @@ class TestQuota:
         assert quota.get_period_sec() == expect["sec"]
 
     def test_per_duration(self):
-        quota: Quota = rate_limter.per_duration(
+        quota: Quota = rate_limiter.per_duration(
             timedelta(minutes=2), limit=120, burst=150
         )
         assert quota.burst == 150
