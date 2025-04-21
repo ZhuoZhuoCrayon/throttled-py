@@ -32,6 +32,27 @@
 $ pip install throttled-py
 ```
 
+### 1）额外依赖
+
+自 [v2.0.0](https://github.com/ZhuoZhuoCrayon/throttled-py/releases/tag/v2.0.0) 版本起，默认安装仅包含核心功能依赖。
+
+如需使用扩展功能，可通过以下方式安装可选依赖项（多个依赖项用逗号分隔）：
+
+```shell
+$ pip intall "throttled-py[redis]"
+
+$ pip install "throttled-py[redis,in-memory]"
+```
+
+可选依赖项说明：
+
+| 附加依赖项       | 描述               |
+|-------------|------------------|
+| `all`       | 安装所有扩展依赖。        | 
+| `in-momory` | 使用内存作为存储后端。      |
+| `redis`     | 使用 Redis 作为存储后端。 |
+
+
 ## 🎨 快速开始
 
 ### 1）通用 API

@@ -53,7 +53,7 @@ class BaseConnectionFactory(abc.ABC):
                 f"Could not import connection pool class '{pool_cls_path}', "
                 f"possible reasons are: \n- The module does not exist.\n"
                 f"- Redis storage backend requires extra dependencies, "
-                f"please install with `pip install throttled-py[redis]`."
+                f'please install with `pip install "throttled-py[redis]"`.'
             )
 
         self.pool_cls_kwargs: Dict[str, Any] = options.get("CONNECTION_POOL_KWARGS", {})

@@ -19,7 +19,7 @@ class TestRedisPool:
                 {"CONNECTION_POOL_CLASS": "no-exists.redis.connection.ConnectionPool"},
                 ImportError,
                 # match is a regex pattern, so we need to escape the backslashes.
-                "pip install throttled-py\\[redis\\]",
+                'pip install "throttled-py\\[redis\\]"',
             ],
             [
                 "no-exists.throttled.store.ConnectionFactory",
