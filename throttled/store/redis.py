@@ -1,12 +1,13 @@
-from typing import Any, Dict, Optional, Type, Union
-
-from redis import Redis
+from typing import TYPE_CHECKING, Any, Dict, Optional, Type, Union
 
 from ..constants import StoreType
 from ..exceptions import DataError
 from ..types import KeyT, StoreDictValueT, StoreValueT
 from .base import BaseAtomicAction, BaseStore, BaseStoreBackend
 from .redis_pool import BaseConnectionFactory, get_connection_factory
+
+if TYPE_CHECKING:
+    import redis
 
 
 class RedisStoreBackend(BaseStoreBackend):
@@ -17,16 +18,17 @@ class RedisStoreBackend(BaseStoreBackend):
     ):
         super().__init__(server, options)
 
-        self._client: Optional[Redis] = None
+        self._client: Optional[redis.Redis] = None
 
         connection_factory_cls_path: Optional[str] = self.options.get(
             "CONNECTION_FACTORY_CLASS"
         )
+
         self._connection_factory: BaseConnectionFactory = get_connection_factory(
             connection_factory_cls_path, self.options
         )
 
-    def get_client(self) -> Redis:
+    def get_client(self) -> "redis.Redis":
         if self._client is None:
             self._client = self._connection_factory.connect(self.server)
         return self._client

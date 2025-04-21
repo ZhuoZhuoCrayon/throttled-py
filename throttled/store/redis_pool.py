@@ -26,26 +26,36 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import abc
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
 from urllib.parse import ParseResult, ParseResultBytes, parse_qs, urlparse
 
-from redis import ConnectionPool, Redis, Sentinel
-from redis.connection import DefaultParser, to_bool
+from ..exceptions import SetUpError
+from ..utils import import_string, to_bool
 
-from throttled.exceptions import SetUpError
-from throttled.utils import import_string
+if TYPE_CHECKING:
+    from redis import ConnectionPool, Redis, Sentinel
+    from redis.connection import DefaultParser
 
 
 class BaseConnectionFactory(abc.ABC):
     """Base connection factory."""
 
-    _pools: Dict[str, ConnectionPool] = {}
+    _pools: Dict[str, "ConnectionPool"] = {}
 
     def __init__(self, options: Dict[str, Any]):
         pool_cls_path: str = options.get(
             "CONNECTION_POOL_CLASS", "redis.connection.ConnectionPool"
         )
-        self.pool_cls: Type[ConnectionPool] = import_string(pool_cls_path)
+        try:
+            self.pool_cls: Type[ConnectionPool] = import_string(pool_cls_path)
+        except ImportError:
+            raise ImportError(
+                f"Could not import connection pool class '{pool_cls_path}', "
+                f"possible reasons are: \n- The module does not exist.\n"
+                f"- Redis storage backend requires extra dependencies, "
+                f'please install with `pip install "throttled-py[redis]"`.'
+            )
+
         self.pool_cls_kwargs: Dict[str, Any] = options.get("CONNECTION_POOL_KWARGS", {})
 
         redis_client_cls_path: str = options.get(
@@ -55,6 +65,11 @@ class BaseConnectionFactory(abc.ABC):
         self.redis_client_cls_kwargs: Dict[str, Any] = options.get(
             "REDIS_CLIENT_KWARGS", {}
         )
+
+        parser_cls_path: str = options.get(
+            "PARSER_CLASS", "redis.connection.DefaultParser"
+        )
+        self.parser_cls: Type[DefaultParser] = import_string(parser_cls_path)
 
         self.options: Dict[str, Any] = options
 
@@ -66,19 +81,19 @@ class BaseConnectionFactory(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def connect(self, url: Optional[str] = None) -> Redis:
+    def connect(self, url: Optional[str] = None) -> "Redis":
         """Given a basic connection parameters, return a new connection."""
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_connection(self, params: Dict[str, Any]) -> Redis:
+    def get_connection(self, params: Dict[str, Any]) -> "Redis":
         """Given a now preformatted params, return a new connection.
         The default implementation uses a cached pools for create new connection.
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_or_create_connection_pool(self, params: Dict[str, Any]) -> ConnectionPool:
+    def get_or_create_connection_pool(self, params: Dict[str, Any]) -> "ConnectionPool":
         """
         Given a connection parameters and return a new
         or cached connection pool for them.
@@ -89,7 +104,7 @@ class BaseConnectionFactory(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_connection_pool(self, params: Dict[str, Any]) -> ConnectionPool:
+    def get_connection_pool(self, params: Dict[str, Any]) -> "ConnectionPool":
         """
         Given a connection parameters, return a new connection pool for them.
         Implement this method if you want a custom behavior on creating connection pool.
@@ -107,7 +122,7 @@ class ConnectionFactory(BaseConnectionFactory):
     def make_connection_params(self, url: Optional[str] = None) -> Dict[str, Any]:
         kwargs: Dict[str, Any] = {
             "url": url or self.DEFAULT_URL,
-            "parser_class": self.get_parser_cls(),
+            "parser_class": self.parser_cls,
         }
         password: Optional[str] = self.options.get("PASSWORD", None)
         if password:
@@ -127,29 +142,23 @@ class ConnectionFactory(BaseConnectionFactory):
 
         return kwargs
 
-    def connect(self, url: Optional[str] = None) -> Redis:
+    def connect(self, url: Optional[str] = None) -> "Redis":
         params: Dict[str, Any] = self.make_connection_params(url)
         return self.get_connection(params)
 
-    def get_connection(self, params) -> Redis:
+    def get_connection(self, params) -> "Redis":
         pool: ConnectionPool = self.get_or_create_connection_pool(params)
         return self.redis_client_cls(
             connection_pool=pool, **self.redis_client_cls_kwargs
         )
 
-    def get_parser_cls(self) -> Type[DefaultParser]:
-        parser_cls_path: Optional[str] = self.options.get("PARSER_CLASS", None)
-        if parser_cls_path is None:
-            return DefaultParser
-        return import_string(parser_cls_path)
-
-    def get_or_create_connection_pool(self, params: Dict[str, Any]) -> ConnectionPool:
+    def get_or_create_connection_pool(self, params: Dict[str, Any]) -> "ConnectionPool":
         key: str = params["url"]
         if key not in self._pools:
             self._pools[key] = self.get_connection_pool(params)
         return self._pools[key]
 
-    def get_connection_pool(self, params: Dict[str, Any]) -> ConnectionPool:
+    def get_connection_pool(self, params: Dict[str, Any]) -> "ConnectionPool":
         cp_params: Dict[str, Any] = dict(params)
         cp_params.update(self.pool_cls_kwargs)
         pool: ConnectionPool = self.pool_cls.from_url(**cp_params)
@@ -178,13 +187,14 @@ class SentinelConnectionFactory(ConnectionFactory):
         connection_kwargs = self.make_connection_params(None)
         connection_kwargs.pop("url")
         connection_kwargs.update(self.pool_cls_kwargs)
-        self._sentinel: Sentinel = Sentinel(
+        sentinel_cls: Type[Sentinel] = import_string("redis.sentinel.Sentinel")
+        self._sentinel: Sentinel = sentinel_cls(
             sentinels,
             sentinel_kwargs=options.get("SENTINEL_KWARGS"),
             **connection_kwargs,
         )
 
-    def get_connection_pool(self, params: Dict[str, Any]) -> ConnectionPool:
+    def get_connection_pool(self, params: Dict[str, Any]) -> "ConnectionPool":
         """Given a connection parameters, return a new sentinel connection
         pool for them."""
         url: Union[ParseResult, ParseResultBytes] = urlparse(params["url"])

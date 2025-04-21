@@ -1,14 +1,17 @@
 import math
 from enum import Enum
-from typing import List, Optional, Sequence, Tuple, Type
-
-from redis.commands.core import Script
+from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple, Type
 
 from ..constants import RateLimiterType, StoreType
-from ..store import BaseAtomicAction, MemoryStoreBackend, RedisStoreBackend
+from ..store import BaseAtomicAction
 from ..types import AtomicActionTypeT, KeyT, RateLimiterTypeT, StoreValueT
 from ..utils import now_mono_f
 from . import BaseRateLimiter, RateLimitResult, RateLimitState
+
+if TYPE_CHECKING:
+    from redis.commands.core import Script
+
+    from ..store import MemoryStoreBackend, RedisStoreBackend
 
 
 class GCRAAtomicActionType(Enum):
@@ -71,7 +74,7 @@ class RedisLimitAtomicAction(BaseAtomicAction):
     return {limited, remaining, tostring(reset_after), tostring(retry_after)}
     """
 
-    def __init__(self, backend: RedisStoreBackend):
+    def __init__(self, backend: "RedisStoreBackend"):
         self._script: Script = backend.get_client().register_script(self.SCRIPTS)
 
     def do(
@@ -133,7 +136,7 @@ class MemoryLimitAtomicAction(BaseAtomicAction):
     TYPE: AtomicActionTypeT = GCRAAtomicActionType.LIMIT.value
     STORE_TYPE: str = StoreType.MEMORY.value
 
-    def __init__(self, backend: MemoryStoreBackend):
+    def __init__(self, backend: "MemoryStoreBackend"):
         self._backend: MemoryStoreBackend = backend
 
     def do(

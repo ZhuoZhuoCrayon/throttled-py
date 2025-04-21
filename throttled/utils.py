@@ -4,7 +4,7 @@ import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 from importlib import import_module
-from typing import Any, Callable, Coroutine, List
+from typing import Any, Callable, Coroutine, List, Optional, Tuple
 
 
 def now_sec() -> int:
@@ -17,6 +17,17 @@ def now_mono_f() -> float:
 
 def now_ms() -> int:
     return int(time.time() * 1000)
+
+
+FALSE_STRINGS: Tuple[str, ...] = ("0", "F", "FALSE", "N", "NO")
+
+
+def to_bool(value: Any) -> Optional[bool]:
+    if value is None or value == "":
+        return None
+    if isinstance(value, str) and value.upper() in FALSE_STRINGS:
+        return False
+    return bool(value)
 
 
 class Benchmark:

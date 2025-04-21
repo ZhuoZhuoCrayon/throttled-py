@@ -31,6 +31,24 @@
 $ pip install throttled-py
 ```
 
+### 1) Optional Dependencies
+
+Starting from [v2.0.0](https://github.com/ZhuoZhuoCrayon/throttled-py/releases/tag/v2.0.0), only core dependencies are installed by default.
+
+To enable additional features, install optional dependencies as follows (multiple extras can be comma-separated):
+
+```shell
+$ pip intall "throttled-py[redis]"
+
+$ pip install "throttled-py[redis,in-memory]"
+```
+
+| Extra       | Description                       |
+|-------------|-----------------------------------|
+| `all`       | Install all extras.               |
+| `in-momory` | Use In-Memory as storage backend. |
+| `redis`     | Use Redis as storage backend.     |
+
 
 ## 🎨 Quick Start
 
