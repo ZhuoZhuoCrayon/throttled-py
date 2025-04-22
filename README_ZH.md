@@ -39,7 +39,7 @@ $ pip install throttled-py
 如需使用扩展功能，可通过以下方式安装可选依赖项（多个依赖项用逗号分隔）：
 
 ```shell
-$ pip intall "throttled-py[redis]"
+$ pip install "throttled-py[redis]"
 
 $ pip install "throttled-py[redis,in-memory]"
 ```

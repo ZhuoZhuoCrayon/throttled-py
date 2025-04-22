@@ -38,7 +38,7 @@ Starting from [v2.0.0](https://github.com/ZhuoZhuoCrayon/throttled-py/releases/t
 To enable additional features, install optional dependencies as follows (multiple extras can be comma-separated):
 
 ```shell
-$ pip intall "throttled-py[redis]"
+$ pip install "throttled-py[redis]"
 
 $ pip install "throttled-py[redis,in-memory]"
 ```
