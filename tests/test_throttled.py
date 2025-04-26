@@ -1,3 +1,4 @@
+from functools import partial
 from typing import Any, Callable, Dict, Type
 
 import pytest
@@ -5,8 +6,8 @@ import pytest
 from throttled import Throttled, per_sec, rate_limiter, store
 from throttled.constants import RateLimiterType
 from throttled.exceptions import BaseThrottledError, DataError, LimitedError
-
-from .utils import Timer
+from throttled.types import TimeLikeValueT
+from throttled.utils import Timer
 
 
 @pytest.fixture
@@ -84,19 +85,21 @@ class TestThrottled:
         throttle: Throttled = Throttled(timeout=1, quota=per_sec(1))
         assert not throttle.limit("key").limited
 
-        with Timer() as timer:
+        def _callback(
+            left: float, right: float, elapsed: TimeLikeValueT, *args, **kwargs
+        ):
+            assert left <= elapsed < right
+
+        with Timer(callback=partial(_callback, 1, 2)):
             assert not throttle.limit("key").limited
-            assert 1 <= timer.elapsed() < 2
 
         # case: retry_after > timeout
-        with Timer() as timer:
+        with Timer(callback=partial(_callback, 0, 0.1)):
             assert throttle.limit("key", cost=2).limited
-            assert 0 <= timer.elapsed() < 0.1
 
         # case: timeout < retry_after
-        with Timer() as timer:
+        with Timer(callback=partial(_callback, 0, 0.1)):
             assert throttle.limit("key", timeout=0.5).limited
-            assert 0 <= timer.elapsed() < 0.1
 
     def test_enter(self):
         mem_store: store.MemoryStore = store.MemoryStore()

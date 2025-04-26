@@ -13,9 +13,8 @@ from throttled import (
     per_min,
 )
 from throttled.constants import RateLimiterType
-from throttled.utils import Benchmark
-
-from ..utils import Timer
+from throttled.types import TimeLikeValueT
+from throttled.utils import Benchmark, Timer
 
 
 @pytest.fixture
@@ -72,18 +71,17 @@ class TestLeakingBucketRateLimiter:
         quota: Quota,
         requests_num: int,
     ):
-        with Timer() as timer:
+        def _callback(elapsed: TimeLikeValueT, *args, **kwargs):
+            accessed_num: int = requests_num - sum(results)
+            limit: int = min(requests_num, quota.get_limit())
+            rate: float = quota.get_limit() / quota.get_period_sec()
+            assert limit <= accessed_num <= limit + (elapsed + 5) * rate
+
+        with Timer(callback=_callback):
             rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
             results: List[bool] = benchmark.concurrent(
                 task=lambda: rate_limiter.limit("key").limited, batch=requests_num
             )
-            cost: float = timer.elapsed()
-
-        accessed_num: int = requests_num - sum(results)
-        limit: int = min(requests_num, quota.get_limit())
-        rate: float = quota.get_limit() / quota.get_period_sec()
-
-        assert limit <= accessed_num <= limit + (cost + 5) * rate
 
     def test_peek(self, rate_limiter_constructor: Callable[[Quota], BaseRateLimiter]):
         key: str = "key"

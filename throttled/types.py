@@ -11,3 +11,5 @@ StoreBucketValueT = Union[_NumberLikeT, StoreDictValueT]
 AtomicActionTypeT = str
 
 RateLimiterTypeT = str
+
+TimeLikeValueT = Union[int, float]

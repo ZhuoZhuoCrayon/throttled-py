@@ -6,6 +6,8 @@ from concurrent.futures import ThreadPoolExecutor
 from importlib import import_module
 from typing import Any, Callable, Coroutine, List, Optional, Tuple
 
+from .types import TimeLikeValueT
+
 
 def now_sec() -> int:
     return int(time.time())
@@ -28,6 +30,50 @@ def to_bool(value: Any) -> Optional[bool]:
     if isinstance(value, str) and value.upper() in FALSE_STRINGS:
         return False
     return bool(value)
+
+
+class Timer:
+    def __init__(
+        self,
+        clock: Optional[Callable[..., TimeLikeValueT]] = None,
+        callback: Optional[
+            Callable[[TimeLikeValueT, TimeLikeValueT, TimeLikeValueT], Any]
+        ] = None,
+    ):
+        self._clock: Callable[..., TimeLikeValueT] = clock or now_mono_f
+        self._callback: Callable[
+            [TimeLikeValueT, TimeLikeValueT, TimeLikeValueT], Any
+        ] = callback
+
+    def _new_timer(self) -> "Timer":
+        return self.__class__(self._clock, self._callback)
+
+    def __enter__(self) -> "Timer":
+        self._start: TimeLikeValueT = self._clock()
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        self._handle_callback()
+
+    async def __aenter__(self) -> "Timer":
+        self._start: TimeLikeValueT = self._clock()
+        return self
+
+    async def __aexit__(self, *args, **kwargs):
+        self._handle_callback()
+
+    def _handle_callback(self):
+        if self._callback:
+            end: TimeLikeValueT = self._clock()
+            elapsed: TimeLikeValueT = end - self._start
+            self._callback(elapsed, self._start, end)
+
+    def __call__(self, func: Callable):
+        def _inner(*args, **kwargs):
+            with self._new_timer():
+                return func(*args, **kwargs)
+
+        return _inner
 
 
 class Benchmark:
