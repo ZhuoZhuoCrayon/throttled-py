@@ -1,7 +1,6 @@
-from enum import Enum
 from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple, Type
 
-from ..constants import RateLimiterType, StoreType
+from ..constants import ATOMIC_ACTION_TYPE_LIMIT, RateLimiterType, StoreType
 from ..store import BaseAtomicAction
 from ..types import AtomicActionTypeT, KeyT, RateLimiterTypeT, StoreValueT
 from ..utils import now_sec
@@ -11,16 +10,10 @@ if TYPE_CHECKING:
     from ..store import MemoryStoreBackend, RedisStoreBackend
 
 
-class FixedWindowAtomicActionType(Enum):
-    """Enumeration for types of AtomicActions used in FixedWindowRateLimiter."""
-
-    LIMIT: AtomicActionTypeT = "limit"
-
-
 class RedisLimitAtomicAction(BaseAtomicAction):
     """Redis-based implementation of AtomicAction for FixedWindowRateLimiter."""
 
-    TYPE: AtomicActionTypeT = FixedWindowAtomicActionType.LIMIT.value
+    TYPE: AtomicActionTypeT = ATOMIC_ACTION_TYPE_LIMIT
     STORE_TYPE: str = StoreType.REDIS.value
 
     SCRIPTS: str = """
@@ -56,7 +49,7 @@ class RedisLimitAtomicAction(BaseAtomicAction):
     def do(
         self, keys: Sequence[KeyT], args: Optional[Sequence[StoreValueT]]
     ) -> Tuple[int, int]:
-        period, limit, cost = args[0], args[1], args[2]
+        period, limit, cost = args
         current: int = self._backend.get_client().incrby(keys[0], cost)
         if current == cost:
             self._backend.get_client().expire(keys[0], period)
@@ -66,7 +59,7 @@ class RedisLimitAtomicAction(BaseAtomicAction):
 class MemoryLimitAtomicAction(BaseAtomicAction):
     """Memory-based implementation of AtomicAction for FixedWindowRateLimiter."""
 
-    TYPE: AtomicActionTypeT = FixedWindowAtomicActionType.LIMIT.value
+    TYPE: AtomicActionTypeT = ATOMIC_ACTION_TYPE_LIMIT
     STORE_TYPE: str = StoreType.MEMORY.value
 
     def __init__(self, backend: "MemoryStoreBackend"):
@@ -76,9 +69,7 @@ class MemoryLimitAtomicAction(BaseAtomicAction):
         self, keys: Sequence[KeyT], args: Optional[Sequence[StoreValueT]]
     ) -> Tuple[int, int]:
         key: str = keys[0]
-        period: int = args[0]
-        limit: int = args[1]
-        cost: int = args[2]
+        period, limit, cost = args
         with self._backend.lock:
             current: Optional[int] = self._backend.get(key)
             if current is None:
@@ -103,7 +94,7 @@ class FixedWindowRateLimiter(BaseRateLimiter):
 
     @classmethod
     def _supported_atomic_action_types(cls) -> List[AtomicActionTypeT]:
-        return [FixedWindowAtomicActionType.LIMIT.value]
+        return [ATOMIC_ACTION_TYPE_LIMIT]
 
     def _prepare(self, key: str) -> Tuple[str, int, int, int]:
         now: int = now_sec()
@@ -113,20 +104,20 @@ class FixedWindowRateLimiter(BaseRateLimiter):
 
     def _limit(self, key: str, cost: int = 1) -> RateLimitResult:
         period_key, period, limit, now = self._prepare(key)
-        limited, current = self._atomic_actions[
-            FixedWindowAtomicActionType.LIMIT.value
-        ].do([period_key], [period, limit, cost])
+        limited, current = self._atomic_actions[ATOMIC_ACTION_TYPE_LIMIT].do(
+            [period_key], [period, limit, cost]
+        )
 
         # |-- now % period --|-- reset_after --|----- next period -----|
         # |--------------- period -------------|
         reset_after: float = period - (now % period)
         return RateLimitResult(
             limited=bool(limited),
-            state=RateLimitState(
-                limit=limit,
-                remaining=max(0, limit - current),
-                reset_after=reset_after,
-                retry_after=(0, reset_after)[limited],
+            state_values=(
+                limit,
+                max(0, limit - current),
+                reset_after,
+                (0, reset_after)[limited],
             ),
         )
 

@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional, Type
 import pytest
 
 from throttled import BaseStore
-from throttled.constants import StoreTTLState
+from throttled.constants import STORE_TTL_STATE_NOT_EXIST, STORE_TTL_STATE_NOT_TTL
 from throttled.exceptions import BaseThrottledError, DataError
 from throttled.types import KeyT, StoreValueT
 
@@ -39,11 +39,11 @@ class TestStore:
         assert timeout == store.ttl(key)
 
     def test_ttl__not_exist(self, store: BaseStore):
-        assert store.ttl("key") == StoreTTLState.NOT_EXIST.value
+        assert store.ttl("key") == STORE_TTL_STATE_NOT_EXIST
 
     def test_ttl__not_ttl(self, store: BaseStore):
         store.hset("name", "key", 1)
-        assert store.ttl("name") == StoreTTLState.NOT_TTL.value
+        assert store.ttl("name") == STORE_TTL_STATE_NOT_TTL
 
     @pytest.mark.parametrize("key,timeout", [("one", 1)])
     def test_set(self, store: BaseStore, key: KeyT, timeout: int):
@@ -125,10 +125,10 @@ class TestStore:
         mapping: Optional[Dict[KeyT, StoreValueT]],
     ):
         assert store.exists(name) is False
-        assert store.ttl(name) == StoreTTLState.NOT_EXIST.value
+        assert store.ttl(name) == STORE_TTL_STATE_NOT_EXIST
         store.hset(name, key, value, mapping)
         assert store.exists(name) is True
-        assert store.ttl(name) == StoreTTLState.NOT_TTL.value
+        assert store.ttl(name) == STORE_TTL_STATE_NOT_TTL
         store.expire(name, 1)
         assert store.ttl(name) == 1
         assert store.hgetall(name) == expect

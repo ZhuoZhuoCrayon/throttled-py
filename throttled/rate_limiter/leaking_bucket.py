@@ -1,8 +1,7 @@
 import math
-from enum import Enum
 from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple, Type
 
-from ..constants import RateLimiterType, StoreType
+from ..constants import ATOMIC_ACTION_TYPE_LIMIT, RateLimiterType, StoreType
 from ..store import BaseAtomicAction
 from ..types import (
     AtomicActionTypeT,
@@ -20,16 +19,10 @@ if TYPE_CHECKING:
     from ..store import MemoryStoreBackend, RedisStoreBackend
 
 
-class LeakingBucketAtomicActionType(Enum):
-    """Enumeration for types of AtomicActions used in LeakingBucketRateLimiter."""
-
-    LIMIT: AtomicActionTypeT = "limit"
-
-
 class RedisLimitAtomicAction(BaseAtomicAction):
     """Redis-based implementation of AtomicAction for LeakingBucketRateLimiter."""
 
-    TYPE: AtomicActionTypeT = LeakingBucketAtomicActionType.LIMIT.value
+    TYPE: AtomicActionTypeT = ATOMIC_ACTION_TYPE_LIMIT
     STORE_TYPE: str = StoreType.REDIS.value
 
     SCRIPTS: str = """
@@ -73,7 +66,7 @@ class RedisLimitAtomicAction(BaseAtomicAction):
 class MemoryLimitAtomicAction(BaseAtomicAction):
     """Memory-based implementation of AtomicAction for LeakingBucketRateLimiter."""
 
-    TYPE: AtomicActionTypeT = LeakingBucketAtomicActionType.LIMIT.value
+    TYPE: AtomicActionTypeT = ATOMIC_ACTION_TYPE_LIMIT
     STORE_TYPE: str = StoreType.MEMORY.value
 
     def __init__(self, backend: "MemoryStoreBackend"):
@@ -121,28 +114,25 @@ class LeakingBucketRateLimiter(BaseRateLimiter):
 
     @classmethod
     def _supported_atomic_action_types(cls) -> List[AtomicActionTypeT]:
-        return [LeakingBucketAtomicActionType.LIMIT.value]
+        return [ATOMIC_ACTION_TYPE_LIMIT]
 
     def _prepare(self, key: str) -> Tuple[str, float, int]:
-        rate: float = self.quota.get_limit() / self.quota.get_period_sec()
-        return self._prepare_key(key), rate, self.quota.burst
+        return self._prepare_key(key), self.quota.fill_rate, self.quota.burst
 
     def _limit(self, key: str, cost: int = 1) -> RateLimitResult:
         formatted_key, rate, capacity = self._prepare(key)
-        action: BaseAtomicAction = self._atomic_actions[
-            LeakingBucketAtomicActionType.LIMIT.value
-        ]
+        action: BaseAtomicAction = self._atomic_actions[ATOMIC_ACTION_TYPE_LIMIT]
         limited, tokens = action.do([formatted_key], [rate, capacity, cost, now_sec()])
         retry_after: int = 0
         if limited:
             retry_after = math.ceil(cost / rate)
         return RateLimitResult(
             limited=bool(limited),
-            state=RateLimitState(
-                limit=capacity,
-                remaining=tokens,
-                reset_after=math.ceil((capacity - tokens) / rate),
-                retry_after=retry_after,
+            state_values=(
+                capacity,
+                tokens,
+                math.ceil((capacity - tokens) / rate),
+                retry_after,
             ),
         )
 

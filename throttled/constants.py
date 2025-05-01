@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import List
 
-from .types import RateLimiterTypeT
+from .types import AtomicActionTypeT, RateLimiterTypeT
 
 
 class StoreType(Enum):
@@ -9,9 +9,12 @@ class StoreType(Enum):
     MEMORY: str = "memory"
 
 
-class StoreTTLState(Enum):
-    NOT_TTL: int = -1
-    NOT_EXIST: int = -2
+STORE_TTL_STATE_NOT_TTL: int = -1
+STORE_TTL_STATE_NOT_EXIST: int = -2
+
+# Enumeration for types of AtomicActions
+ATOMIC_ACTION_TYPE_LIMIT: AtomicActionTypeT = "limit"
+ATOMIC_ACTION_TYPE_PEEK: AtomicActionTypeT = "peek"
 
 
 class RateLimiterType(Enum):

@@ -1,7 +1,7 @@
 import pytest
 
 from throttled import MemoryStore
-from throttled.constants import StoreTTLState
+from throttled.constants import STORE_TTL_STATE_NOT_EXIST
 
 
 @pytest.fixture
@@ -22,6 +22,6 @@ class TestMemoryStore:
             if exists:
                 assert store.ttl(key) <= timeout
             else:
-                assert store.ttl(key) == StoreTTLState.NOT_EXIST.value
+                assert store.ttl(key) == STORE_TTL_STATE_NOT_EXIST
 
             assert store.exists(key) is exists

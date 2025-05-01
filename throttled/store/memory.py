@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 from typing import OrderedDict as OrderedDictT
 from typing import Type
 
-from ..constants import StoreTTLState, StoreType
+from ..constants import STORE_TTL_STATE_NOT_EXIST, STORE_TTL_STATE_NOT_TTL, StoreType
 from ..exceptions import DataError, SetUpError
 from ..types import KeyT, StoreBucketValueT, StoreDictValueT, StoreValueT
 from ..utils import now_mono_f
@@ -36,18 +36,18 @@ class MemoryStoreBackend(BaseStoreBackend):
         return key in self._client
 
     def has_expired(self, key: KeyT) -> bool:
-        return self.ttl(key) == StoreTTLState.NOT_EXIST.value
+        return self.ttl(key) == STORE_TTL_STATE_NOT_EXIST
 
     def ttl(self, key: KeyT) -> int:
         exp: Optional[float] = self.expire_info.get(key)
         if exp is None:
             if not self.exists(key):
-                return StoreTTLState.NOT_EXIST.value
-            return StoreTTLState.NOT_TTL.value
+                return STORE_TTL_STATE_NOT_EXIST
+            return STORE_TTL_STATE_NOT_TTL
 
         ttl: float = exp - now_mono_f()
         if ttl <= 0:
-            return StoreTTLState.NOT_EXIST.value
+            return STORE_TTL_STATE_NOT_EXIST
         return math.ceil(ttl)
 
     def check_and_evict(self, key: KeyT) -> None:

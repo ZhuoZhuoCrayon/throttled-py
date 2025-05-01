@@ -1,8 +1,7 @@
 import math
-from enum import Enum
 from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple, Type
 
-from ..constants import RateLimiterType, StoreType
+from ..constants import ATOMIC_ACTION_TYPE_LIMIT, RateLimiterType, StoreType
 from ..store import BaseAtomicAction
 from ..types import AtomicActionTypeT, KeyT, RateLimiterTypeT, StoreValueT
 from ..utils import now_ms, now_sec
@@ -14,16 +13,10 @@ if TYPE_CHECKING:
     from ..store import MemoryStoreBackend, RedisStoreBackend
 
 
-class SlidingWindowAtomicActionType(Enum):
-    """Enumeration for types of AtomicActions used in SlidingWindowRateLimiter."""
-
-    LIMIT: AtomicActionTypeT = "limit"
-
-
 class RedisLimitAtomicAction(BaseAtomicAction):
     """Redis-based implementation of AtomicAction for SlidingWindowRateLimiter."""
 
-    TYPE: AtomicActionTypeT = SlidingWindowAtomicActionType.LIMIT.value
+    TYPE: AtomicActionTypeT = ATOMIC_ACTION_TYPE_LIMIT
     STORE_TYPE: str = StoreType.REDIS.value
 
     SCRIPTS: str = """
@@ -73,7 +66,7 @@ class RedisLimitAtomicAction(BaseAtomicAction):
 class MemoryLimitAtomicAction(BaseAtomicAction):
     """Memory-based implementation of AtomicAction for SlidingWindowRateLimiter."""
 
-    TYPE: AtomicActionTypeT = SlidingWindowAtomicActionType.LIMIT.value
+    TYPE: AtomicActionTypeT = ATOMIC_ACTION_TYPE_LIMIT
     STORE_TYPE: str = StoreType.MEMORY.value
 
     def __init__(self, backend: "MemoryStoreBackend"):
@@ -128,7 +121,7 @@ class SlidingWindowRateLimiter(BaseRateLimiter):
 
     @classmethod
     def _supported_atomic_action_types(cls) -> List[AtomicActionTypeT]:
-        return [SlidingWindowAtomicActionType.LIMIT.value]
+        return [ATOMIC_ACTION_TYPE_LIMIT]
 
     def _prepare(self, key: str) -> Tuple[str, str, int, int]:
         period: int = self.quota.get_period_sec()
@@ -139,17 +132,12 @@ class SlidingWindowRateLimiter(BaseRateLimiter):
 
     def _limit(self, key: str, cost: int = 1) -> RateLimitResult:
         current_key, previous_key, period, limit = self._prepare(key)
-        limited, used, retry_after = self._atomic_actions[
-            SlidingWindowAtomicActionType.LIMIT.value
-        ].do([current_key, previous_key], [period, limit, cost, now_ms()])
+        limited, used, retry_after = self._atomic_actions[ATOMIC_ACTION_TYPE_LIMIT].do(
+            [current_key, previous_key], [period, limit, cost, now_ms()]
+        )
         return RateLimitResult(
             limited=bool(limited),
-            state=RateLimitState(
-                limit=limit,
-                remaining=max(0, limit - used),
-                reset_after=period,
-                retry_after=retry_after,
-            ),
+            state_values=(limit, max(0, limit - used), period, retry_after),
         )
 
     def _peek(self, key: str) -> RateLimitState:
