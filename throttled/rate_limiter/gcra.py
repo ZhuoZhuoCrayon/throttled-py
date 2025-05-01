@@ -1,8 +1,12 @@
 import math
-from enum import Enum
 from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple, Type
 
-from ..constants import RateLimiterType, StoreType
+from ..constants import (
+    ATOMIC_ACTION_TYPE_LIMIT,
+    ATOMIC_ACTION_TYPE_PEEK,
+    RateLimiterType,
+    StoreType,
+)
 from ..store import BaseAtomicAction
 from ..types import AtomicActionTypeT, KeyT, RateLimiterTypeT, StoreValueT
 from ..utils import now_mono_f
@@ -14,19 +18,12 @@ if TYPE_CHECKING:
     from ..store import MemoryStoreBackend, RedisStoreBackend
 
 
-class GCRAAtomicActionType(Enum):
-    """Enumeration for types of AtomicActions used in GCRARateLimiter."""
-
-    PEEK: AtomicActionTypeT = "peek"
-    LIMIT: AtomicActionTypeT = "limit"
-
-
 class RedisLimitAtomicAction(BaseAtomicAction):
     """Redis-based implementation of AtomicAction for GCRARateLimiter's limit operation.
     Inspire by [Rate Limiting, Cells, and GCRA](https://brandur.org/rate-limiting).
     """
 
-    TYPE: AtomicActionTypeT = GCRAAtomicActionType.LIMIT.value
+    TYPE: AtomicActionTypeT = ATOMIC_ACTION_TYPE_LIMIT
     STORE_TYPE: str = StoreType.REDIS.value
 
     SCRIPTS: str = """
@@ -45,17 +42,11 @@ class RedisLimitAtomicAction(BaseAtomicAction):
         last_tat = tonumber(last_tat)
     end
 
-    -- Calculate the fill time required for the current cost.
     local fill_time_for_cost = cost * emission_interval
-    -- Calculate the fill time required for the full capacity.
     local fill_time_for_capacity = capacity * emission_interval
-    -- Calculate the theoretical arrival time (TAT) for the current request.
     local tat = math.max(now, last_tat) + fill_time_for_cost
-    -- Calculate the the time when the request would be allowed.
     local allow_at = tat - fill_time_for_capacity
-    -- Calculate the time elapsed since the request would be allowed.
     local time_elapsed = now - allow_at
-
 
     local limited = 0
     local retry_after = 0
@@ -70,7 +61,6 @@ class RedisLimitAtomicAction(BaseAtomicAction):
         redis.call("SET", KEYS[1], tat, "EX", math.ceil(reset_after))
     end
 
-    -- use tostring to avoid lost precision.
     return {limited, remaining, tostring(reset_after), tostring(retry_after)}
     """
 
@@ -89,7 +79,7 @@ class RedisPeekAtomicAction(RedisLimitAtomicAction):
     Redis-based implementation of AtomicAction for GCRARateLimiter's peek operation.
     """
 
-    TYPE: AtomicActionTypeT = GCRAAtomicActionType.PEEK.value
+    TYPE: AtomicActionTypeT = ATOMIC_ACTION_TYPE_PEEK
 
     SCRIPTS: str = """
     local emission_interval = tonumber(ARGV[1])
@@ -106,11 +96,8 @@ class RedisPeekAtomicAction(RedisLimitAtomicAction):
         tat= tonumber(tat)
     end
 
-    -- Calculate the fill time required for the full capacity.
     local fill_time_for_capacity = capacity * emission_interval
-    -- Calculate the the time when the request would be allowed.
     local allow_at = math.max(tat, now) - fill_time_for_capacity
-    -- Calculate the time elapsed since the request would be allowed.
     local time_elapsed = now - allow_at
 
     local limited = 0
@@ -123,7 +110,6 @@ class RedisPeekAtomicAction(RedisLimitAtomicAction):
         retry_after = math.abs(time_elapsed)
     end
 
-    -- use tostring to avoid lost precision.
     return {limited, remaining, tostring(reset_after), tostring(retry_after)}
     """
 
@@ -133,7 +119,7 @@ class MemoryLimitAtomicAction(BaseAtomicAction):
     Inspire by [Rate Limiting, Cells, and GCRA](https://brandur.org/rate-limiting).
     """
 
-    TYPE: AtomicActionTypeT = GCRAAtomicActionType.LIMIT.value
+    TYPE: AtomicActionTypeT = ATOMIC_ACTION_TYPE_LIMIT
     STORE_TYPE: str = StoreType.MEMORY.value
 
     def __init__(self, backend: "MemoryStoreBackend"):
@@ -142,12 +128,9 @@ class MemoryLimitAtomicAction(BaseAtomicAction):
     def do(
         self, keys: Sequence[KeyT], args: Optional[Sequence[StoreValueT]]
     ) -> Tuple[int, int, float, float]:
+        key: str = keys[0]
+        emission_interval, capacity, cost = args
         with self._backend.lock:
-            key: str = keys[0]
-            emission_interval: float = args[0]
-            capacity: int = args[1]
-            cost: int = args[2]
-
             now: float = now_mono_f()
             last_tat: float = self._backend.get(key) or now
 
@@ -177,7 +160,7 @@ class MemoryPeekAtomicAction(MemoryLimitAtomicAction):
     Memory-based implementation of AtomicAction for GCRARateLimiter's peek operation.
     """
 
-    TYPE: AtomicActionTypeT = GCRAAtomicActionType.PEEK.value
+    TYPE: AtomicActionTypeT = ATOMIC_ACTION_TYPE_PEEK
 
     def do(
         self, keys: Sequence[KeyT], args: Optional[Sequence[StoreValueT]]
@@ -222,32 +205,26 @@ class GCRARateLimiter(BaseRateLimiter):
 
     @classmethod
     def _supported_atomic_action_types(cls) -> List[AtomicActionTypeT]:
-        return [GCRAAtomicActionType.LIMIT.value, GCRAAtomicActionType.PEEK.value]
+        return [ATOMIC_ACTION_TYPE_LIMIT, ATOMIC_ACTION_TYPE_PEEK]
 
     def _prepare(self, key: str) -> Tuple[str, float, int]:
-        emission_interval: float = self.quota.get_period_sec() / self.quota.get_limit()
-        return self._prepare_key(key), emission_interval, self.quota.burst
+        return self._prepare_key(key), self.quota.emission_interval, self.quota.burst
 
     def _limit(self, key: str, cost: int = 1) -> RateLimitResult:
         formatted_key, emission_interval, capacity = self._prepare(key)
         limited, remaining, reset_after, retry_after = self._atomic_actions[
-            GCRAAtomicActionType.LIMIT.value
+            ATOMIC_ACTION_TYPE_LIMIT
         ].do([formatted_key], [emission_interval, capacity, cost])
 
         return RateLimitResult(
             limited=bool(limited),
-            state=RateLimitState(
-                limit=capacity,
-                remaining=remaining,
-                reset_after=reset_after,
-                retry_after=retry_after,
-            ),
+            state_values=(capacity, remaining, reset_after, retry_after),
         )
 
     def _peek(self, key: str) -> RateLimitState:
         formatted_key, emission_interval, capacity = self._prepare(key)
         limited, remaining, reset_after, retry_after = self._atomic_actions[
-            GCRAAtomicActionType.PEEK.value
+            ATOMIC_ACTION_TYPE_PEEK
         ].do([formatted_key], [emission_interval, capacity])
         return RateLimitState(
             limit=capacity,

@@ -2,7 +2,8 @@ import abc
 import logging
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Dict, List, Optional, Set, Type
+from functools import cached_property
+from typing import Dict, List, Optional, Set, Tuple, Type
 
 from ..exceptions import SetUpError
 from ..store import BaseAtomicAction, BaseStore
@@ -34,14 +35,20 @@ class Quota:
     burst: int = 0
 
     # The period in seconds.
-    _period_sec: int = None
+    period_sec: int = None
+    # The emission interval in seconds.
+    emission_interval: float = None
+    # The fill rate per second.
+    fill_rate: float = None
 
     def __post_init__(self):
-        self._period_sec = int(self.rate.period.total_seconds())
+        self.period_sec = int(self.rate.period.total_seconds())
+        self.emission_interval = self.period_sec / self.rate.limit
+        self.fill_rate = self.rate.limit / self.period_sec
 
     def get_period_sec(self) -> int:
         """Get the period in seconds."""
-        return self._period_sec
+        return self.period_sec
 
     def get_limit(self) -> int:
         return self.rate.limit
@@ -101,15 +108,18 @@ class RateLimitState:
     retry_after: float = 0
 
 
-@dataclass
 class RateLimitResult:
     """RateLimitState represents the result after executing the RateLimiter for the
     given key."""
 
-    # Limited represents whether this request is allowed to pass.
-    limited: bool
+    def __init__(self, limited: bool, state_values: Tuple[int, int, float, float]):
+        # Limited represents whether this request is allowed to pass.
+        self.limited: bool = limited
+        self._state_values: Tuple[int, int, float, float] = state_values
 
-    state: RateLimitState
+    @cached_property
+    def state(self) -> RateLimitState:
+        return RateLimitState(*self._state_values)
 
 
 class RateLimiterRegistry:
