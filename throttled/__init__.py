@@ -26,6 +26,10 @@ from .store import (
 )
 from .throttled import Throttled
 
+__version__ = "2.0.0"
+VERSION = tuple(map(int, __version__.split(".")))
+
+
 __all__ = [
     # public module
     "exceptions",
