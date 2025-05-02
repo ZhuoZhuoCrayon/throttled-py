@@ -116,7 +116,7 @@ class Benchmark:
         print(
             f"✅ Total: {total}, "
             f"🕒 Latency: {avg / 1e6:.4f} ms/op, "
-            f"{growth_emo}Throughput: {qps} req/s ({growth})"
+            f"{growth_emo} Throughput: {qps} req/s ({growth})"
         )
 
         self.last_qps = qps

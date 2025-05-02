@@ -71,7 +71,7 @@ from throttled import RateLimiterType, Throttled, rate_limiter, store, utils
 throttle = Throttled(
     # 📈 Use Token Bucket algorithm
     using=RateLimiterType.TOKEN_BUCKET.value,
-    # 🪣 Set quota: 1000 tokens per second (limit), bucket size 1000 (burst)
+    # 🪣 Set quota: 1,000 tokens per second (limit), bucket size 1,000 (burst)
     quota=rate_limiter.per_sec(1_000, burst=1_000),
     # 📁 Use In-Memory storage
     store=store.MemoryStore(),
@@ -83,10 +83,11 @@ def call_api() -> bool:
     return result.limited
 
 if __name__ == "__main__":
-    # ✅ Total: 100000, 🕒 Latency: 0.5463 ms/op, 🚀 Throughput: 55630 req/s (--)
-    # ❌ Denied: 96314 requests
+    # 💻 Python 3.12.10, Linux 5.4.119-1-tlinux4-0009.1, Arch: x86_64, Specs: 2C4G.
+    # ✅ Total: 100000, 🕒 Latency: 0.0068 ms/op, 🚀 Throughput: 122513 req/s (--)
+    # ❌ Denied: 98000 requests
     benchmark: utils.Benchmark = utils.Benchmark()
-    denied_num: int = sum(benchmark.concurrent(call_api, 100_000, workers=32))
+    denied_num: int = sum(benchmark.serial(call_api, 100_000))
     print(f"❌ Denied: {denied_num} requests")
 ```
 
@@ -167,8 +168,8 @@ Returns the final [**RateLimitResult**](https://github.com/ZhuoZhuoCrayon/thrott
 from throttled import RateLimiterType, Throttled, rate_limiter, utils
 
 throttle = Throttled(
-    using=RateLimiterType.TOKEN_BUCKET.value,
-    quota=rate_limiter.per_sec(1_000, burst=1_000),
+    using=RateLimiterType.GCRA.value,
+    quota=rate_limiter.per_sec(100, burst=100),
     # ⏳ Set timeout=1 to enable wait-and-retry (max wait 1 second)
     timeout=1,
 )
@@ -179,11 +180,11 @@ def call_api() -> bool:
     return result.limited
 
 if __name__ == "__main__":
-    # 👇 The actual QPS is close to the preset quota (1_000 req/s):
-    # ✅ Total: 10000, 🕒 Latency: 14.7883 ms/op, 🚀Throughput: 1078 req/s (--)
-    # ❌ Denied: 54 requests
+    # 👇 The actual QPS is close to the preset quota (100 req/s):
+    # ✅ Total: 1000, 🕒 Latency: 35.8103 ms/op, 🚀 Throughput: 111 req/s (--)
+    # ❌ Denied: 8 requests
     benchmark: utils.Benchmark = utils.Benchmark()
-    denied_num: int = sum(benchmark.concurrent(call_api, 10_000, workers=16))
+    denied_num: int = sum(benchmark.concurrent(call_api, 1_000, workers=4))
     print(f"❌ Denied: {denied_num} requests")
 ```
 
