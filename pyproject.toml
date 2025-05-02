@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "throttled-py"
-version = "2.0.1"
+version = "2.0.2"
 description = "🔧 High-performance Python rate limiting library with multiple algorithms (Fixed Window, Sliding Window, Token Bucket, Leaky Bucket & GCRA) and storage backends (Redis, In-Memory)."
 authors = ["ZhuoZhuoCrayon <crayon.ccxx@gmail.com>"]
 license = "MIT"

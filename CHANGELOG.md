@@ -3,6 +3,24 @@
 [English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md) | 简体中文
 
 
+## v2.0.2 - 2025-05-03
+
+[English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md#v202---2025-05-03) | 简体中文
+
+### 📝 文档
+
+- docs: 优化 README 导航 @ZhuoZhuoCrayon (#61)
+- docs: 优化低配置服务器的快速入门示例 @ZhuoZhuoCrayon (#60)
+
+### 📦 依赖项更新
+
+- build: 更新包元数据 & README 导航链接 @ZhuoZhuoCrayon (#62)
+
+**完整更新日志**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v2.0.1...v2.0.2
+
+---
+
+
 ## v2.0.1 - 2025-05-02
 
 [English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md#v201---2025-05-02) | 简体中文
