@@ -24,7 +24,7 @@ autolabeler:
   - label: "kind/breaking-change"
     body: "/.*BREAKING CHANGE.*/"
   - label: "ci/skip-changelog"
-    body: "/docs: release.+/"
+    body: "/^docs: release.+/"
   - label: "kind/feat"
     title: "/^feat: .*/"
   - label: "kind/fix"
