@@ -1,8 +1,8 @@
 from throttled import RateLimiterType, Throttled, rate_limiter, utils
 
 throttle = Throttled(
-    using=RateLimiterType.TOKEN_BUCKET.value,
-    quota=rate_limiter.per_sec(1_000, burst=1_000),
+    using=RateLimiterType.GCRA.value,
+    quota=rate_limiter.per_sec(100, burst=100),
     # ⏳ 设置超时时间为 1 秒，表示允许等待重试，等待时间超过 1 秒返回最后一次限流结果。
     timeout=1,
 )
@@ -15,9 +15,9 @@ def call_api() -> bool:
 
 
 if __name__ == "__main__":
-    # 👇 实际 QPS 接近预设容量（1_000 req/s）：
-    # ✅ Total: 10000, 🕒 Latency: 14.7883 ms/op, 🚀Throughput: 1078 req/s (--)
-    # ❌ Denied: 54 requests
+    # 👇 实际 QPS 接近预设容量（100 req/s）：
+    # ✅ Total: 1000, 🕒 Latency: 35.8103 ms/op, 🚀 Throughput: 111 req/s (--)
+    # ❌ Denied: 8 requests
     benchmark: utils.Benchmark = utils.Benchmark()
-    denied_num: int = sum(benchmark.concurrent(call_api, 10_000, workers=16))
+    denied_num: int = sum(benchmark.concurrent(call_api, 1_000, workers=4))
     print(f"❌ Denied: {denied_num} requests")

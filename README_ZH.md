@@ -74,7 +74,7 @@ from throttled import RateLimiterType, Throttled, rate_limiter, store, utils
 throttle = Throttled(
     # 📈 使用令牌桶作为限流算法。
     using=RateLimiterType.TOKEN_BUCKET.value,
-    # 🪣 设置配额：每秒填充 1000 个 Token（limit），桶大小为 1000（burst）。
+    # 🪣 设置配额：每秒填充 1,000 个 Token（limit），桶大小为 1,000（burst）。
     quota=rate_limiter.per_sec(1_000, burst=1_000),
     # 📁 使用内存作为存储
     store=store.MemoryStore(),
@@ -82,18 +82,20 @@ throttle = Throttled(
 
 
 def call_api() -> bool:
-    # 💧 消耗 Key=/ping 的一个 Token。
+    # 💧消耗 Key=/ping 的一个 Token。
     result = throttle.limit("/ping", cost=1)
     return result.limited
 
 
 if __name__ == "__main__":
-    # ✅ Total: 100000, 🕒 Latency: 0.5463 ms/op, 🚀 Throughput: 55630 req/s (--)
-    # ❌ Denied: 96314 requests
+    # 💻 Python 3.12.10, Linux 5.4.119-1-tlinux4-0009.1, Arch: x86_64, Specs: 2C4G.
+    # ✅ Total: 100000, 🕒 Latency: 0.0068 ms/op, 🚀 Throughput: 122513 req/s (--)
+    # ❌ Denied: 98000 requests
     benchmark: utils.Benchmark = utils.Benchmark()
-    denied_num: int = sum(benchmark.concurrent(call_api, 100_000, workers=32))
+    denied_num: int = sum(benchmark.serial(call_api, 100_000))
     print(f"❌ Denied: {denied_num} requests")
 ```
+
 
 ## 📝 使用
 
@@ -171,8 +173,8 @@ except exceptions.LimitedError as exc:
 from throttled import RateLimiterType, Throttled, rate_limiter, utils
 
 throttle = Throttled(
-    using=RateLimiterType.TOKEN_BUCKET.value,
-    quota=rate_limiter.per_sec(1_000, burst=1_000),
+    using=RateLimiterType.GCRA.value,
+    quota=rate_limiter.per_sec(100, burst=100),
     # ⏳ 设置超时时间为 1 秒，表示允许等待重试，等待时间超过 1 秒返回最后一次限流结果。
     timeout=1,
 )
@@ -182,12 +184,13 @@ def call_api() -> bool:
     result = throttle.limit("/ping", cost=1, timeout=1)
     return result.limited
 
+
 if __name__ == "__main__":
-    # 👇 实际 QPS 接近预设容量（1_000 req/s）：
-    # ✅ Total: 10000, 🕒 Latency: 14.7883 ms/op, 🚀Throughput: 1078 req/s (--)
-    # ❌ Denied: 54 requests
+    # 👇 实际 QPS 接近预设容量（100 req/s）：
+    # ✅ Total: 1000, 🕒 Latency: 35.8103 ms/op, 🚀 Throughput: 111 req/s (--)
+    # ❌ Denied: 8 requests
     benchmark: utils.Benchmark = utils.Benchmark()
-    denied_num: int = sum(benchmark.concurrent(call_api, 10_000, workers=16))
+    denied_num: int = sum(benchmark.concurrent(call_api, 1_000, workers=4))
     print(f"❌ Denied: {denied_num} requests")
 ```
 
