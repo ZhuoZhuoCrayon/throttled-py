@@ -20,12 +20,15 @@
 
 [简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md) | English
 
+[🔰 Installation](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#-installation)|[🎨 Quick Start](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#-quick-start)|[📝 Usage](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#-usage)|[⚙️ Data Models](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#%EF%B8%8F-data-models--configuration)|[📊 Benchmarks](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#-benchmarks)|[🍃 Inspiration](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#-inspiration)|[📚 Version History](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#-version-history)|[📄 License](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#-license)
+
+
 ## ✨ Features
 
-* Provides thread-safe storage backends: Redis, In-Memory (with support for key expiration and eviction).
+* Provides thread-safe storage backends: [Redis](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#redis), [In-Memory (with support for key expiration and eviction)](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#in-memory).
 * Supports multiple rate limiting algorithms: [Fixed Window](https://github.com/ZhuoZhuoCrayon/throttled-py/tree/main/docs/basic#21-%E5%9B%BA%E5%AE%9A%E7%AA%97%E5%8F%A3%E8%AE%A1%E6%95%B0%E5%99%A8), [Sliding Window](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#22-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3), [Token Bucket](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#23-%E4%BB%A4%E7%89%8C%E6%A1%B6), [Leaky Bucket](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#24-%E6%BC%8F%E6%A1%B6) & [Generic Cell Rate Algorithm (GCRA)](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#25-gcra).
-* Provides flexible rate limiting policies, quota configuration, and detailed documentation.
-* Supports immediate response and wait-retry modes, and provides function call, decorator, and context manager modes.
+* Supports [configuration of rate limiting algorithms](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#3-algorithms) and provides flexible [quota configuration](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#4-quota-configuration).
+* Supports immediate response and [wait-retry](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#wait--retry) modes, and provides [function call](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#function-call), [decorator](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#decorator), and [context manager](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#context-manager) modes.
 * Excellent performance,  The execution time for a single rate limiting API call is equivalent to(see [Benchmarks](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#-benchmarks) for details):
   * In-Memory: ~2.5-4.5x `dict[key] += 1` operations.
   * Redis: ~1.06-1.37x `INCRBY key increment` operations.
@@ -192,6 +195,8 @@ if __name__ == "__main__":
 
 #### Redis
 
+The following example uses Redis as the storage backend, `options` supports all Redis configuration items, see [RedisStore Options](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#redisstore-options).
+
 ```python
 from throttled import RateLimiterType, Throttled, rate_limiter, store
 
@@ -292,30 +297,6 @@ rate_limiter.per_duration(timedelta(minutes=2), limit=120, burst=150)
 ```
 
 
-## 📊 Benchmarks
-
-### 1) Test Environment
-- **Python Version**: 3.13.1 (CPython implementation)
-- **Operating System**: macOS Darwin 23.6.0 (ARM64 architecture)
-- **Redis Version**: 7.x (local connection)
-
-### 2) Performance Metrics (Throughput in req/s, Latency in ms/op)
-
-| Algorithm Type     | In-Memory (Single-thread) | In-Memory (16 threads)     | Redis (Single-thread) | Redis (16 threads)  |
-|--------------------|---------------------------|----------------------------|-----------------------|---------------------|
-| **Baseline** *[1]* | **1,692,307 / 0.0002**    | **135,018 / 0.0004** *[2]* | **17,324 / 0.0571**   | **16,803 / 0.9478** |
-| Fixed Window       | 369,635 / 0.0023          | 57,275 / 0.2533            | 16,233 / 0.0610       | 15,835 / 1.0070     |
-| Sliding Window     | 265,215 / 0.0034          | 49,721 / 0.2996            | 12,605 / 0.0786       | 13,371 / 1.1923     |
-| Token Bucket       | 365,678 / 0.0023          | 54,597 / 0.2821            | 13,643 / 0.0727       | 13,219 / 1.2057     |
-| Leaky Bucket       | 364,296 / 0.0023          | 54,136 / 0.2887            | 13,628 / 0.0727       | 12,579 / 1.2667     |
-| GCRA               | 373,906 / 0.0023          | 53,994 / 0.2895            | 12,901 / 0.0769       | 12,861 / 1.2391     |
-
-* *[1] Baseline: In-Memory - `dict[key] += 1`, Redis - `INCRBY key increment`*.
-* *[2] In-Memory concurrent baseline uses `threading.RLock` for thread safety.*
-* *[3] Performance: In-Memory - ~2.5-4.5x `dict[key] += 1` operations, Redis - ~1.06-1.37x `INCRBY key increment` operations.*
-* *[4] Benchmark code: [tests/benchmarks/test_throttled.py](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/tests/benchmarks/test_throttled.py).*
-
-
 ## ⚙️ Data Models & Configuration
 
 ### 1) RateLimitResult
@@ -407,6 +388,31 @@ When a request is throttled, an exception is thrown, such as: `Rate limit exceed
 #### DataError
 
 Thrown when the parameter is invalid, such as: `Invalid key: None, must be a non-empty key.`.
+
+
+## 📊 Benchmarks
+
+### 1) Test Environment
+- **Python Version**: 3.13.1 (CPython implementation)
+- **Operating System**: macOS Darwin 23.6.0 (ARM64 architecture)
+- **Redis Version**: 7.x (local connection)
+
+### 2) Performance Metrics
+> Throughput in req/s, Latency in ms/op.
+
+| Algorithm Type     | In-Memory (Single-thread) | In-Memory (16 threads)     | Redis (Single-thread) | Redis (16 threads)  |
+|--------------------|---------------------------|----------------------------|-----------------------|---------------------|
+| **Baseline** *[1]* | **1,692,307 / 0.0002**    | **135,018 / 0.0004** *[2]* | **17,324 / 0.0571**   | **16,803 / 0.9478** |
+| Fixed Window       | 369,635 / 0.0023          | 57,275 / 0.2533            | 16,233 / 0.0610       | 15,835 / 1.0070     |
+| Sliding Window     | 265,215 / 0.0034          | 49,721 / 0.2996            | 12,605 / 0.0786       | 13,371 / 1.1923     |
+| Token Bucket       | 365,678 / 0.0023          | 54,597 / 0.2821            | 13,643 / 0.0727       | 13,219 / 1.2057     |
+| Leaky Bucket       | 364,296 / 0.0023          | 54,136 / 0.2887            | 13,628 / 0.0727       | 12,579 / 1.2667     |
+| GCRA               | 373,906 / 0.0023          | 53,994 / 0.2895            | 12,901 / 0.0769       | 12,861 / 1.2391     |
+
+* *[1] Baseline: In-Memory - `dict[key] += 1`, Redis - `INCRBY key increment`*.
+* *[2] In-Memory concurrent baseline uses `threading.RLock` for thread safety.*
+* *[3] Performance: In-Memory - ~2.5-4.5x `dict[key] += 1` operations, Redis - ~1.06-1.37x `INCRBY key increment` operations.*
+* *[4] Benchmark code: [tests/benchmarks/test_throttled.py](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/tests/benchmarks/test_throttled.py).*
 
 
 ## 🍃 Inspiration
