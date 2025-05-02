@@ -3,6 +3,36 @@
 [English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md) | 简体中文
 
 
+## v2.0.1 - 2025-05-02
+
+[English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md#v201---2025-05-02) | 简体中文
+
+### ✨ 优化
+
+- perf: 优化限速算法性能 @ZhuoZhuoCrayon (#55)
+
+### 📝 文档
+
+- docs: 更新 readme pypi 链接 @ZhuoZhuoCrayon (#57)
+- docs: 修复 README 中的拼写错误 @ZhuoZhuoCrayon (#53)
+
+### 📦 依赖项更新
+
+- build: 更新包元数据 @ZhuoZhuoCrayon (#56)
+
+### 🧪 测试
+
+- test: 重写计时器实现并添加回调支持 @ZhuoZhuoCrayon (#54)
+
+### 🍃 维护工作
+
+- ci: 更新 ci/skip-changelog 的正则表达式 @ZhuoZhuoCrayon (#58)
+
+**完整更新日志**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v2.0.0...v2.0.1
+
+---
+
+
 ## v2.0.0 - 2025-04-22
 
 [English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md#v200---2025-04-22) | 简体中文
