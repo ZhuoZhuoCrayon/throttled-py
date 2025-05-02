@@ -3,6 +3,24 @@
 [简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.md) | English
 
 
+## v2.0.2 - 2025-05-03
+
+[简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.md#v202---2025-05-03) | English
+
+### 📝 Documentation
+
+- docs: optimize README navigation @ZhuoZhuoCrayon (#61)
+- docs: optimize quick start examples for low-configuration servers @ZhuoZhuoCrayon (#60)
+
+### 📦 Dependencies
+
+- build: update package metadata & readme navigation links @ZhuoZhuoCrayon (#62)
+
+**Full Changelog**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v2.0.1...v2.0.2
+
+---
+
+
 ## v2.0.1 - 2025-05-02
 
 [简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.md#v201---2025-05-02) | English
