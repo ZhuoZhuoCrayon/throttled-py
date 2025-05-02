@@ -10,6 +10,12 @@
      <a href="https://github.com/ZhuoZhuoCrayon/throttled-py">
         <img src="https://codecov.io/gh/ZhuoZhuoCrayon/throttled-py/graph/badge.svg" alt="Coverage Status">
     </a>
+     <a href="https://pypi.org/project/throttled-py/">
+        <img src="https://img.shields.io/pypi/v/throttled-py.svg" alt="Pypi Package">
+    </a>
+    <a href="https://github.com/ZhuoZhuoCrayon/throttled-py/issues">
+        <img src="https://img.shields.io/badge/issue-welcome-blue.svg" alt="Welcome Issue">
+    </a>
 </p>
 
 [English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py) | 简体中文
