@@ -3,6 +3,36 @@
 [简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.md) | English
 
 
+## v2.0.1 - 2025-05-02
+
+[简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.md#v201---2025-05-02) | English
+
+### ✨ Improvements
+
+- perf: optimize rate limiting algorithm performance @ZhuoZhuoCrayon (#55)
+
+### 📝 Documentation
+
+- docs: update readme with pypi package link @ZhuoZhuoCrayon (#57)
+- docs: fix typos in README @ZhuoZhuoCrayon (#53)
+
+### 📦 Dependencies
+
+- build: update package metadata @ZhuoZhuoCrayon (#56)
+
+### 🧪 Tests
+
+- test: rewrite timer implementation and add callback support @ZhuoZhuoCrayon (#54)
+
+### 🍃 Maintenance
+
+- ci: update regex pattern for ci/skip-changelog @ZhuoZhuoCrayon (#58)
+
+**Full Changelog**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v2.0.0...v2.0.1
+
+---
+
+
 ## v2.0.0 - 2025-04-22
 
 [简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.md#v200---2025-04-22) | English
