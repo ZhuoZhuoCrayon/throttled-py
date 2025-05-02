@@ -20,7 +20,7 @@
 
 [简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md) | English
 
-[🔰 Installation](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#-installation)|[🎨 Quick Start](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#-quick-start)|[📝 Usage](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#-usage)|[⚙️ Data Models](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#%EF%B8%8F-data-models--configuration)|[📊 Benchmarks](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#-benchmarks)|[🍃 Inspiration](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#-inspiration)|[📚 Version History](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#-version-history)|[📄 License](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#-license)
+[🔰 Installation](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#-installation) | [🎨 Quick Start](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#-quick-start) | [📝 Usage](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#-usage) | [⚙️ Data Models](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#%EF%B8%8F-data-models--configuration) | [📊 Benchmarks](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#-benchmarks) | [🍃 Inspiration](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#-inspiration)|[📚 Version History](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#-version-history) | [📄 License](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#-license)
 
 
 ## ✨ Features
