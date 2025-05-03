@@ -17,6 +17,7 @@
         <img src="https://img.shields.io/badge/issue-welcome-blue.svg" alt="Welcome Issue">
     </a>
 </p>
+
 [English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py) | 简体中文
 
 [🔰 安装](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#-%E5%AE%89%E8%A3%85)｜[🎨 快速开始](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#-%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B)｜[⚙️ 数据模型与配置](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#%EF%B8%8F-%E6%95%B0%E6%8D%AE%E6%A8%A1%E5%9E%8B%E4%B8%8E%E9%85%8D%E7%BD%AE)｜[📊 Benchmarks](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#-benchmarks)｜[🍃 灵感](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#-%E7%81%B5%E6%84%9F)｜[📚 Version History](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#-version-history)｜[📄 License](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#-license)
