@@ -1,4 +1,4 @@
-from . import rate_limiter
+from . import asyncio, rate_limiter
 from .constants import RateLimiterType
 from .rate_limiter import (
     BaseRateLimiter,
@@ -36,6 +36,7 @@ __all__ = [
     "constants",
     "types",
     "utils",
+    "asyncio",
     # rate_limiter
     "rate_limiter",
     "per_sec",

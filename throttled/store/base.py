@@ -5,8 +5,8 @@ from ..exceptions import DataError, SetUpError
 from ..types import KeyT, StoreDictValueT, StoreValueT
 
 
-class BaseStoreBackend(abc.ABC):
-    """Abstract class for all store backends."""
+class BaseStoreBackendMixin:
+    """Mixin class for async / sync BaseStoreBackend."""
 
     def __init__(
         self, server: Optional[str] = None, options: Optional[Dict[str, Any]] = None
@@ -14,31 +14,22 @@ class BaseStoreBackend(abc.ABC):
         self.server: Optional[str] = server
         self.options: Dict[str, Any] = options or {}
 
+
+class BaseStoreBackend(BaseStoreBackendMixin, abc.ABC):
+    """Abstract class for all store backends."""
+
     @abc.abstractmethod
     def get_client(self) -> Any:
         raise NotImplementedError
 
 
-class BaseAtomicAction(abc.ABC):
-    """Abstract class for all atomic actions performed by a store backend."""
+class BaseAtomicActionMixin:
+    """Mixin class for async / sync BaseAtomicActionBackend."""
 
     # TYPE is the identifier of AtomicAction, must be unique under STORE_TYPE.
     TYPE: str = ""
     # STORE_TYPE is the expected type of store with which AtomicAction is compatible.
     STORE_TYPE: str = ""
-
-    @abc.abstractmethod
-    def __init__(self, backend: BaseStoreBackend):
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def do(self, keys: Sequence[KeyT], args: Optional[Sequence[StoreValueT]]) -> Any:
-        """Execute the AtomicAction on the specified keys with optional arguments.
-        :param keys: A sequence of keys.
-        :param args: Optional sequence of arguments.
-        :return: Any: The result of the AtomicAction.
-        """
-        raise NotImplementedError
 
     @classmethod
     def match_or_raise(cls, store_type: str) -> None:
@@ -54,8 +45,25 @@ class BaseAtomicAction(abc.ABC):
             )
 
 
-class BaseStore(abc.ABC):
-    """Abstract class for all stores."""
+class BaseAtomicAction(BaseAtomicActionMixin, abc.ABC):
+    """Abstract class for all atomic actions performed by a store backend."""
+
+    @abc.abstractmethod
+    def __init__(self, backend: BaseStoreBackend):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def do(self, keys: Sequence[KeyT], args: Optional[Sequence[StoreValueT]]) -> Any:
+        """Execute the AtomicAction on the specified keys with optional arguments.
+        :param keys: A sequence of keys.
+        :param args: Optional sequence of arguments.
+        :return: Any: The result of the AtomicAction.
+        """
+        raise NotImplementedError
+
+
+class BaseStoreMixin:
+    """Mixin class for async / sync BaseStore."""
 
     # TYPE is a unique identifier for the type of store.
     TYPE: str = ""
@@ -79,6 +87,10 @@ class BaseStore(abc.ABC):
         self, server: Optional[str] = None, options: Optional[Dict[str, Any]] = None
     ):
         raise NotImplementedError
+
+
+class BaseStore(BaseStoreMixin, abc.ABC):
+    """Abstract class for all stores."""
 
     @abc.abstractmethod
     def exists(self, key: KeyT) -> bool:

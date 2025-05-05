@@ -39,6 +39,10 @@ pytest-cov = [
     {version = "^2", python = "~3.8"},
     {version = "^6", python = "^3.9"}
 ]
+pytest-asyncio = [
+    {version = "~0.24.0", python = "~3.8"},
+    {version = "^0.26.0", python = "^3.9"}
+]
 fakeredis = {extras = ["lua"], version = "^2.26.2"}
 
 [[tool.poetry.source]]
@@ -102,3 +106,6 @@ exclude = '''
 profile = "black"
 line_length = 89
 skip_glob = ["*/migrations/*", "*/node_modules/*"]
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"
