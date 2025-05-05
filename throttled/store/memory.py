@@ -12,25 +12,17 @@ from ..utils import now_mono_f
 from .base import BaseAtomicAction, BaseStore, BaseStoreBackend
 
 
-class MemoryStoreBackend(BaseStoreBackend):
-    """Backend for Memory Store."""
+class LRUCoreMixin:
+    """Mixin class for LRU core."""
 
-    def __init__(
-        self, server: Optional[str] = None, options: Optional[Dict[str, Any]] = None
-    ):
-        super().__init__(server, options)
-
-        max_size: Any = self.options.get("MAX_SIZE", 1024)
+    def _init_store(self, options: Optional[Dict[str, Any]]) -> None:
+        max_size: Any = options.get("MAX_SIZE", 1024)
         if not (isinstance(max_size, int) and max_size > 0):
             raise SetUpError("MAX_SIZE must be a positive integer")
 
         self.max_size: int = max_size
         self.expire_info: Dict[str, float] = {}
-        self.lock: threading.RLock = threading.RLock()
         self._client: OrderedDictT[KeyT, StoreBucketValueT] = OrderedDict()
-
-    def get_client(self) -> OrderedDictT[KeyT, StoreBucketValueT]:
-        return self._client
 
     def exists(self, key: KeyT) -> bool:
         return key in self._client
@@ -123,6 +115,21 @@ class MemoryStoreBackend(BaseStoreBackend):
         except KeyError:
             return False
         return True
+
+
+class MemoryStoreBackend(LRUCoreMixin, BaseStoreBackend):
+    """Backend for Memory Store."""
+
+    def __init__(
+        self, server: Optional[str] = None, options: Optional[Dict[str, Any]] = None
+    ):
+        super().__init__(server, options)
+
+        self._init_store(self.options)
+        self.lock: threading.RLock = threading.RLock()
+
+    def get_client(self) -> OrderedDictT[KeyT, StoreBucketValueT]:
+        return self._client
 
 
 class MemoryStore(BaseStore):
