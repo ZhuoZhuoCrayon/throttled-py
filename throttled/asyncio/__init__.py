@@ -6,6 +6,8 @@ from .store import (
     BaseStoreBackend,
     MemoryStore,
     MemoryStoreBackend,
+    RedisStore,
+    RedisStoreBackend,
 )
 
 __all__ = [
@@ -22,6 +24,8 @@ __all__ = [
     "BaseStore",
     "MemoryStoreBackend",
     "MemoryStore",
+    "RedisStoreBackend",
+    "RedisStore",
     # constants
     "RateLimiterType",
 ]

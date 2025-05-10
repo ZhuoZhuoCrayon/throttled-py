@@ -24,7 +24,12 @@ class BaseStoreBackend(BaseStoreBackendMixin, abc.ABC):
 
 
 class BaseAtomicActionMixin:
-    """Mixin class for async / sync BaseAtomicActionBackend."""
+    """Mixin class for AtomicAction.
+
+    This class provides shared logic for both sync and async implementations of
+    AtomicAction. It includes type checking and helper methods that ensure
+    compatibility between store types.
+    """
 
     # TYPE is the identifier of AtomicAction, must be unique under STORE_TYPE.
     TYPE: str = ""

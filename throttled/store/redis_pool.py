@@ -33,8 +33,15 @@ from ..exceptions import SetUpError
 from ..utils import import_string, to_bool
 
 if TYPE_CHECKING:
-    from redis import ConnectionPool, Redis, Sentinel
-    from redis.connection import DefaultParser
+    import redis
+    import redis.asyncio as aioredis
+    from redis.asyncio.connection import DefaultParser as AsyncDefaultParser
+    from redis.connection import DefaultParser as SyncDefaultParser
+
+    ConnectionPool = Union[redis.ConnectionPool, aioredis.ConnectionPool]
+    Redis = Union[redis.Redis, aioredis.Redis]
+    Sentinel = Union[redis.Sentinel, aioredis.Sentinel]
+    DefaultParser = Union[SyncDefaultParser, AsyncDefaultParser]
 
 
 class BaseConnectionFactory(abc.ABC):
@@ -43,9 +50,7 @@ class BaseConnectionFactory(abc.ABC):
     _pools: Dict[str, "ConnectionPool"] = {}
 
     def __init__(self, options: Dict[str, Any]):
-        pool_cls_path: str = options.get(
-            "CONNECTION_POOL_CLASS", "redis.connection.ConnectionPool"
-        )
+        pool_cls_path: str = options.get("CONNECTION_POOL_CLASS", "redis.ConnectionPool")
         try:
             self.pool_cls: Type[ConnectionPool] = import_string(pool_cls_path)
         except ImportError:
@@ -58,10 +63,10 @@ class BaseConnectionFactory(abc.ABC):
 
         self.pool_cls_kwargs: Dict[str, Any] = options.get("CONNECTION_POOL_KWARGS", {})
 
-        redis_client_cls_path: str = options.get(
-            "REDIS_CLIENT_CLASS", "redis.client.Redis"
+        self.redis_client_cls_path: str = options.get(
+            "REDIS_CLIENT_CLASS", "redis.Redis"
         )
-        self.redis_client_cls: Type[Redis] = import_string(redis_client_cls_path)
+        self.redis_client_cls: Type[Redis] = import_string(self.redis_client_cls_path)
         self.redis_client_cls_kwargs: Dict[str, Any] = options.get(
             "REDIS_CLIENT_KWARGS", {}
         )
@@ -153,7 +158,13 @@ class ConnectionFactory(BaseConnectionFactory):
         )
 
     def get_or_create_connection_pool(self, params: Dict[str, Any]) -> "ConnectionPool":
-        key: str = params["url"]
+        """Given a connection parameters and return a new
+        or cached connection pool for them.
+        """
+
+        # Use redis client class path as part of the key, to avoid collisions
+        # between different connection pool classes, e.g. Redis vs asyncio.Redis.
+        key: str = f"{self.redis_client_cls_path}:{params['url']}"
         if key not in self._pools:
             self._pools[key] = self.get_connection_pool(params)
         return self._pools[key]
@@ -173,9 +184,7 @@ class ConnectionFactory(BaseConnectionFactory):
 class SentinelConnectionFactory(ConnectionFactory):
     def __init__(self, options):
         # allow overriding the default SentinelConnectionPool class
-        options.setdefault(
-            "CONNECTION_POOL_CLASS", "redis.sentinel.SentinelConnectionPool"
-        )
+        options.setdefault("CONNECTION_POOL_CLASS", "redis.SentinelConnectionPool")
         super().__init__(options)
 
         sentinels: List[Tuple[str, Union[str, int]]] = options.get("SENTINELS")
@@ -187,7 +196,7 @@ class SentinelConnectionFactory(ConnectionFactory):
         connection_kwargs = self.make_connection_params(None)
         connection_kwargs.pop("url")
         connection_kwargs.update(self.pool_cls_kwargs)
-        sentinel_cls: Type[Sentinel] = import_string("redis.sentinel.Sentinel")
+        sentinel_cls: Type[Sentinel] = import_string("redis.Sentinel")
         self._sentinel: Sentinel = sentinel_cls(
             sentinels,
             sentinel_kwargs=options.get("SENTINEL_KWARGS"),
