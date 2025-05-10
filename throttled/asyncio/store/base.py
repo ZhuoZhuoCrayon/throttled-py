@@ -8,10 +8,6 @@ from ...types import KeyT, StoreDictValueT, StoreValueT
 class BaseStoreBackend(BaseStoreBackendMixin, abc.ABC):
     """Abstract class for all async store backends."""
 
-    @abc.abstractmethod
-    async def get_client(self) -> Any:
-        raise NotImplementedError
-
 
 class BaseAtomicAction(BaseAtomicActionMixin, abc.ABC):
     """Abstract class for all async atomic actions performed by a store backend."""

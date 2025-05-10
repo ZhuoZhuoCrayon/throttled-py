@@ -10,7 +10,7 @@ from .base import BaseAtomicAction, BaseStore, BaseStoreBackend
 
 
 class MemoryStoreBackend(LRUCoreMixin, BaseStoreBackend):
-    """Backend for Async Memory Store."""
+    """Backend for Async MemoryStore."""
 
     def __init__(
         self, server: Optional[str] = None, options: Optional[Dict[str, Any]] = None
@@ -20,7 +20,7 @@ class MemoryStoreBackend(LRUCoreMixin, BaseStoreBackend):
         self._init_store(self.options)
         self.lock: asyncio.Lock = asyncio.Lock()
 
-    async def get_client(self) -> OrderedDictT[KeyT, StoreBucketValueT]:
+    def get_client(self) -> OrderedDictT[KeyT, StoreBucketValueT]:
         return self._client
 
 

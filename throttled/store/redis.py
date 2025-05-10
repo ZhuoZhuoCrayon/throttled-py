@@ -34,7 +34,28 @@ class RedisStoreBackend(BaseStoreBackend):
         return self._client
 
 
-class RedisStore(BaseStore):
+class RedisFormatMixin:
+    """Mixin class for RedisStore to format keys and values."""
+
+    @classmethod
+    def _format_value(cls, value: StoreValueT) -> StoreValueT:
+        float_value: float = float(value)
+        if float_value.is_integer():
+            return int(float_value)
+        return float_value
+
+    @classmethod
+    def _format_key(cls, key: Union[bytes, str]) -> KeyT:
+        if isinstance(key, bytes):
+            return key.decode("utf-8")
+        return key
+
+    @classmethod
+    def _format_kv(cls, kv: Dict[KeyT, Optional[StoreValueT]]):
+        return {cls._format_key(k): cls._format_value(v) for k, v in kv.items()}
+
+
+class RedisStore(RedisFormatMixin, BaseStore):
     """Concrete implementation of BaseStore using Redis as backend."""
 
     TYPE: str = StoreType.REDIS.value
@@ -58,19 +79,6 @@ class RedisStore(BaseStore):
         self._validate_timeout(timeout)
         self._backend.get_client().set(key, value, ex=timeout)
 
-    @classmethod
-    def _format_value(cls, value: StoreValueT) -> StoreValueT:
-        float_value: float = float(value)
-        if float_value.is_integer():
-            return int(float_value)
-        return float_value
-
-    @classmethod
-    def _format_key(cls, key: Union[bytes, str]) -> KeyT:
-        if isinstance(key, bytes):
-            return key.decode("utf-8")
-        return key
-
     def get(self, key: KeyT) -> Optional[StoreValueT]:
         value: Optional[StoreValueT] = self._backend.get_client().get(key)
         if value is None:
@@ -90,8 +98,7 @@ class RedisStore(BaseStore):
         self._backend.get_client().hset(name, key, value, mapping)
 
     def hgetall(self, name: KeyT) -> StoreDictValueT:
-        kv: Dict[KeyT, Optional[StoreValueT]] = self._backend.get_client().hgetall(name)
-        return {self._format_key(k): self._format_value(v) for k, v in kv.items()}
+        return self._format_kv(self._backend.get_client().hgetall(name))
 
     def make_atomic(self, action_cls: Type[BaseAtomicAction]) -> BaseAtomicAction:
         return action_cls(backend=self._backend)
