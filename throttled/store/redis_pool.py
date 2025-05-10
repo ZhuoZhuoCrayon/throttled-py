@@ -63,8 +63,10 @@ class BaseConnectionFactory(abc.ABC):
 
         self.pool_cls_kwargs: Dict[str, Any] = options.get("CONNECTION_POOL_KWARGS", {})
 
-        redis_client_cls_path: str = options.get("REDIS_CLIENT_CLASS", "redis.Redis")
-        self.redis_client_cls: Type[Redis] = import_string(redis_client_cls_path)
+        self.redis_client_cls_path: str = options.get(
+            "REDIS_CLIENT_CLASS", "redis.Redis"
+        )
+        self.redis_client_cls: Type[Redis] = import_string(self.redis_client_cls_path)
         self.redis_client_cls_kwargs: Dict[str, Any] = options.get(
             "REDIS_CLIENT_KWARGS", {}
         )
@@ -156,7 +158,13 @@ class ConnectionFactory(BaseConnectionFactory):
         )
 
     def get_or_create_connection_pool(self, params: Dict[str, Any]) -> "ConnectionPool":
-        key: str = params["url"]
+        """Given a connection parameters and return a new
+        or cached connection pool for them.
+        """
+
+        # Use redis client class path as part of the key, to avoid collisions
+        # between different connection pool classes, e.g. Redis vs asyncio.Redis.
+        key: str = f"{self.redis_client_cls_path}:{params['url']}"
         if key not in self._pools:
             self._pools[key] = self.get_connection_pool(params)
         return self._pools[key]
