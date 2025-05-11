@@ -67,5 +67,5 @@ class MemoryStore(BaseStore):
         async with self._backend.lock:
             return self._backend.hgetall(name)
 
-    async def make_atomic(self, action_cls: Type[BaseAtomicAction]) -> BaseAtomicAction:
+    def make_atomic(self, action_cls: Type[BaseAtomicAction]) -> BaseAtomicAction:
         return action_cls(backend=self._backend)
