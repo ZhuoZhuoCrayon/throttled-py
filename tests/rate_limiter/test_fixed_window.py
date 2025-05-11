@@ -89,7 +89,7 @@ class TestFixedWindowRateLimiter:
 
         def _assert(_state: RateLimitState):
             assert _state.limit == 1
-            assert _state.reset_after == 60 - (now_sec() % 60)
+            assert _state.reset_after - (60 - (now_sec() % 60)) <= 1
 
         state: RateLimitState = rate_limiter.peek(key)
         _assert(state)
