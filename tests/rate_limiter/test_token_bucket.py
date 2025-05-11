@@ -72,10 +72,9 @@ class TestTokenBucketRateLimiter:
         def _callback(elapsed: TimeLikeValueT, *args, **kwargs):
             accessed_num: int = requests_num - sum(results)
             limit: int = min(requests_num, quota.get_limit())
-            rate: float = quota.get_limit() / quota.get_period_sec()
 
             assert accessed_num >= limit
-            assert accessed_num <= limit + (elapsed + 5) * rate
+            assert accessed_num <= limit + (elapsed + 6) * quota.fill_rate
 
         with Timer(callback=_callback):
             rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)

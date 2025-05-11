@@ -123,51 +123,55 @@ class RateLimitResult:
 
 
 class RateLimiterRegistry:
+    """Registry for RateLimiter classes."""
+
+    # The namespace for the RateLimiter classes.
+    _NAMESPACE: str = "sync"
+
+    # A dictionary to hold the registered RateLimiter classes.
     _RATE_LIMITERS: Dict[RateLimiterTypeT, Type["BaseRateLimiter"]] = {}
+
+    @classmethod
+    def get_register_key(cls, _type: str) -> str:
+        """Get the register key for the RateLimiter classes."""
+        return f"{cls._NAMESPACE}:{_type}"
 
     @classmethod
     def register(cls, new_cls):
         try:
-            cls._RATE_LIMITERS[new_cls.Meta.type] = new_cls
+            cls._RATE_LIMITERS[cls.get_register_key(new_cls.Meta.type)] = new_cls
         except AttributeError as e:
             raise SetUpError("failed to register RateLimiter: {}".format(e))
 
     @classmethod
     def get(cls, _type: RateLimiterTypeT) -> Type["BaseRateLimiter"]:
         try:
-            return cls._RATE_LIMITERS[_type]
+            return cls._RATE_LIMITERS[cls.get_register_key(_type)]
         except KeyError:
             raise SetUpError("{} not found".format(_type))
 
 
 class RateLimiterMeta(abc.ABCMeta):
+    """Metaclass for RateLimiter classes."""
+
+    _REGISTRY_CLASS: Type[RateLimiterRegistry] = RateLimiterRegistry
+
     def __new__(cls, name, bases, attrs):
         new_cls = super().__new__(cls, name, bases, attrs)
-        if not [b for b in bases if isinstance(b, RateLimiterMeta)]:
+        if not [b for b in bases if isinstance(b, cls)]:
             return new_cls
 
-        RateLimiterRegistry.register(new_cls)
+        cls._REGISTRY_CLASS.register(new_cls)
         return new_cls
 
 
-class BaseRateLimiter(metaclass=RateLimiterMeta):
-    """Base class for RateLimiter."""
+class BaseRateLimiterMixin:
+    """Mixin class for RateLimiter."""
 
     KEY_PREFIX: str = "throttled:v1:"
 
     class Meta:
         type: RateLimiterTypeT = ""
-
-    def __init__(
-        self,
-        quota: Quota,
-        store: BaseStore,
-        additional_atomic_actions: Optional[List[Type[BaseAtomicAction]]] = None,
-    ) -> None:
-        self.quota: Quota = quota
-        self._store: BaseStore = store
-        self._atomic_actions: Dict[AtomicActionTypeT, BaseAtomicAction] = {}
-        self._register_atomic_actions(additional_atomic_actions or [])
 
     @classmethod
     @abc.abstractmethod
@@ -179,14 +183,6 @@ class BaseRateLimiter(metaclass=RateLimiterMeta):
     @abc.abstractmethod
     def _supported_atomic_action_types(cls) -> List[AtomicActionTypeT]:
         """Define the supported AtomicAction types for RateLimiter."""
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def _limit(self, key: str, cost: int) -> RateLimitResult:
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def _peek(self, key: str) -> RateLimitState:
         raise NotImplementedError
 
     def try_register_atomic_action(self, action_cls: Type[BaseAtomicAction]) -> None:
@@ -250,6 +246,29 @@ class BaseRateLimiter(metaclass=RateLimiterMeta):
         # concurrent -> 🕒Latency: 2.3126 ms/op, 🚀Throughput: 13782 req/s (⬆️0.51%)
         """
         return f"{self.KEY_PREFIX}{self.Meta.type}:{key}"
+
+
+class BaseRateLimiter(BaseRateLimiterMixin, metaclass=RateLimiterMeta):
+    """Base class for RateLimiter."""
+
+    def __init__(
+        self,
+        quota: Quota,
+        store: BaseStore,
+        additional_atomic_actions: Optional[List[Type[BaseAtomicAction]]] = None,
+    ) -> None:
+        self.quota: Quota = quota
+        self._store: BaseStore = store
+        self._atomic_actions: Dict[AtomicActionTypeT, BaseAtomicAction] = {}
+        self._register_atomic_actions(additional_atomic_actions or [])
+
+    @abc.abstractmethod
+    def _limit(self, key: str, cost: int) -> RateLimitResult:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def _peek(self, key: str) -> RateLimitState:
+        raise NotImplementedError
 
     def limit(self, key: str, cost: int = 1) -> RateLimitResult:
         """Apply rate limiting logic to a given key with a specified cost.
