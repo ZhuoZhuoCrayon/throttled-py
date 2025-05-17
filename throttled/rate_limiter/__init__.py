@@ -1,5 +1,6 @@
 from .base import (
     BaseRateLimiter,
+    BaseRateLimiterMixin,
     Quota,
     Rate,
     RateLimiterMeta,
@@ -35,6 +36,7 @@ __all__ = [
     "RateLimiterRegistry",
     "RateLimiterMeta",
     "BaseRateLimiter",
+    "BaseRateLimiterMixin",
     "FixedWindowRateLimiter",
     "SlidingWindowRateLimiter",
     "TokenBucketRateLimiter",

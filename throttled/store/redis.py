@@ -3,11 +3,15 @@ from typing import TYPE_CHECKING, Any, Dict, Optional, Type, Union
 from ..constants import StoreType
 from ..exceptions import DataError
 from ..types import KeyT, StoreDictValueT, StoreValueT
+from ..utils import format_kv, format_value
 from .base import BaseAtomicAction, BaseStore, BaseStoreBackend
 from .redis_pool import BaseConnectionFactory, get_connection_factory
 
 if TYPE_CHECKING:
     import redis
+    import redis.asyncio as aioredis
+
+    Redis = Union[redis.Redis, aioredis.Redis]
 
 
 class RedisStoreBackend(BaseStoreBackend):
@@ -18,7 +22,7 @@ class RedisStoreBackend(BaseStoreBackend):
     ):
         super().__init__(server, options)
 
-        self._client: Optional[redis.Redis] = None
+        self._client: Optional["Redis"] = None
 
         connection_factory_cls_path: Optional[str] = self.options.get(
             "CONNECTION_FACTORY_CLASS"
@@ -28,42 +32,24 @@ class RedisStoreBackend(BaseStoreBackend):
             connection_factory_cls_path, self.options
         )
 
-    def get_client(self) -> "redis.Redis":
+    def get_client(self) -> "Redis":
         if self._client is None:
             self._client = self._connection_factory.connect(self.server)
         return self._client
 
 
-class RedisFormatMixin:
-    """Mixin class for RedisStore to format keys and values."""
-
-    @classmethod
-    def _format_value(cls, value: StoreValueT) -> StoreValueT:
-        float_value: float = float(value)
-        if float_value.is_integer():
-            return int(float_value)
-        return float_value
-
-    @classmethod
-    def _format_key(cls, key: Union[bytes, str]) -> KeyT:
-        if isinstance(key, bytes):
-            return key.decode("utf-8")
-        return key
-
-    @classmethod
-    def _format_kv(cls, kv: Dict[KeyT, Optional[StoreValueT]]):
-        return {cls._format_key(k): cls._format_value(v) for k, v in kv.items()}
-
-
-class RedisStore(RedisFormatMixin, BaseStore):
+class RedisStore(BaseStore):
     """Concrete implementation of BaseStore using Redis as backend."""
 
     TYPE: str = StoreType.REDIS.value
 
+    _BACKEND_CLASS: Type[RedisStoreBackend] = RedisStoreBackend
+
     def __init__(
         self, server: Optional[str] = None, options: Optional[Dict[str, Any]] = None
     ):
-        self._backend: RedisStoreBackend = RedisStoreBackend(server, options)
+        super().__init__(server, options)
+        self._backend: RedisStoreBackend = self._BACKEND_CLASS(server, options)
 
     def exists(self, key: KeyT) -> bool:
         return bool(self._backend.get_client().exists(key))
@@ -84,7 +70,7 @@ class RedisStore(RedisFormatMixin, BaseStore):
         if value is None:
             return None
 
-        return self._format_value(value)
+        return format_value(value)
 
     def hset(
         self,
@@ -98,7 +84,7 @@ class RedisStore(RedisFormatMixin, BaseStore):
         self._backend.get_client().hset(name, key, value, mapping)
 
     def hgetall(self, name: KeyT) -> StoreDictValueT:
-        return self._format_kv(self._backend.get_client().hgetall(name))
+        return format_kv(self._backend.get_client().hgetall(name))
 
     def make_atomic(self, action_cls: Type[BaseAtomicAction]) -> BaseAtomicAction:
         return action_cls(backend=self._backend)

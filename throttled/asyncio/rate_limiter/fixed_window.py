@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple, Type
+from typing import List, Optional, Sequence, Tuple, Type
 
 from ...constants import ATOMIC_ACTION_TYPE_LIMIT
 from ...rate_limiter.fixed_window import (
@@ -10,15 +10,9 @@ from ...types import KeyT, StoreValueT
 from ..store import BaseAtomicAction
 from . import BaseRateLimiter, RateLimitResult, RateLimitState
 
-if TYPE_CHECKING:
-    from ..store import MemoryStoreBackend, RedisStoreBackend
-
 
 class RedisLimitAtomicAction(RedisLimitAtomicActionCoreMixin, BaseAtomicAction):
     """Redis-based implementation of AtomicAction for Async FixedWindowRateLimiter."""
-
-    def __init__(self, backend: "RedisStoreBackend"):
-        self._backend: RedisStoreBackend = backend
 
     async def do(
         self, keys: Sequence[KeyT], args: Optional[Sequence[StoreValueT]]
@@ -32,9 +26,6 @@ class RedisLimitAtomicAction(RedisLimitAtomicActionCoreMixin, BaseAtomicAction):
 
 class MemoryLimitAtomicAction(MemoryLimitAtomicActionCoreMixin, BaseAtomicAction):
     """Memory-based implementation of AtomicAction for Async FixedWindowRateLimiter."""
-
-    def __init__(self, backend: "MemoryStoreBackend"):
-        self._backend: MemoryStoreBackend = backend
 
     async def do(
         self, keys: Sequence[KeyT], args: Optional[Sequence[StoreValueT]]
@@ -52,9 +43,7 @@ class FixedWindowRateLimiter(FixedWindowRateLimiterCoreMixin, BaseRateLimiter):
     ]
 
     async def _limit(self, key: str, cost: int = 1) -> RateLimitResult:
-        period_key, period, limit, now = self._prepare(
-            self.quota, self._prepare_key(key)
-        )
+        period_key, period, limit, now = self._prepare(key)
         limited, current = await self._atomic_actions[ATOMIC_ACTION_TYPE_LIMIT].do(
             [period_key], [period, limit, cost]
         )
@@ -71,9 +60,7 @@ class FixedWindowRateLimiter(FixedWindowRateLimiterCoreMixin, BaseRateLimiter):
         )
 
     async def _peek(self, key: str) -> RateLimitState:
-        period_key, period, limit, now = self._prepare(
-            self.quota, self._prepare_key(key)
-        )
+        period_key, period, limit, now = self._prepare(key)
         current: int = int(await self._store.get(period_key) or 0)
         return RateLimitState(
             limit=limit,

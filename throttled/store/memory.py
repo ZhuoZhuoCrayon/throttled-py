@@ -7,22 +7,34 @@ from typing import Type
 
 from ..constants import STORE_TTL_STATE_NOT_EXIST, STORE_TTL_STATE_NOT_TTL, StoreType
 from ..exceptions import DataError, SetUpError
-from ..types import KeyT, StoreBucketValueT, StoreDictValueT, StoreValueT
+from ..types import KeyT, LockP, StoreBucketValueT, StoreDictValueT, StoreValueT
 from ..utils import now_mono_f
 from .base import BaseAtomicAction, BaseStore, BaseStoreBackend
 
 
-class LRUCoreMixin:
-    """Mixin class for LRU core."""
+class MemoryStoreBackend(BaseStoreBackend):
+    """Backend for Memory Store."""
 
-    def _init_store(self, options: Optional[Dict[str, Any]]) -> None:
-        max_size: Any = options.get("MAX_SIZE", 1024)
+    def __init__(
+        self, server: Optional[str] = None, options: Optional[Dict[str, Any]] = None
+    ):
+        super().__init__(server, options)
+
+        max_size: int = self.options.get("MAX_SIZE", 1024)
         if not (isinstance(max_size, int) and max_size > 0):
             raise SetUpError("MAX_SIZE must be a positive integer")
 
         self.max_size: int = max_size
         self.expire_info: Dict[str, float] = {}
+        self.lock: LockP = self._get_lock()
         self._client: OrderedDictT[KeyT, StoreBucketValueT] = OrderedDict()
+
+    @classmethod
+    def _get_lock(cls) -> LockP:
+        return threading.Lock()
+
+    def get_client(self) -> OrderedDictT[KeyT, StoreBucketValueT]:
+        return self._client
 
     def exists(self, key: KeyT) -> bool:
         return key in self._client
@@ -117,21 +129,6 @@ class LRUCoreMixin:
         return True
 
 
-class MemoryStoreBackend(LRUCoreMixin, BaseStoreBackend):
-    """Backend for Memory Store."""
-
-    def __init__(
-        self, server: Optional[str] = None, options: Optional[Dict[str, Any]] = None
-    ):
-        super().__init__(server, options)
-
-        self._init_store(self.options)
-        self.lock: threading.RLock = threading.RLock()
-
-    def get_client(self) -> OrderedDictT[KeyT, StoreBucketValueT]:
-        return self._client
-
-
 class MemoryStore(BaseStore):
     """Concrete implementation of BaseStore using Memory as backend.
 
@@ -145,10 +142,13 @@ class MemoryStore(BaseStore):
 
     TYPE: str = StoreType.MEMORY.value
 
+    _BACKEND_CLASS: Type[MemoryStoreBackend] = MemoryStoreBackend
+
     def __init__(
         self, server: Optional[str] = None, options: Optional[Dict[str, Any]] = None
     ):
-        self._backend: MemoryStoreBackend = MemoryStoreBackend(server, options)
+        super().__init__(server, options)
+        self._backend: MemoryStoreBackend = self._BACKEND_CLASS(server, options)
 
     def exists(self, key: KeyT) -> bool:
         return self._backend.exists(key)

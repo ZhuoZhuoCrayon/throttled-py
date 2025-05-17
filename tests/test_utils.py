@@ -1,8 +1,9 @@
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 import pytest
 
-from throttled.utils import to_bool
+from throttled.types import KeyT
+from throttled.utils import format_key, to_bool
 
 
 class TestUtils:
@@ -27,3 +28,17 @@ class TestUtils:
     )
     def test_to_bool(self, value: Any, expected: Optional[bool]):
         assert to_bool(value) == expected
+
+    @pytest.mark.parametrize(
+        ["key", "expect"],
+        [
+            (b"key", "key"),
+            (b"key\x00", "key\x00"),
+            ("key", "key"),
+            ("key\x00", "key\x00"),
+            (b"\x00", "\x00"),
+            ("", ""),
+        ],
+    )
+    def test_format_key(self, key: Union[bytes, str], expect: KeyT):
+        assert format_key(key) == expect

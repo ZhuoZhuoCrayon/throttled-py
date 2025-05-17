@@ -6,8 +6,7 @@ from functools import cached_property
 from typing import Dict, List, Optional, Set, Tuple, Type
 
 from ..exceptions import SetUpError
-from ..store import BaseAtomicAction, BaseStore
-from ..types import AtomicActionTypeT, RateLimiterTypeT
+from ..types import AtomicActionP, AtomicActionTypeT, RateLimiterTypeT, StoreP
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -173,9 +172,20 @@ class BaseRateLimiterMixin:
     class Meta:
         type: RateLimiterTypeT = ""
 
+    def __init__(
+        self,
+        quota: Quota,
+        store: StoreP,
+        additional_atomic_actions: Optional[List[Type[AtomicActionP]]] = None,
+    ) -> None:
+        self.quota: Quota = quota
+        self._store: StoreP = store
+        self._atomic_actions: Dict[AtomicActionTypeT, AtomicActionP] = {}
+        self._register_atomic_actions(additional_atomic_actions or [])
+
     @classmethod
     @abc.abstractmethod
-    def _default_atomic_action_classes(cls) -> List[Type[BaseAtomicAction]]:
+    def _default_atomic_action_classes(cls) -> List[Type[AtomicActionP]]:
         """Define the default AtomicAction classes for RateLimiter."""
         raise NotImplementedError
 
@@ -185,7 +195,7 @@ class BaseRateLimiterMixin:
         """Define the supported AtomicAction types for RateLimiter."""
         raise NotImplementedError
 
-    def try_register_atomic_action(self, action_cls: Type[BaseAtomicAction]) -> None:
+    def try_register_atomic_action(self, action_cls: Type[AtomicActionP]) -> None:
         """Try to register AtomicAction class.
         :param action_cls: AtomicAction class to be registered.
         :raise: SetUpError
@@ -209,7 +219,7 @@ class BaseRateLimiterMixin:
                 "{missing}.".format(expected=supported_types, missing=missing_types)
             )
 
-    def _register_atomic_actions(self, classes: List[Type[BaseAtomicAction]]) -> None:
+    def _register_atomic_actions(self, classes: List[Type[AtomicActionP]]) -> None:
         """Register AtomicAction classes for default and additional classes."""
         for action_cls in self._default_atomic_action_classes() + classes:
             try:
@@ -250,17 +260,6 @@ class BaseRateLimiterMixin:
 
 class BaseRateLimiter(BaseRateLimiterMixin, metaclass=RateLimiterMeta):
     """Base class for RateLimiter."""
-
-    def __init__(
-        self,
-        quota: Quota,
-        store: BaseStore,
-        additional_atomic_actions: Optional[List[Type[BaseAtomicAction]]] = None,
-    ) -> None:
-        self.quota: Quota = quota
-        self._store: BaseStore = store
-        self._atomic_actions: Dict[AtomicActionTypeT, BaseAtomicAction] = {}
-        self._register_atomic_actions(additional_atomic_actions or [])
 
     @abc.abstractmethod
     def _limit(self, key: str, cost: int) -> RateLimitResult:

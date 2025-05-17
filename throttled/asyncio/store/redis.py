@@ -1,52 +1,38 @@
-from typing import TYPE_CHECKING, Any, Dict, Optional, Type
+from typing import Any, Dict, Optional, Type
 
-from ...constants import StoreType
+from ... import constants, store, utils
 from ...exceptions import DataError
-from ...store.redis import RedisFormatMixin
-from ...store.redis_pool import BaseConnectionFactory, get_connection_factory
 from ...types import KeyT, StoreDictValueT, StoreValueT
-from .base import BaseAtomicAction, BaseStore, BaseStoreBackend
-
-if TYPE_CHECKING:
-    from redis.asyncio import Redis
+from .base import BaseAtomicAction
 
 
-class RedisStoreBackend(BaseStoreBackend):
+class RedisStoreBackend(store.RedisStoreBackend):
     """Backend for Async RedisStore."""
 
     def __init__(
         self, server: Optional[str] = None, options: Optional[Dict[str, Any]] = None
     ):
+        options = options or {}
+        # Set default options for asyncio Redis.
+        options.setdefault("CONNECTION_POOL_CLASS", "redis.asyncio.ConnectionPool")
+        options.setdefault("REDIS_CLIENT_CLASS", "redis.asyncio.Redis")
+        options.setdefault("PARSER_CLASS", "redis.asyncio.connection.DefaultParser")
+
         super().__init__(server, options)
 
-        self._client: Optional[Redis] = None
-        self.options.setdefault("CONNECTION_POOL_CLASS", "redis.asyncio.ConnectionPool")
-        self.options.setdefault("REDIS_CLIENT_CLASS", "redis.asyncio.Redis")
-        self.options.setdefault("PARSER_CLASS", "redis.asyncio.connection.DefaultParser")
 
-        connection_factory_cls_path: Optional[str] = self.options.get(
-            "CONNECTION_FACTORY_CLASS"
-        )
-
-        self._connection_factory: BaseConnectionFactory = get_connection_factory(
-            connection_factory_cls_path, self.options
-        )
-
-    def get_client(self) -> "Redis":
-        if self._client is None:
-            self._client = self._connection_factory.connect(self.server)
-        return self._client
-
-
-class RedisStore(RedisFormatMixin, BaseStore):
+class RedisStore(store.BaseStore):
     """Concrete implementation of BaseStore using Redis as backend."""
 
-    TYPE: str = StoreType.REDIS.value
+    TYPE: str = constants.StoreType.REDIS.value
+
+    _BACKEND_CLASS: Type[RedisStoreBackend] = RedisStoreBackend
 
     def __init__(
         self, server: Optional[str] = None, options: Optional[Dict[str, Any]] = None
     ):
-        self._backend: RedisStoreBackend = RedisStoreBackend(server, options)
+        super().__init__(server, options)
+        self._backend: RedisStoreBackend = self._BACKEND_CLASS(server, options)
 
     async def exists(self, key: KeyT) -> bool:
         return bool(await self._backend.get_client().exists(key))
@@ -67,7 +53,7 @@ class RedisStore(RedisFormatMixin, BaseStore):
         if value is None:
             return None
 
-        return self._format_value(value)
+        return utils.format_value(value)
 
     async def hset(
         self,
@@ -81,7 +67,7 @@ class RedisStore(RedisFormatMixin, BaseStore):
         await self._backend.get_client().hset(name, key, value, mapping)
 
     async def hgetall(self, name: KeyT) -> StoreDictValueT:
-        return self._format_kv(await self._backend.get_client().hgetall(name))
+        return utils.format_kv(await self._backend.get_client().hgetall(name))
 
     def make_atomic(self, action_cls: Type[BaseAtomicAction]) -> BaseAtomicAction:
         return action_cls(backend=self._backend)

@@ -1,4 +1,5 @@
-from .base import BaseAtomicAction, BaseStore, BaseStoreBackend
+from ...store import BaseStoreBackend
+from .base import BaseAtomicAction, BaseStore
 from .memory import MemoryStore, MemoryStoreBackend
 from .redis import RedisStore, RedisStoreBackend
 

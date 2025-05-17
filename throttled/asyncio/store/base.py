@@ -1,20 +1,12 @@
 import abc
 from typing import Any, Optional, Sequence, Type
 
-from ...store.base import BaseAtomicActionMixin, BaseStoreBackendMixin, BaseStoreMixin
+from ...store.base import BaseAtomicActionMixin, BaseStoreMixin
 from ...types import KeyT, StoreDictValueT, StoreValueT
-
-
-class BaseStoreBackend(BaseStoreBackendMixin, abc.ABC):
-    """Abstract class for all async store backends."""
 
 
 class BaseAtomicAction(BaseAtomicActionMixin, abc.ABC):
     """Abstract class for all async atomic actions performed by a store backend."""
-
-    @abc.abstractmethod
-    def __init__(self, backend: BaseStoreBackend):
-        raise NotImplementedError
 
     @abc.abstractmethod
     async def do(
