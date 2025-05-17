@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from importlib import import_module
 from typing import Any, Callable, Coroutine, Dict, List, Optional, Tuple, Union
 
-from .types import KeyT, StoreValueT, TimeLikeValueT
+from .types import KeyT, StoreDictValueT, StoreValueT, TimeLikeValueT
 
 
 def format_value(value: StoreValueT) -> StoreValueT:
@@ -22,7 +22,7 @@ def format_key(key: Union[bytes, str]) -> KeyT:
     return key
 
 
-def format_kv(kv: Dict[KeyT, Optional[StoreValueT]]):
+def format_kv(kv: Dict[KeyT, StoreValueT]) -> StoreDictValueT:
     return {format_key(k): format_value(v) for k, v in kv.items()}
 
 

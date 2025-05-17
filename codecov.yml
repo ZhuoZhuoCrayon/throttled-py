@@ -7,3 +7,6 @@ coverage:
     patch:
       default:
         target: 65%
+ignore:
+  - "**/types.py"
+
