@@ -57,6 +57,7 @@ class RedisLimitAtomicAction(BaseAtomicAction):
     """
 
     def __init__(self, backend: "RedisStoreBackend"):
+        super().__init__(backend)
         self._script: Script = backend.get_client().register_script(self.SCRIPTS)
 
     def do(
@@ -72,6 +73,7 @@ class MemoryLimitAtomicAction(BaseAtomicAction):
     STORE_TYPE: str = StoreType.MEMORY.value
 
     def __init__(self, backend: "MemoryStoreBackend"):
+        super().__init__(backend)
         self._backend: MemoryStoreBackend = backend
 
     def do(

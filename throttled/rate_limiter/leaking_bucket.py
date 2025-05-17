@@ -55,6 +55,7 @@ class RedisLimitAtomicAction(BaseAtomicAction):
     """
 
     def __init__(self, backend: "RedisStoreBackend"):
+        super().__init__(backend)
         self._script: Script = backend.get_client().register_script(self.SCRIPTS)
 
     def do(
@@ -70,6 +71,7 @@ class MemoryLimitAtomicAction(BaseAtomicAction):
     STORE_TYPE: str = StoreType.MEMORY.value
 
     def __init__(self, backend: "MemoryStoreBackend"):
+        super().__init__(backend)
         self._backend: MemoryStoreBackend = backend
 
     def do(
@@ -121,8 +123,10 @@ class LeakingBucketRateLimiter(BaseRateLimiter):
 
     def _limit(self, key: str, cost: int = 1) -> RateLimitResult:
         formatted_key, rate, capacity = self._prepare(key)
-        action: BaseAtomicAction = self._atomic_actions[ATOMIC_ACTION_TYPE_LIMIT]
-        limited, tokens = action.do([formatted_key], [rate, capacity, cost, now_sec()])
+        limited, tokens = self._atomic_actions[ATOMIC_ACTION_TYPE_LIMIT].do(
+            [formatted_key], [rate, capacity, cost, now_sec()]
+        )
+
         retry_after: int = 0
         if limited:
             retry_after = math.ceil(cost / rate)

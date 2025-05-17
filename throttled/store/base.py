@@ -5,18 +5,14 @@ from ..exceptions import DataError, SetUpError
 from ..types import KeyT, StoreDictValueT, StoreValueT
 
 
-class BaseStoreBackendMixin:
-    """Mixin class for async / sync BaseStoreBackend."""
+class BaseStoreBackend(abc.ABC):
+    """Abstract class for all store backends."""
 
     def __init__(
         self, server: Optional[str] = None, options: Optional[Dict[str, Any]] = None
-    ):
+    ) -> None:
         self.server: Optional[str] = server
         self.options: Dict[str, Any] = options or {}
-
-
-class BaseStoreBackend(BaseStoreBackendMixin, abc.ABC):
-    """Abstract class for all store backends."""
 
     @abc.abstractmethod
     def get_client(self) -> Any:
@@ -36,6 +32,9 @@ class BaseAtomicActionMixin:
     # STORE_TYPE is the expected type of store with which AtomicAction is compatible.
     STORE_TYPE: str = ""
 
+    def __init__(self, backend: BaseStoreBackend):
+        pass
+
     @classmethod
     def match_or_raise(cls, store_type: str) -> None:
         """Ensure the store type matches the expected type, or raise SetUpError.
@@ -52,10 +51,6 @@ class BaseAtomicActionMixin:
 
 class BaseAtomicAction(BaseAtomicActionMixin, abc.ABC):
     """Abstract class for all atomic actions performed by a store backend."""
-
-    @abc.abstractmethod
-    def __init__(self, backend: BaseStoreBackend):
-        raise NotImplementedError
 
     @abc.abstractmethod
     def do(self, keys: Sequence[KeyT], args: Optional[Sequence[StoreValueT]]) -> Any:
@@ -87,11 +82,10 @@ class BaseStoreMixin:
             "than 0.".format(timeout=timeout)
         )
 
-    @abc.abstractmethod
     def __init__(
         self, server: Optional[str] = None, options: Optional[Dict[str, Any]] = None
     ):
-        raise NotImplementedError
+        pass
 
 
 class BaseStore(BaseStoreMixin, abc.ABC):

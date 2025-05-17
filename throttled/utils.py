@@ -4,9 +4,26 @@ import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 from importlib import import_module
-from typing import Any, Callable, Coroutine, List, Optional, Tuple
+from typing import Any, Callable, Coroutine, Dict, List, Optional, Tuple, Union
 
-from .types import TimeLikeValueT
+from .types import KeyT, StoreValueT, TimeLikeValueT
+
+
+def format_value(value: StoreValueT) -> StoreValueT:
+    float_value: float = float(value)
+    if float_value.is_integer():
+        return int(float_value)
+    return float_value
+
+
+def format_key(key: Union[bytes, str]) -> KeyT:
+    if isinstance(key, bytes):
+        return key.decode("utf-8")
+    return key
+
+
+def format_kv(kv: Dict[KeyT, Optional[StoreValueT]]):
+    return {format_key(k): format_value(v) for k, v in kv.items()}
 
 
 def now_sec() -> int:

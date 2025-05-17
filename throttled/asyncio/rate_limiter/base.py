@@ -1,10 +1,7 @@
 import abc
-from typing import Dict, List, Optional, Type
+from typing import Type
 
 from ... import rate_limiter
-from ...rate_limiter.base import BaseRateLimiterMixin
-from ...types import AtomicActionTypeT
-from ..store import BaseAtomicAction, BaseStore
 
 
 class RateLimiterRegistry(rate_limiter.RateLimiterRegistry):
@@ -19,19 +16,8 @@ class RateLimiterMeta(rate_limiter.RateLimiterMeta):
     _REGISTRY_CLASS: Type[RateLimiterRegistry] = RateLimiterRegistry
 
 
-class BaseRateLimiter(BaseRateLimiterMixin, metaclass=RateLimiterMeta):
+class BaseRateLimiter(rate_limiter.BaseRateLimiterMixin, metaclass=RateLimiterMeta):
     """Base class for Async RateLimiter."""
-
-    def __init__(
-        self,
-        quota: rate_limiter.Quota,
-        store: BaseStore,
-        additional_atomic_actions: Optional[List[Type[BaseAtomicAction]]] = None,
-    ) -> None:
-        self.quota: rate_limiter.Quota = quota
-        self._store: BaseStore = store
-        self._atomic_actions: Dict[AtomicActionTypeT, BaseAtomicAction] = {}
-        self._register_atomic_actions(additional_atomic_actions or [])
 
     @abc.abstractmethod
     async def _limit(self, key: str, cost: int) -> rate_limiter.RateLimitResult:

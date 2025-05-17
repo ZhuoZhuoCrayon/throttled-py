@@ -2,9 +2,9 @@ from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple, Type
 
 from ..constants import ATOMIC_ACTION_TYPE_LIMIT, RateLimiterType, StoreType
 from ..store import BaseAtomicAction
-from ..types import AtomicActionTypeT, KeyT, RateLimiterTypeT, StoreValueT
+from ..types import AtomicActionP, AtomicActionTypeT, KeyT, RateLimiterTypeT, StoreValueT
 from ..utils import now_sec
-from . import BaseRateLimiter, Quota, RateLimitResult, RateLimitState
+from . import BaseRateLimiter, BaseRateLimiterMixin, RateLimitResult, RateLimitState
 
 if TYPE_CHECKING:
     from ..store import MemoryStoreBackend, RedisStoreBackend
@@ -29,10 +29,6 @@ class RedisLimitAtomicActionCoreMixin:
     return {current > limit and 1 or 0, current}
     """
 
-
-class RedisLimitAtomicAction(RedisLimitAtomicActionCoreMixin, BaseAtomicAction):
-    """Redis-based implementation of AtomicAction for FixedWindowRateLimiter."""
-
     def __init__(self, backend: "RedisStoreBackend"):
         # In single command scenario, lua has no performance advantage, and even causes
         # a decrease in performance due to the increase in transmission content.
@@ -48,7 +44,12 @@ class RedisLimitAtomicAction(RedisLimitAtomicActionCoreMixin, BaseAtomicAction):
         # serial     -> 🕒Latency: 0.0659 ms/op, 🚀Throughput: 15040 req/s
         # concurrent -> 🕒Latency: 0.9084 ms/op, 💤Throughput: 11539 req/s
         # self._script: Script = backend.get_client().register_script(self.SCRIPTS)
+        super().__init__(backend)
         self._backend: RedisStoreBackend = backend
+
+
+class RedisLimitAtomicAction(RedisLimitAtomicActionCoreMixin, BaseAtomicAction):
+    """Redis-based implementation of AtomicAction for FixedWindowRateLimiter."""
 
     def do(
         self, keys: Sequence[KeyT], args: Optional[Sequence[StoreValueT]]
@@ -65,6 +66,10 @@ class MemoryLimitAtomicActionCoreMixin:
 
     TYPE: AtomicActionTypeT = ATOMIC_ACTION_TYPE_LIMIT
     STORE_TYPE: str = StoreType.MEMORY.value
+
+    def __init__(self, backend: "MemoryStoreBackend"):
+        super().__init__(backend)
+        self._backend: MemoryStoreBackend = backend
 
     @classmethod
     def _do(
@@ -89,9 +94,6 @@ class MemoryLimitAtomicActionCoreMixin:
 class MemoryLimitAtomicAction(MemoryLimitAtomicActionCoreMixin, BaseAtomicAction):
     """Memory-based implementation of AtomicAction for FixedWindowRateLimiter."""
 
-    def __init__(self, backend: "MemoryStoreBackend"):
-        self._backend: MemoryStoreBackend = backend
-
     def do(
         self, keys: Sequence[KeyT], args: Optional[Sequence[StoreValueT]]
     ) -> Tuple[int, int]:
@@ -99,28 +101,27 @@ class MemoryLimitAtomicAction(MemoryLimitAtomicActionCoreMixin, BaseAtomicAction
             return self._do(self._backend, keys, args)
 
 
-class FixedWindowRateLimiterCoreMixin:
+class FixedWindowRateLimiterCoreMixin(BaseRateLimiterMixin):
     """Core mixin for FixedWindowRateLimiter."""
 
-    _DEFAULT_ATOMIC_ACTION_CLASSES: List[Type[BaseAtomicAction]] = []
+    _DEFAULT_ATOMIC_ACTION_CLASSES: List[Type[AtomicActionP]] = []
 
     class Meta:
         type: RateLimiterTypeT = RateLimiterType.FIXED_WINDOW.value
 
     @classmethod
-    def _default_atomic_action_classes(cls) -> List[Type[BaseAtomicAction]]:
+    def _default_atomic_action_classes(cls) -> List[Type[AtomicActionP]]:
         return cls._DEFAULT_ATOMIC_ACTION_CLASSES
 
     @classmethod
     def _supported_atomic_action_types(cls) -> List[AtomicActionTypeT]:
         return [ATOMIC_ACTION_TYPE_LIMIT]
 
-    @classmethod
-    def _prepare(cls, quota: Quota, key: str) -> Tuple[str, int, int, int]:
+    def _prepare(self, key: str) -> Tuple[str, int, int, int]:
         now: int = now_sec()
-        period: int = quota.get_period_sec()
+        period: int = self.quota.get_period_sec()
         period_key: str = f"{key}:period:{now // period}"
-        return period_key, period, quota.get_limit(), now
+        return self._prepare_key(period_key), period, self.quota.get_limit(), now
 
 
 class FixedWindowRateLimiter(FixedWindowRateLimiterCoreMixin, BaseRateLimiter):
@@ -132,9 +133,7 @@ class FixedWindowRateLimiter(FixedWindowRateLimiterCoreMixin, BaseRateLimiter):
     ]
 
     def _limit(self, key: str, cost: int = 1) -> RateLimitResult:
-        period_key, period, limit, now = self._prepare(
-            self.quota, self._prepare_key(key)
-        )
+        period_key, period, limit, now = self._prepare(key)
         limited, current = self._atomic_actions[ATOMIC_ACTION_TYPE_LIMIT].do(
             [period_key], [period, limit, cost]
         )
@@ -153,9 +152,7 @@ class FixedWindowRateLimiter(FixedWindowRateLimiterCoreMixin, BaseRateLimiter):
         )
 
     def _peek(self, key: str) -> RateLimitState:
-        period_key, period, limit, now = self._prepare(
-            self.quota, self._prepare_key(key)
-        )
+        period_key, period, limit, now = self._prepare(key)
         current: int = int(self._store.get(period_key) or 0)
         return RateLimitState(
             limit=limit,

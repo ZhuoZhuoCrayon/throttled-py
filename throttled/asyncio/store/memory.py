@@ -1,38 +1,29 @@
 import asyncio
-from typing import Any, Dict, Optional
-from typing import OrderedDict as OrderedDictT
-from typing import Type
+from typing import Any, Dict, Optional, Type
 
-from ...constants import StoreType
-from ...store.memory import LRUCoreMixin
-from ...types import KeyT, StoreBucketValueT, StoreDictValueT, StoreValueT
-from .base import BaseAtomicAction, BaseStore, BaseStoreBackend
+from ... import constants, store
+from ...types import KeyT, LockP, StoreDictValueT, StoreValueT
 
 
-class MemoryStoreBackend(LRUCoreMixin, BaseStoreBackend):
+class MemoryStoreBackend(store.MemoryStoreBackend):
     """Backend for Async MemoryStore."""
+
+    def _get_lock(self) -> LockP:
+        return asyncio.Lock()
+
+
+class MemoryStore(store.BaseStore):
+    """Concrete implementation of BaseStore using Memory as backend."""
+
+    TYPE: str = constants.StoreType.MEMORY.value
+
+    _BACKEND_CLASS: Type[MemoryStoreBackend] = MemoryStoreBackend
 
     def __init__(
         self, server: Optional[str] = None, options: Optional[Dict[str, Any]] = None
     ):
         super().__init__(server, options)
-
-        self._init_store(self.options)
-        self.lock: asyncio.Lock = asyncio.Lock()
-
-    def get_client(self) -> OrderedDictT[KeyT, StoreBucketValueT]:
-        return self._client
-
-
-class MemoryStore(BaseStore):
-    """Concrete implementation of BaseStore using Memory as backend."""
-
-    TYPE: str = StoreType.MEMORY.value
-
-    def __init__(
-        self, server: Optional[str] = None, options: Optional[Dict[str, Any]] = None
-    ):
-        self._backend: MemoryStoreBackend = MemoryStoreBackend(server, options)
+        self._backend: MemoryStoreBackend = self._BACKEND_CLASS(server, options)
 
     async def exists(self, key: KeyT) -> bool:
         return self._backend.exists(key)
@@ -67,5 +58,7 @@ class MemoryStore(BaseStore):
         async with self._backend.lock:
             return self._backend.hgetall(name)
 
-    def make_atomic(self, action_cls: Type[BaseAtomicAction]) -> BaseAtomicAction:
+    def make_atomic(
+        self, action_cls: Type[store.BaseAtomicAction]
+    ) -> store.BaseAtomicAction:
         return action_cls(backend=self._backend)
