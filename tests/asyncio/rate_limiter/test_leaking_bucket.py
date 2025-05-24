@@ -1,4 +1,4 @@
-import time
+import asyncio
 from typing import Callable, List
 
 import pytest
@@ -42,7 +42,7 @@ class TestLeakingBucketRateLimiter:
         result: RateLimitResult = await rate_limiter.limit(key)
         assert_rate_limit_result(False, 9, quota, result)
 
-        time.sleep(1)
+        await asyncio.sleep(1)
         result: RateLimitResult = await rate_limiter.limit(key, cost=5)
         assert_rate_limit_result(False, 5, quota, result)
 
@@ -91,7 +91,7 @@ class TestLeakingBucketRateLimiter:
         state: RateLimitState = await rate_limiter.peek(key)
         assert state == RateLimitState(limit=10, remaining=5, reset_after=5)
 
-        time.sleep(1)
+        await asyncio.sleep(1)
         state: RateLimitState = await rate_limiter.peek(key)
         assert state.limit == 10
         assert 6 - state.remaining <= 1
