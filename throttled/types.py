@@ -57,7 +57,7 @@ class StoreBackendP(Protocol):
 class _SyncAtomicActionP(Protocol):
     """_SyncAtomicActionP is a protocol for all sync atomic actions."""
 
-    TYPE: AtomicActionTypeT = ""
+    TYPE: AtomicActionTypeT
 
     @classmethod
     def match_or_raise(cls, store_type: str) -> None:
@@ -70,7 +70,7 @@ class _SyncAtomicActionP(Protocol):
 class _AsyncAtomicActionP(Protocol):
     """_AsyncAtomicActionP is a protocol for all async atomic actions."""
 
-    TYPE: AtomicActionTypeT = ""
+    TYPE: AtomicActionTypeT
 
     @classmethod
     def match_or_raise(cls, store_type: str) -> None:

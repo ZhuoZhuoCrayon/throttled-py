@@ -41,7 +41,7 @@ if limited then
         retry_after = (1 - current_proportion) * period * cost / previous
     else
         -- |-- previous --|- current -|------- new period -------|
-        retry_after = (1- current_proportion) * period
+        retry_after = (1 - current_proportion) * period
     end
 end
 

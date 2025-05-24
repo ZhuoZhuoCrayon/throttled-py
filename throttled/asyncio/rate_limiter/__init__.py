@@ -15,6 +15,7 @@ from .base import BaseRateLimiter, RateLimiterMeta, RateLimiterRegistry
 # Trigger to register Async RateLimiter
 from .fixed_window import FixedWindowRateLimiter
 from .leaking_bucket import LeakingBucketRateLimiter
+from .sliding_window import SlidingWindowRateLimiter
 
 __all__ = [
     "per_sec",
@@ -32,4 +33,5 @@ __all__ = [
     "BaseRateLimiter",
     "FixedWindowRateLimiter",
     "LeakingBucketRateLimiter",
+    "SlidingWindowRateLimiter",
 ]

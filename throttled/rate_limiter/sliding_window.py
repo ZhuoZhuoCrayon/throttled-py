@@ -1,20 +1,23 @@
 import math
-from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple, Type
+from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple, Type, Union
 
 from ..constants import ATOMIC_ACTION_TYPE_LIMIT, RateLimiterType, StoreType
 from ..store import BaseAtomicAction
-from ..types import AtomicActionTypeT, KeyT, RateLimiterTypeT, StoreValueT
+from ..types import AtomicActionP, AtomicActionTypeT, KeyT, RateLimiterTypeT, StoreValueT
 from ..utils import now_ms, now_sec
-from . import BaseRateLimiter, RateLimitResult, RateLimitState
+from . import BaseRateLimiter, BaseRateLimiterMixin, RateLimitResult, RateLimitState
 
 if TYPE_CHECKING:
-    from redis.commands.core import Script
+    from redis.commands.core import AsyncScript
+    from redis.commands.core import Script as SyncScript
 
     from ..store import MemoryStoreBackend, RedisStoreBackend
 
+    Script = Union[AsyncScript, SyncScript]
 
-class RedisLimitAtomicAction(BaseAtomicAction):
-    """Redis-based implementation of AtomicAction for SlidingWindowRateLimiter."""
+
+class RedisLimitAtomicActionCoreMixin:
+    """Core mixin for RedisLimitAtomicAction."""
 
     TYPE: AtomicActionTypeT = ATOMIC_ACTION_TYPE_LIMIT
     STORE_TYPE: str = StoreType.REDIS.value
@@ -46,7 +49,7 @@ class RedisLimitAtomicAction(BaseAtomicAction):
         if cost <= previous then
             retry_after = (1 - current_proportion) * period * cost / previous
         else
-            retry_after = (1- current_proportion) * period
+            retry_after = (1 - current_proportion) * period
         end
     end
 
@@ -57,6 +60,10 @@ class RedisLimitAtomicAction(BaseAtomicAction):
         super().__init__(backend)
         self._script: Script = backend.get_client().register_script(self.SCRIPTS)
 
+
+class RedisLimitAtomicAction(RedisLimitAtomicActionCoreMixin, BaseAtomicAction):
+    """Redis-based implementation of AtomicAction for SlidingWindowRateLimiter."""
+
     def do(
         self, keys: Sequence[KeyT], args: Optional[Sequence[StoreValueT]]
     ) -> Tuple[int, int, float]:
@@ -64,8 +71,8 @@ class RedisLimitAtomicAction(BaseAtomicAction):
         return limited, used, float(retry_after)
 
 
-class MemoryLimitAtomicAction(BaseAtomicAction):
-    """Memory-based implementation of AtomicAction for SlidingWindowRateLimiter."""
+class MemoryLimitAtomicActionCoreMixin:
+    """Core mixin for MemoryLimitAtomicAction."""
 
     TYPE: AtomicActionTypeT = ATOMIC_ACTION_TYPE_LIMIT
     STORE_TYPE: str = StoreType.MEMORY.value
@@ -74,52 +81,67 @@ class MemoryLimitAtomicAction(BaseAtomicAction):
         super().__init__(backend)
         self._backend: MemoryStoreBackend = backend
 
+    @classmethod
+    def _do(
+        cls,
+        backend: "MemoryStoreBackend",
+        keys: Sequence[KeyT],
+        args: Optional[Sequence[StoreValueT]],
+    ) -> Tuple[int, int, float]:
+        current_key: str = keys[0]
+        previous_key: str = keys[1]
+        period: int = args[0]
+        limit: int = args[1]
+        cost: int = args[2]
+
+        current: Optional[int] = backend.get(current_key)
+        if current is None:
+            current = cost
+            backend.set(current_key, cost, 3 * period)
+        else:
+            current += cost
+            backend.get_client()[current_key] = current
+
+        period_ms: int = period * 1000
+        current_proportion: float = (args[3] % period_ms) / period_ms
+        previous: int = math.floor(
+            (1 - current_proportion) * (backend.get(previous_key) or 0)
+        )
+
+        used: int = previous + current
+        limited: int = (0, 1)[used > limit]
+        if limited:
+            if cost <= previous:
+                retry_after = (1 - current_proportion) * period * cost / previous
+            else:
+                retry_after = (1 - current_proportion) * period
+        else:
+            retry_after = 0
+
+        return limited, used, retry_after
+
+
+class MemoryLimitAtomicAction(MemoryLimitAtomicActionCoreMixin, BaseAtomicAction):
+    """Memory-based implementation of AtomicAction for SlidingWindowRateLimiter."""
+
     def do(
         self, keys: Sequence[KeyT], args: Optional[Sequence[StoreValueT]]
     ) -> Tuple[int, int, float]:
         with self._backend.lock:
-            current_key: str = keys[0]
-            previous_key: str = keys[1]
-            period: int = args[0]
-            limit: int = args[1]
-            cost: int = args[2]
-
-            current: Optional[int] = self._backend.get(current_key)
-            if current is None:
-                current = cost
-                self._backend.set(current_key, cost, 3 * period)
-            else:
-                current += cost
-                self._backend.get_client()[current_key] = current
-
-            period_ms: int = period * 1000
-            current_proportion: float = (args[3] % period_ms) / period_ms
-            previous: int = math.floor(
-                (1 - current_proportion) * (self._backend.get(previous_key) or 0)
-            )
-
-            used: int = previous + current
-            limited: int = (0, 1)[used > limit]
-            if limited:
-                if cost <= previous:
-                    retry_after = (1 - current_proportion) * period * cost / previous
-                else:
-                    retry_after = (1 - current_proportion) * period
-            else:
-                retry_after = 0
-
-            return limited, used, retry_after
+            return self._do(self._backend, keys, args)
 
 
-class SlidingWindowRateLimiter(BaseRateLimiter):
-    """Concrete implementation of BaseRateLimiter using sliding window as algorithm."""
+class SlidingWindowRateLimiterCoreMixin(BaseRateLimiterMixin):
+    """Core mixin for SlidingWindowRateLimiter."""
+
+    _DEFAULT_ATOMIC_ACTION_CLASSES: List[Type[AtomicActionP]] = []
 
     class Meta:
         type: RateLimiterTypeT = RateLimiterType.SLIDING_WINDOW.value
 
     @classmethod
-    def _default_atomic_action_classes(cls) -> List[Type[BaseAtomicAction]]:
-        return [RedisLimitAtomicAction, MemoryLimitAtomicAction]
+    def _default_atomic_action_classes(cls) -> List[Type[AtomicActionP]]:
+        return cls._DEFAULT_ATOMIC_ACTION_CLASSES
 
     @classmethod
     def _supported_atomic_action_types(cls) -> List[AtomicActionTypeT]:
@@ -131,6 +153,15 @@ class SlidingWindowRateLimiter(BaseRateLimiter):
         current_key: str = self._prepare_key(f"{key}:period:{current_idx}")
         previous_key: str = self._prepare_key(f"{key}:period:{current_idx - 1}")
         return current_key, previous_key, period, self.quota.get_limit()
+
+
+class SlidingWindowRateLimiter(SlidingWindowRateLimiterCoreMixin, BaseRateLimiter):
+    """Concrete implementation of BaseRateLimiter using sliding window as algorithm."""
+
+    _DEFAULT_ATOMIC_ACTION_CLASSES: List[Type[BaseAtomicAction]] = [
+        RedisLimitAtomicAction,
+        MemoryLimitAtomicAction,
+    ]
 
     def _limit(self, key: str, cost: int = 1) -> RateLimitResult:
         current_key, previous_key, period, limit = self._prepare(key)

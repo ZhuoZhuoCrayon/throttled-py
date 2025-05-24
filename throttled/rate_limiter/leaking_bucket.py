@@ -146,9 +146,10 @@ class LeakingBucketRateLimiterCoreMixin(BaseRateLimiterMixin):
 class LeakingBucketRateLimiter(LeakingBucketRateLimiterCoreMixin, BaseRateLimiter):
     """Concrete implementation of BaseRateLimiter using leaking bucket as algorithm."""
 
-    @classmethod
-    def _default_atomic_action_classes(cls) -> List[Type[BaseAtomicAction]]:
-        return [RedisLimitAtomicAction, MemoryLimitAtomicAction]
+    _DEFAULT_ATOMIC_ACTION_CLASSES: List[Type[BaseAtomicAction]] = [
+        RedisLimitAtomicAction,
+        MemoryLimitAtomicAction,
+    ]
 
     def _limit(self, key: str, cost: int = 1) -> RateLimitResult:
         formatted_key, rate, capacity = self._prepare(key)
