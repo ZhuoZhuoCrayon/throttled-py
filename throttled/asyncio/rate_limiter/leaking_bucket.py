@@ -14,7 +14,7 @@ from . import BaseRateLimiter, RateLimitResult, RateLimitState
 
 
 class RedisLimitAtomicAction(RedisLimitAtomicActionCoreMixin, BaseAtomicAction):
-    """Redis-based implementation of AtomicAction for Async FixedWindowRateLimiter."""
+    """Redis-based implementation of AtomicAction for Async LeakingBucketRateLimiter."""
 
     async def do(
         self, keys: Sequence[KeyT], args: Optional[Sequence[StoreValueT]]
@@ -23,7 +23,7 @@ class RedisLimitAtomicAction(RedisLimitAtomicActionCoreMixin, BaseAtomicAction):
 
 
 class MemoryLimitAtomicAction(MemoryLimitAtomicActionCoreMixin, BaseAtomicAction):
-    """Memory-based implementation of AtomicAction for Async FixedWindowRateLimiter."""
+    """Memory-based implementation of AtomicAction for Async LeakingBucketRateLimiter."""
 
     async def do(
         self, keys: Sequence[KeyT], args: Optional[Sequence[StoreValueT]]
