@@ -16,6 +16,8 @@ from throttled.constants import RateLimiterType
 from throttled.types import TimeLikeValueT
 from throttled.utils import Benchmark, Timer
 
+from . import parametrizes
+
 
 @pytest.fixture
 def rate_limiter_constructor(store: BaseStore) -> Callable[[Quota], BaseRateLimiter]:
@@ -25,43 +27,41 @@ def rate_limiter_constructor(store: BaseStore) -> Callable[[Quota], BaseRateLimi
     yield _create_rate_limiter
 
 
+def assert_rate_limit_result(
+    limited: bool, remaining: int, quota: Quota, result: RateLimitResult
+):
+    assert result.limited == limited
+    assert result.state.limit == quota.burst
+    assert result.state.remaining == remaining
+    assert result.state.reset_after == quota.burst - remaining
+    if result.limited:
+        assert result.state.retry_after == 1
+    else:
+        assert result.state.retry_after == 0
+
+
 class TestTokenBucketRateLimiter:
     def test_limit(self, rate_limiter_constructor: Callable[[Quota], BaseRateLimiter]):
         key: str = "key"
         quota: Quota = per_min(limit=60, burst=10)
         rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
 
-        def _assert(_remaining: int, _result: RateLimitResult):
-            assert _result.state.remaining == _remaining
-            assert _result.state.reset_after == quota.burst - _remaining
-            if _result.limited:
-                assert _result.state.retry_after == 1
-            else:
-                assert _result.state.retry_after == 0
-
         time.sleep(1)
         result: RateLimitResult = rate_limiter.limit(key)
-        _assert(9, result)
-        assert result.limited is False
+        assert_rate_limit_result(False, 9, quota, result)
 
         time.sleep(1)
         result: RateLimitResult = rate_limiter.limit(key, cost=5)
-        _assert(5, result)
-        assert result.limited is False
+        assert_rate_limit_result(False, 5, quota, result)
 
         result: RateLimitResult = rate_limiter.limit(key, cost=5)
-        _assert(0, result)
-        assert result.limited is False
+        assert_rate_limit_result(False, 0, quota, result)
 
         result: RateLimitResult = rate_limiter.limit(key)
-        _assert(0, result)
-        assert result.limited is True
+        assert_rate_limit_result(True, 0, quota, result)
 
-    @pytest.mark.parametrize(
-        "quota",
-        [per_min(1, 1), per_min(10, 10), per_min(100, 100), per_min(1_000, 1_000)],
-    )
-    @pytest.mark.parametrize("requests_num", [10, 100, 1_000, 10_000])
+    @parametrizes.LIMIT_C_QUOTA
+    @parametrizes.LIMIT_C_REQUESTS_NUM
     def test_limit__concurrent(
         self,
         benchmark: Benchmark,
