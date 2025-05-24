@@ -1,9 +1,10 @@
 import math
-from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple, Type
+from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple, Type, Union
 
 from ..constants import ATOMIC_ACTION_TYPE_LIMIT, RateLimiterType, StoreType
 from ..store import BaseAtomicAction
 from ..types import (
+    AtomicActionP,
     AtomicActionTypeT,
     KeyT,
     RateLimiterTypeT,
@@ -11,16 +12,19 @@ from ..types import (
     StoreValueT,
 )
 from ..utils import now_sec
-from . import BaseRateLimiter, RateLimitResult, RateLimitState
+from . import BaseRateLimiter, BaseRateLimiterMixin, RateLimitResult, RateLimitState
 
 if TYPE_CHECKING:
-    from redis.commands.core import Script
+    from redis.commands.core import AsyncScript
+    from redis.commands.core import Script as SyncScript
 
     from ..store import MemoryStoreBackend, RedisStoreBackend
 
+    Script = Union[AsyncScript, SyncScript]
 
-class RedisLimitAtomicAction(BaseAtomicAction):
-    """Redis-based implementation of AtomicAction for LeakingBucketRateLimiter."""
+
+class RedisLimitAtomicActionCoreMixin:
+    """Core mixin for RedisLimitAtomicAction."""
 
     TYPE: AtomicActionTypeT = ATOMIC_ACTION_TYPE_LIMIT
     STORE_TYPE: str = StoreType.REDIS.value
@@ -58,14 +62,18 @@ class RedisLimitAtomicAction(BaseAtomicAction):
         super().__init__(backend)
         self._script: Script = backend.get_client().register_script(self.SCRIPTS)
 
+
+class RedisLimitAtomicAction(RedisLimitAtomicActionCoreMixin, BaseAtomicAction):
+    """Redis-based implementation of AtomicAction for LeakingBucketRateLimiter."""
+
     def do(
         self, keys: Sequence[KeyT], args: Optional[Sequence[StoreValueT]]
     ) -> Tuple[int, int]:
         return self._script(keys, args)
 
 
-class MemoryLimitAtomicAction(BaseAtomicAction):
-    """Memory-based implementation of AtomicAction for LeakingBucketRateLimiter."""
+class MemoryLimitAtomicActionCoreMixin:
+    """Core mixin for MemoryLimitAtomicAction."""
 
     TYPE: AtomicActionTypeT = ATOMIC_ACTION_TYPE_LIMIT
     STORE_TYPE: str = StoreType.MEMORY.value
@@ -74,45 +82,58 @@ class MemoryLimitAtomicAction(BaseAtomicAction):
         super().__init__(backend)
         self._backend: MemoryStoreBackend = backend
 
+    @classmethod
+    def _do(
+        cls,
+        backend: "MemoryStoreBackend",
+        keys: Sequence[KeyT],
+        args: Optional[Sequence[StoreValueT]],
+    ) -> Tuple[int, int]:
+        key: str = keys[0]
+        rate: float = args[0]
+        capacity: int = args[1]
+        cost: int = args[2]
+        now: int = args[3]
+
+        bucket: StoreDictValueT = backend.hgetall(key)
+        last_tokens: int = bucket.get("tokens", 0)
+        last_refreshed: int = bucket.get("last_refreshed", now)
+
+        time_elapsed: float = now - last_refreshed
+        tokens: int = max(0, last_tokens - math.floor(time_elapsed * rate))
+
+        limited: int = (0, 1)[tokens + cost > capacity]
+        if limited:
+            return limited, capacity - tokens
+
+        fill_time: float = capacity / rate
+        backend.expire(key, math.ceil(2 * fill_time))
+        backend.hset(key, mapping={"tokens": tokens + cost, "last_refreshed": now})
+
+        return limited, capacity - (tokens + cost)
+
+
+class MemoryLimitAtomicAction(MemoryLimitAtomicActionCoreMixin, BaseAtomicAction):
+    """Memory-based implementation of AtomicAction for LeakingBucketRateLimiter."""
+
     def do(
         self, keys: Sequence[KeyT], args: Optional[Sequence[StoreValueT]]
     ) -> Tuple[int, int]:
         with self._backend.lock:
-            key: str = keys[0]
-            rate: float = args[0]
-            capacity: int = args[1]
-            cost: int = args[2]
-            now: int = args[3]
-
-            bucket: StoreDictValueT = self._backend.hgetall(key)
-            last_tokens: int = bucket.get("tokens", 0)
-            last_refreshed: int = bucket.get("last_refreshed", now)
-
-            time_elapsed: float = now - last_refreshed
-            tokens: int = max(0, last_tokens - math.floor(time_elapsed * rate))
-
-            limited: int = (0, 1)[tokens + cost > capacity]
-            if limited:
-                return limited, capacity - tokens
-
-            fill_time: float = capacity / rate
-            self._backend.expire(key, math.ceil(2 * fill_time))
-            self._backend.hset(
-                key, mapping={"tokens": tokens + cost, "last_refreshed": now}
-            )
-
-            return limited, capacity - (tokens + cost)
+            return self._do(self._backend, keys, args)
 
 
-class LeakingBucketRateLimiter(BaseRateLimiter):
-    """Concrete implementation of BaseRateLimiter using leaking bucket as algorithm."""
+class LeakingBucketRateLimiterCoreMixin(BaseRateLimiterMixin):
+    """Core mixin for LeakingBucketRateLimiter."""
+
+    _DEFAULT_ATOMIC_ACTION_CLASSES: List[Type[AtomicActionP]] = []
 
     class Meta:
         type: RateLimiterTypeT = RateLimiterType.LEAKING_BUCKET.value
 
     @classmethod
-    def _default_atomic_action_classes(cls) -> List[Type[BaseAtomicAction]]:
-        return [RedisLimitAtomicAction, MemoryLimitAtomicAction]
+    def _default_atomic_action_classes(cls) -> List[Type[AtomicActionP]]:
+        return cls._DEFAULT_ATOMIC_ACTION_CLASSES
 
     @classmethod
     def _supported_atomic_action_types(cls) -> List[AtomicActionTypeT]:
@@ -120,6 +141,14 @@ class LeakingBucketRateLimiter(BaseRateLimiter):
 
     def _prepare(self, key: str) -> Tuple[str, float, int]:
         return self._prepare_key(key), self.quota.fill_rate, self.quota.burst
+
+
+class LeakingBucketRateLimiter(LeakingBucketRateLimiterCoreMixin, BaseRateLimiter):
+    """Concrete implementation of BaseRateLimiter using leaking bucket as algorithm."""
+
+    @classmethod
+    def _default_atomic_action_classes(cls) -> List[Type[BaseAtomicAction]]:
+        return [RedisLimitAtomicAction, MemoryLimitAtomicAction]
 
     def _limit(self, key: str, cost: int = 1) -> RateLimitResult:
         formatted_key, rate, capacity = self._prepare(key)
