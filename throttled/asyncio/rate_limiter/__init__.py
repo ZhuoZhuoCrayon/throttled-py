@@ -16,6 +16,7 @@ from .base import BaseRateLimiter, RateLimiterMeta, RateLimiterRegistry
 from .fixed_window import FixedWindowRateLimiter
 from .leaking_bucket import LeakingBucketRateLimiter
 from .sliding_window import SlidingWindowRateLimiter
+from .token_bucket import TokenBucketRateLimiter
 
 __all__ = [
     "per_sec",
@@ -34,4 +35,5 @@ __all__ = [
     "FixedWindowRateLimiter",
     "LeakingBucketRateLimiter",
     "SlidingWindowRateLimiter",
+    "TokenBucketRateLimiter",
 ]

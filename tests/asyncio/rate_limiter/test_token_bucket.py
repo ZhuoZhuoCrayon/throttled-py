@@ -1,99 +1,99 @@
+import asyncio
 import time
-from typing import Callable
+from typing import Callable, List
 
 import pytest
 
-from throttled import (
+from throttled.asyncio import (
     BaseRateLimiter,
     BaseStore,
     Quota,
     RateLimiterRegistry,
     RateLimitResult,
     RateLimitState,
+    constants,
     per_min,
+    types,
+    utils,
 )
-from throttled.constants import RateLimiterType
-from throttled.types import TimeLikeValueT
-from throttled.utils import Benchmark, Timer
 
-from . import parametrizes
+from ...rate_limiter import parametrizes
+from ...rate_limiter.test_token_bucket import assert_rate_limit_result
 
 
 @pytest.fixture
 def rate_limiter_constructor(store: BaseStore) -> Callable[[Quota], BaseRateLimiter]:
     def _create_rate_limiter(quota: Quota) -> BaseRateLimiter:
-        return RateLimiterRegistry.get(RateLimiterType.TOKEN_BUCKET.value)(quota, store)
+        return RateLimiterRegistry.get(constants.RateLimiterType.TOKEN_BUCKET.value)(
+            quota, store
+        )
 
     yield _create_rate_limiter
 
 
-def assert_rate_limit_result(
-    limited: bool, remaining: int, quota: Quota, result: RateLimitResult
-):
-    assert result.limited == limited
-    assert result.state.limit == quota.burst
-    assert result.state.remaining == remaining
-    assert result.state.reset_after == quota.burst - remaining
-    if result.limited:
-        assert result.state.retry_after == 1
-    else:
-        assert result.state.retry_after == 0
-
-
+@pytest.mark.asyncio
 class TestTokenBucketRateLimiter:
-    def test_limit(self, rate_limiter_constructor: Callable[[Quota], BaseRateLimiter]):
+    async def test_limit(
+        self, rate_limiter_constructor: Callable[[Quota], BaseRateLimiter]
+    ):
         key: str = "key"
         quota: Quota = per_min(limit=60, burst=10)
         rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
 
-        time.sleep(1)
-        result: RateLimitResult = rate_limiter.limit(key)
+        await asyncio.sleep(1)
+        result: RateLimitResult = await rate_limiter.limit(key)
         assert_rate_limit_result(False, 9, quota, result)
 
         time.sleep(1)
-        result: RateLimitResult = rate_limiter.limit(key, cost=5)
+        result: RateLimitResult = await rate_limiter.limit(key, cost=5)
         assert_rate_limit_result(False, 5, quota, result)
 
-        result: RateLimitResult = rate_limiter.limit(key, cost=5)
+        result: RateLimitResult = await rate_limiter.limit(key, cost=5)
         assert_rate_limit_result(False, 0, quota, result)
 
-        result: RateLimitResult = rate_limiter.limit(key)
+        result: RateLimitResult = await rate_limiter.limit(key)
         assert_rate_limit_result(True, 0, quota, result)
 
     @parametrizes.LIMIT_C_QUOTA
     @parametrizes.LIMIT_C_REQUESTS_NUM
-    def test_limit__concurrent(
+    async def test_limit__concurrent(
         self,
-        benchmark: Benchmark,
+        benchmark: utils.Benchmark,
         rate_limiter_constructor: Callable[[Quota], BaseRateLimiter],
         quota: Quota,
         requests_num: int,
     ):
-        def _callback(elapsed: TimeLikeValueT, *args, **kwargs):
+        def _callback(elapsed: types.TimeLikeValueT, *args, **kwargs):
             accessed_num: int = requests_num - sum(results)
             limit: int = min(requests_num, quota.get_limit())
 
             assert accessed_num >= limit
             assert accessed_num <= limit + (elapsed + 6) * quota.fill_rate
 
-        with Timer(callback=_callback):
+        async def _task():
+            result = await rate_limiter.limit("key")
+            return result.limited
+
+        async with utils.Timer(callback=_callback):
             rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
-            results = benchmark.concurrent(
-                task=lambda: rate_limiter.limit("key").limited, batch=requests_num
+            results: List[bool] = await benchmark.async_concurrent(
+                task=_task, batch=requests_num
             )
 
-    def test_peek(self, rate_limiter_constructor: Callable[[Quota], BaseRateLimiter]):
+    async def test_peek(
+        self, rate_limiter_constructor: Callable[[Quota], BaseRateLimiter]
+    ):
         key: str = "key"
         quota: Quota = per_min(limit=60, burst=10)
         rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
 
-        state: RateLimitState = rate_limiter.peek(key)
+        state: RateLimitState = await rate_limiter.peek(key)
         assert state == RateLimitState(limit=10, remaining=10, reset_after=0)
 
-        rate_limiter.limit(key, cost=5)
-        state: RateLimitState = rate_limiter.peek(key)
+        await rate_limiter.limit(key, cost=5)
+        state: RateLimitState = await rate_limiter.peek(key)
         assert state == RateLimitState(limit=10, remaining=5, reset_after=5)
 
-        time.sleep(1)
-        state: RateLimitState = rate_limiter.peek(key)
+        await asyncio.sleep(1)
+        state: RateLimitState = await rate_limiter.peek(key)
         assert state == RateLimitState(limit=10, remaining=6, reset_after=4)

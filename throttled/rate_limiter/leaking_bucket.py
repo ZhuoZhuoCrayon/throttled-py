@@ -146,7 +146,7 @@ class LeakingBucketRateLimiterCoreMixin(BaseRateLimiterMixin):
 class LeakingBucketRateLimiter(LeakingBucketRateLimiterCoreMixin, BaseRateLimiter):
     """Concrete implementation of BaseRateLimiter using leaking bucket as algorithm."""
 
-    _DEFAULT_ATOMIC_ACTION_CLASSES: List[Type[BaseAtomicAction]] = [
+    _DEFAULT_ATOMIC_ACTION_CLASSES: List[Type[AtomicActionP]] = [
         RedisLimitAtomicAction,
         MemoryLimitAtomicAction,
     ]
