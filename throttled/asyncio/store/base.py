@@ -2,7 +2,7 @@ import abc
 from typing import Any, Optional, Sequence, Type
 
 from ...store.base import BaseAtomicActionMixin, BaseStoreMixin
-from ...types import KeyT, StoreDictValueT, StoreValueT
+from ...types import AtomicActionP, KeyT, StoreDictValueT, StoreValueT
 
 
 class BaseAtomicAction(BaseAtomicActionMixin, abc.ABC):
@@ -81,7 +81,7 @@ class BaseStore(BaseStoreMixin, abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    async def make_atomic(self, action_cls: Type[BaseAtomicAction]) -> BaseAtomicAction:
+    def make_atomic(self, action_cls: Type[AtomicActionP]) -> AtomicActionP:
         """Create an instance of an AtomicAction for this store.
         :param action_cls: The class of the AtomicAction.
         :return: The AtomicAction instance.
