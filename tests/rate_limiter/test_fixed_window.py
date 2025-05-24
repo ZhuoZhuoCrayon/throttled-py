@@ -16,6 +16,8 @@ from throttled import (
 from throttled.constants import RateLimiterType
 from throttled.utils import Benchmark, now_sec
 
+from . import parametrizes
+
 
 @pytest.fixture
 def rate_limiter_constructor(store: BaseStore) -> Callable[[Quota], BaseRateLimiter]:
@@ -62,10 +64,8 @@ class TestFixedWindowRateLimiter:
         assert result.limited is True
         assert rate_limiter._store.get(store_key) == 9
 
-    @pytest.mark.parametrize(
-        "quota", [per_min(1), per_min(10), per_min(100), per_min(1_000)]
-    )
-    @pytest.mark.parametrize("requests_num", [10, 100, 1_000, 10_000])
+    @parametrizes.LIMIT_C_QUOTA
+    @parametrizes.LIMIT_C_REQUESTS_NUM
     def test_limit__concurrent(
         self,
         benchmark: Benchmark,
