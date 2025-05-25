@@ -3,6 +3,35 @@
 [English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md) | 简体中文
 
 
+## v2.1.0 - 2025-05-26
+
+[English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md#v210---2025-05-26) | 简体中文
+
+### ✨ 优化
+
+- refactor: 简化限流器与存储后端实现 @ZhuoZhuoCrayon (#68)
+
+### 🚀 功能
+
+- feat: 新增 Throttled 的异步支持 (issue #36) @ZhuoZhuoCrayon (#73)
+- feat: 实现具有异步支持的「GCRA」限流器 (issue #36) @ZhuoZhuoCrayon (#72)
+- feat: 实现具有异步支持的「令牌桶」限流器 (issue #36) @ZhuoZhuoCrayon (#71)
+- feat: 实现具有异步支持的「滑动窗口」限流器 (issue #36) @ZhuoZhuoCrayon (#70)
+- feat: 实现具有异步支持的「漏桶」限流器 (issue #36) @ZhuoZhuoCrayon (#69)
+- feat: 实现具有异步支持的「固定窗口」限流器 (issue #36) @ZhuoZhuoCrayon (#67)
+- feat: 新增 RedisStore 的异步实现 (issue #36) @ZhuoZhuoCrayon (#66)
+- feat: 新增 MemoryStore 的异步实现 (issue #36) @ZhuoZhuoCrayon (#65)
+
+### 📝 文档
+
+- docs: 新增异步示例 @ZhuoZhuoCrayon (#74)
+- docs: 更新 README_ZH.md 中的英文链接 @ZhuoZhuoCrayon (#64)
+
+**完整更新日志**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v2.0.2...v2.1.0
+
+---
+
+
 ## v2.0.2 - 2025-05-03
 
 [English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md#v202---2025-05-03) | 简体中文
