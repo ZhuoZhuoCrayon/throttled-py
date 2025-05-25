@@ -32,7 +32,7 @@ class BaseThrottled(BaseThrottledMixin, abc.ABC):
         pass
 
     @abc.abstractmethod
-    def __call__(self, func: Callable[[...], Coroutine]) -> Callable[[...], Coroutine]:
+    def __call__(self, func: Callable[..., Coroutine]) -> Callable[..., Coroutine]:
         """Decorator to apply rate limiting to a function."""
         raise NotImplementedError
 
@@ -85,7 +85,7 @@ class Throttled(BaseThrottled):
             raise LimitedError(rate_limit_result=result)
         return result
 
-    def __call__(self, func: Callable[[...], Coroutine]) -> Callable[[...], Coroutine]:
+    def __call__(self, func: Callable[..., Coroutine]) -> Callable[..., Coroutine]:
         if not self.key:
             raise DataError(f"Invalid key: {self.key}, must be a non-empty key.")
 
