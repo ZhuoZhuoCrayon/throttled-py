@@ -25,10 +25,12 @@
 
 ## ✨ 功能
 
+* 支持同步和异步（`async / await`）。
 * 提供线程安全的存储后端：[Redis](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#redis)、[内存（支持 Key 过期淘汰）](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#memory)。
 * 支持多种限流算法：[固定窗口](https://github.com/ZhuoZhuoCrayon/throttled-py/tree/main/docs/basic#21-%E5%9B%BA%E5%AE%9A%E7%AA%97%E5%8F%A3%E8%AE%A1%E6%95%B0%E5%99%A8)、[滑动窗口](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#22-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3)、[令牌桶](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#23-%E4%BB%A4%E7%89%8C%E6%A1%B6)、[漏桶](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#24-%E6%BC%8F%E6%A1%B6) & [通用信元速率算法（Generic Cell Rate Algorithm, GCRA）](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#25-gcra)。
 * 支持[配置限流算法](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#3%E6%8C%87%E5%AE%9A%E9%99%90%E6%B5%81%E7%AE%97%E6%B3%95)，提供灵活的[配额设置](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#4%E6%8C%87%E5%AE%9A%E5%AE%B9%E9%87%8F)。
 * 支持即刻返回及[等待重试](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#%E7%AD%89%E5%BE%85%E9%87%8D%E8%AF%95)，提供[函数调用](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A8)、[装饰器](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#%E4%BD%9C%E4%B8%BA%E8%A3%85%E9%A5%B0%E5%99%A8)、[上下文管理器](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%E5%99%A8)。
+* 支持附加在 [MCP](https://modelcontextprotocol.io/introduction) [Python SDK](https://github.com/modelcontextprotocol/python-sdk)，为模型对话过程提供限流支持。
 * 良好的性能，单次限流 API 执行耗时换算如下（详见 [Benchmarks](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#-benchmarks)）：
   * 内存：约为 2.5 ~ 4.5 次 `dict[key] += 1` 操作。
   * Redis：约为 1.06 ~ 1.37 次 `INCRBY key increment` 操作。
@@ -98,6 +100,36 @@ if __name__ == "__main__":
     print(f"❌ Denied: {denied_num} requests")
 ```
 
+### 3）异步
+
+同步和异步拥有一致的功能和标准 API，只需将导入语句从 `from throttled import ...` 替换为 `from throttled.asyncio import ..` 即可。
+
+例如将 `2）样例` 改写为异步：
+
+```python
+import asyncio
+from throttled.asyncio import RateLimiterType, Throttled, rate_limiter, store, utils
+
+throttle = Throttled(
+    using=RateLimiterType.TOKEN_BUCKET.value,
+    quota=rate_limiter.per_sec(1_000, burst=1_000),
+    store=store.MemoryStore(),
+)
+
+
+async def call_api() -> bool:
+    result = await throttle.limit("/ping", cost=1)
+    return result.limited
+
+
+async def main():
+    benchmark: utils.Benchmark = utils.Benchmark()
+    denied_num: int = sum(await benchmark.async_serial(call_api, 100_000))
+    print(f"❌ Denied: {denied_num} requests")
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
 
 ## 📝 使用
 
