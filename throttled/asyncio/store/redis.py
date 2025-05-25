@@ -2,8 +2,8 @@ from typing import Any, Dict, Optional, Type
 
 from ... import constants, store, utils
 from ...exceptions import DataError
-from ...types import KeyT, StoreDictValueT, StoreValueT
-from .base import BaseAtomicAction
+from ...types import AtomicActionP, KeyT, StoreDictValueT, StoreValueT
+from . import BaseStore
 
 
 class RedisStoreBackend(store.RedisStoreBackend):
@@ -14,6 +14,7 @@ class RedisStoreBackend(store.RedisStoreBackend):
     ):
         options = options or {}
         # Set default options for asyncio Redis.
+        options.setdefault("REUSE_CONNECTION", False)
         options.setdefault("CONNECTION_POOL_CLASS", "redis.asyncio.ConnectionPool")
         options.setdefault("REDIS_CLIENT_CLASS", "redis.asyncio.Redis")
         options.setdefault("PARSER_CLASS", "redis.asyncio.connection.DefaultParser")
@@ -21,7 +22,7 @@ class RedisStoreBackend(store.RedisStoreBackend):
         super().__init__(server, options)
 
 
-class RedisStore(store.BaseStore):
+class RedisStore(BaseStore):
     """Concrete implementation of BaseStore using Redis as backend."""
 
     TYPE: str = constants.StoreType.REDIS.value
@@ -69,5 +70,5 @@ class RedisStore(store.BaseStore):
     async def hgetall(self, name: KeyT) -> StoreDictValueT:
         return utils.format_kv(await self._backend.get_client().hgetall(name))
 
-    def make_atomic(self, action_cls: Type[BaseAtomicAction]) -> BaseAtomicAction:
+    def make_atomic(self, action_cls: Type[AtomicActionP]) -> AtomicActionP:
         return action_cls(backend=self._backend)

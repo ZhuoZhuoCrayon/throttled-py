@@ -45,7 +45,7 @@ def call_api(throttle: Throttled) -> bool:
     return result.limited
 
 
-@pytest.fixture(params=[StoreType.MEMORY.value, StoreType.REDIS.value])
+@pytest.fixture(params=StoreType.choice())
 def store(request) -> BaseStore:
     def _create_store(store_type: str) -> BaseStore:
         if store_type == StoreType.MEMORY.value:

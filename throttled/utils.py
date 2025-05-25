@@ -116,7 +116,7 @@ class Benchmark:
         self.clear()
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        self.clear()
+        self.stats()
 
     def stats(self):
         total: int = len(self.handled_ns_list)
@@ -209,8 +209,14 @@ class Benchmark:
             async with sem:
                 return await self._atimer(task)(*args, **kwargs)
 
-        with self:
+        async with self:
             return await asyncio.gather(*[limited_task() for __ in range(batch)])
+
+    async def async_serial(
+        self, task: Callable[..., Coroutine], batch: int, *args, **kwargs
+    ) -> List[Any]:
+        async with self:
+            return [await self._atimer(task)(*args, **kwargs) for __ in range(batch)]
 
     def serial(self, task: Callable[..., Any], batch: int, *args, **kwargs) -> List[Any]:
         with self:

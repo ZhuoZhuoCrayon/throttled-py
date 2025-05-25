@@ -165,7 +165,10 @@ class ConnectionFactory(BaseConnectionFactory):
         # Use redis client class path as part of the key, to avoid collisions
         # between different connection pool classes, e.g. Redis vs asyncio.Redis.
         key: str = f"{self.redis_client_cls_path}:{params['url']}"
-        if key not in self._pools:
+
+        # REUSE_CONNECTION: solve the problem of "redis attached to a different loop",
+        # due to the fact that the connection pool is created in a different loop.
+        if not self.options.get("REUSE_CONNECTION", True) or key not in self._pools:
             self._pools[key] = self.get_connection_pool(params)
         return self._pools[key]
 

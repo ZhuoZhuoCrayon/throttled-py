@@ -1,8 +1,10 @@
+import abc
 import threading
 import time
 from types import TracebackType
-from typing import Callable, Optional, Type
+from typing import Callable, Optional, Type, Union
 
+from .asyncio.rate_limiter import BaseRateLimiter as AsyncBaseRateLimiter
 from .constants import RateLimiterType
 from .exceptions import DataError, LimitedError
 from .rate_limiter import (
@@ -13,12 +15,32 @@ from .rate_limiter import (
     RateLimitState,
     per_min,
 )
-from .store import BaseStore, MemoryStore
-from .types import KeyT, RateLimiterTypeT
+from .store import MemoryStore
+from .types import KeyT, LockP, RateLimiterTypeT, StoreP
 from .utils import now_mono_f
 
+RateLimiterP = Union[BaseRateLimiter, AsyncBaseRateLimiter]
 
-class Throttled:
+
+class BaseThrottledMixin:
+    """Mixin class for async / sync BaseThrottled."""
+
+    __slots__ = (
+        "key",
+        "timeout",
+        "_quota",
+        "_store",
+        "_limiter_cls",
+        "_limiter",
+        "_lock",
+    )
+
+    _REGISTRY_CLASS: Type[RateLimiterRegistry] = None
+
+    # Default store for the rate limiter.
+    # By default, the global shared MemoryStore is used, when no store is specified.
+    _DEFAULT_GLOBAL_STORE: StoreP = None
+
     # Non-blocking mode constant
     _NON_BLOCKING: float = -1
     # Interval between retries in seconds
@@ -32,7 +54,7 @@ class Throttled:
         timeout: Optional[float] = None,
         using: Optional[RateLimiterTypeT] = None,
         quota: Optional[Quota] = None,
-        store: Optional[BaseStore] = None,
+        store: Optional[StoreP] = None,
     ):
         """Initializes the Throttled class.
         :param key: The unique identifier for the rate limit subject.
@@ -57,15 +79,20 @@ class Throttled:
         self._validate_timeout(self.timeout)
 
         self._quota: Quota = quota or per_min(60)
-        self._store: BaseStore = store or MemoryStore()
-        self._limiter_cls: Type[BaseRateLimiter] = RateLimiterRegistry.get(
+        self._store: StoreP = store or self._DEFAULT_GLOBAL_STORE
+        self._limiter_cls: Type[RateLimiterP] = self._REGISTRY_CLASS.get(
             using or RateLimiterType.TOKEN_BUCKET.value
         )
 
-        self._lock: threading.Lock = threading.Lock()
-        self._limiter: Optional[BaseRateLimiter] = None
+        self._lock: LockP = self._get_lock()
+        self._limiter: Optional[RateLimiterP] = None
 
-    def _get_limiter(self) -> BaseRateLimiter:
+    @classmethod
+    def _get_lock(cls) -> LockP:
+        return threading.Lock()
+
+    @property
+    def limiter(self) -> RateLimiterP:
         """Lazily initializes and returns the rate limiter instance."""
         if self._limiter:
             return self._limiter
@@ -77,39 +104,6 @@ class Throttled:
 
             self._limiter = self._limiter_cls(self._quota, self._store)
             return self._limiter
-
-    def __enter__(self) -> RateLimitResult:
-        """Context manager to apply rate limiting to a block of code.
-        :return: RateLimitResult
-        :raise: LimitedError if rate limit is exceeded.
-        """
-        result: RateLimitResult = self.limit()
-        if result.limited:
-            raise LimitedError(rate_limit_result=result)
-        return result
-
-    def __exit__(
-        self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
-    ):
-        pass
-
-    def __call__(self, func: Callable) -> Callable:
-        """Decorator to apply rate limiting to a function."""
-
-        if not self.key:
-            raise DataError(f"Invalid key: {self.key}, must be a non-empty key.")
-
-        def _inner(*args, **kwargs):
-            # TODO Add options to ignore state.
-            result: RateLimitResult = self.limit()
-            if result.limited:
-                raise LimitedError(rate_limit_result=result)
-            return func(*args, **kwargs)
-
-        return _inner
 
     @classmethod
     def _validate_cost(cls, cost: int) -> None:
@@ -159,31 +153,59 @@ class Throttled:
 
         return self.timeout
 
+    def _get_wait_time(self, retry_after: float) -> float:
+        """Calculate the wait time based on the retry_after value."""
+
+        # WAIT_INTERVAL: Chunked waiting interval to avoid long blocking periods.
+        # Also helps reduce actual wait time considering thread context switches.
+        # WAIT_MIN_INTERVAL: Minimum wait interval to prevent busy-waiting.
+        return max(min(retry_after, self._WAIT_INTERVAL), self._WAIT_MIN_INTERVAL)
+
+    @classmethod
+    def _is_exit_waiting(
+        cls, start_time: float, retry_after: float, timeout: float
+    ) -> bool:
+        # Calculate the elapsed time since the start time.
+        # Due to additional context switching overhead in multithread contexts,
+        # we don't directly use sleep_time to calculate elapsed time.
+        # Instead, we re-fetch the current time and subtract it from the start time.
+        elapsed: float = now_mono_f() - start_time
+        if elapsed >= retry_after or elapsed >= timeout:
+            return True
+        return False
+
+
+class BaseThrottled(BaseThrottledMixin, abc.ABC):
+    """Abstract class for all throttled classes."""
+
+    @abc.abstractmethod
+    def __enter__(self) -> RateLimitResult:
+        """Context manager to apply rate limiting to a block of code.
+        :return: RateLimitResult
+        :raise: LimitedError if rate limit is exceeded.
+        """
+        raise NotImplementedError
+
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ):
+        """Exit the context manager."""
+        pass
+
+    @abc.abstractmethod
+    def __call__(self, func: Callable) -> Callable:
+        """Decorator to apply rate limiting to a function."""
+        raise NotImplementedError
+
+    @abc.abstractmethod
     def _wait(self, timeout: float, retry_after: float) -> None:
         """Wait for the specified timeout or until retry_after is reached."""
-        if retry_after <= 0:
-            return
+        raise NotImplementedError
 
-        start_time: float = now_mono_f()
-        while True:
-            # WAIT_INTERVAL: Chunked waiting interval to avoid long blocking periods.
-            # Also helps reduce actual wait time considering thread context switches.
-            # WAIT_MIN_INTERVAL: Minimum wait interval to prevent busy-waiting.
-            sleep_time: float = max(
-                min(retry_after, self._WAIT_INTERVAL), self._WAIT_MIN_INTERVAL
-            )
-
-            # Sleep for the specified time.
-            time.sleep(sleep_time)
-
-            # Calculate the elapsed time since the start time.
-            # Due to additional context switching overhead in multithread contexts,
-            # we don't directly use sleep_time to calculate elapsed time.
-            # Instead, we re-fetch the current time and subtract it from the start time.
-            elapsed: float = now_mono_f() - start_time
-            if elapsed >= retry_after or elapsed >= timeout:
-                break
-
+    @abc.abstractmethod
     def limit(
         self, key: Optional[KeyT] = None, cost: int = 1, timeout: Optional[float] = None
     ) -> RateLimitResult:
@@ -202,11 +224,64 @@ class Throttled:
         :return: RateLimitResult: The result of the rate limiting check.
         :raise: DataError if invalid parameters.
         """
-        self._validate_cost(cost)
+        raise NotImplementedError
 
+    @abc.abstractmethod
+    def peek(self, key: KeyT) -> RateLimitState:
+        """Retrieve the current state of rate limiter for the given key
+           without actually modifying the state.
+        :param key: The unique identifier for the rate limit subject.
+                    eg: user ID or IP address.
+        :return: RateLimitState - Representing the current state of
+                 the rate limiter for the given key.
+        """
+        raise NotImplementedError
+
+
+class Throttled(BaseThrottled):
+    _REGISTRY_CLASS: Type[RateLimiterRegistry] = RateLimiterRegistry
+
+    _DEFAULT_GLOBAL_STORE: StoreP = MemoryStore()
+
+    def __enter__(self) -> RateLimitResult:
+        result: RateLimitResult = self.limit()
+        if result.limited:
+            raise LimitedError(rate_limit_result=result)
+        return result
+
+    def __call__(self, func: Callable) -> Callable:
+        if not self.key:
+            raise DataError(f"Invalid key: {self.key}, must be a non-empty key.")
+
+        def _inner(*args, **kwargs):
+            # TODO Add options to ignore state.
+            result: RateLimitResult = self.limit()
+            if result.limited:
+                raise LimitedError(rate_limit_result=result)
+            return func(*args, **kwargs)
+
+        return _inner
+
+    def _wait(self, timeout: float, retry_after: float) -> None:
+        if retry_after <= 0:
+            return
+
+        start_time: float = now_mono_f()
+        while True:
+            # Sleep for the specified time.
+            wait_time = self._get_wait_time(retry_after)
+            time.sleep(wait_time)
+
+            if self._is_exit_waiting(start_time, retry_after, timeout):
+                break
+
+    def limit(
+        self, key: Optional[KeyT] = None, cost: int = 1, timeout: Optional[float] = None
+    ) -> RateLimitResult:
+        self._validate_cost(cost)
         key: KeyT = self._get_key(key)
         timeout: float = self._get_timeout(timeout)
-        result: RateLimitResult = self._get_limiter().limit(key, cost)
+        result: RateLimitResult = self.limiter.limit(key, cost)
         if timeout == self._NON_BLOCKING or not result.limited:
             return result
 
@@ -218,7 +293,7 @@ class Throttled:
 
             self._wait(timeout, result.state.retry_after)
 
-            result = self._get_limiter().limit(key, cost)
+            result = self.limiter.limit(key, cost)
             if not result.limited:
                 break
 
@@ -229,11 +304,4 @@ class Throttled:
         return result
 
     def peek(self, key: KeyT) -> RateLimitState:
-        """Retrieve the current state of rate limiter for the given key
-           without actually modifying the state.
-        :param key: The unique identifier for the rate limit subject.
-                    eg: user ID or IP address.
-        :return: RateLimitState - Representing the current state of
-                 the rate limiter for the given key.
-        """
-        return self._get_limiter().peek(key)
+        return self.limiter.peek(key)

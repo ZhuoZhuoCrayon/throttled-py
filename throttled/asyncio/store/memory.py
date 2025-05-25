@@ -2,7 +2,8 @@ import asyncio
 from typing import Any, Dict, Optional, Type
 
 from ... import constants, store
-from ...types import KeyT, LockP, StoreDictValueT, StoreValueT
+from ...types import AtomicActionP, KeyT, LockP, StoreDictValueT, StoreValueT
+from . import BaseStore
 
 
 class MemoryStoreBackend(store.MemoryStoreBackend):
@@ -12,7 +13,7 @@ class MemoryStoreBackend(store.MemoryStoreBackend):
         return asyncio.Lock()
 
 
-class MemoryStore(store.BaseStore):
+class MemoryStore(BaseStore):
     """Concrete implementation of BaseStore using Memory as backend."""
 
     TYPE: str = constants.StoreType.MEMORY.value
@@ -58,7 +59,5 @@ class MemoryStore(store.BaseStore):
         async with self._backend.lock:
             return self._backend.hgetall(name)
 
-    def make_atomic(
-        self, action_cls: Type[store.BaseAtomicAction]
-    ) -> store.BaseAtomicAction:
+    def make_atomic(self, action_cls: Type[AtomicActionP]) -> AtomicActionP:
         return action_cls(backend=self._backend)

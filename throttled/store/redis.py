@@ -2,9 +2,9 @@ from typing import TYPE_CHECKING, Any, Dict, Optional, Type, Union
 
 from ..constants import StoreType
 from ..exceptions import DataError
-from ..types import KeyT, StoreDictValueT, StoreValueT
+from ..types import AtomicActionP, KeyT, StoreDictValueT, StoreValueT
 from ..utils import format_kv, format_value
-from .base import BaseAtomicAction, BaseStore, BaseStoreBackend
+from .base import BaseStore, BaseStoreBackend
 from .redis_pool import BaseConnectionFactory, get_connection_factory
 
 if TYPE_CHECKING:
@@ -86,5 +86,5 @@ class RedisStore(BaseStore):
     def hgetall(self, name: KeyT) -> StoreDictValueT:
         return format_kv(self._backend.get_client().hgetall(name))
 
-    def make_atomic(self, action_cls: Type[BaseAtomicAction]) -> BaseAtomicAction:
+    def make_atomic(self, action_cls: Type[AtomicActionP]) -> AtomicActionP:
         return action_cls(backend=self._backend)
