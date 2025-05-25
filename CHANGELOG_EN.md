@@ -3,6 +3,35 @@
 [简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.md) | English
 
 
+## v2.1.0 - 2025-05-26
+
+[简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.md#v210---2025-05-03) | English
+
+### 🚀 New Features
+
+- feat: add async support for Throttled (issue #36) @ZhuoZhuoCrayon (#73)
+- feat: implement "GCRA" Rate Limiter with async support (issue #36) @ZhuoZhuoCrayon (#72)
+- feat: implement "Token Bucket" Rate Limiter with async support (issue #36) @ZhuoZhuoCrayon (#71)
+- feat: implement "Sliding Window" Rate Limiter with async support (issue #36) @ZhuoZhuoCrayon (#70)
+- feat: implement "Leaking Bucket" Rate Limiter with async support (issue #36) @ZhuoZhuoCrayon (#69)
+- feat: implement "Fixed Window" Rate Limiter with async support (issue #36) @ZhuoZhuoCrayon (#67)
+- feat: add asyncio-based implementation for RedisStore (issue #36) @ZhuoZhuoCrayon (#66)
+- feat: add asyncio-based implementation for MemoryStore (issue #36) @ZhuoZhuoCrayon (#65)
+
+### 📝 Documentation
+
+- docs: add asyncio example @ZhuoZhuoCrayon (#74)
+- docs: update README_ZH.md with English link @ZhuoZhuoCrayon (#64)
+
+### ✨ Improvements
+
+- refactor: simplify rate limiter and store backend implementations @ZhuoZhuoCrayon (#68)
+
+**Full Changelog**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v2.0.2...v2.1.0
+
+---
+
+
 ## v2.0.2 - 2025-05-03
 
 [简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.md#v202---2025-05-03) | English
