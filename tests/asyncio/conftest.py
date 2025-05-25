@@ -1,8 +1,7 @@
-import pytest
 import pytest_asyncio
 from fakeredis.aioredis import FakeConnection
 
-from throttled.asyncio import BaseStore, MemoryStore, RedisStore, constants, utils
+from throttled.asyncio import BaseStore, MemoryStore, RedisStore, constants
 
 
 @pytest_asyncio.fixture(
@@ -26,8 +25,3 @@ async def store(request) -> BaseStore:
 
     if request.param == constants.StoreType.REDIS.value:
         await store._backend.get_client().flushall()
-
-
-@pytest.fixture(scope="class")
-def benchmark() -> utils.Benchmark:
-    return utils.Benchmark()

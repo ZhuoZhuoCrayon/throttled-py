@@ -7,9 +7,16 @@ from typing import Type
 
 from ..constants import STORE_TTL_STATE_NOT_EXIST, STORE_TTL_STATE_NOT_TTL, StoreType
 from ..exceptions import DataError, SetUpError
-from ..types import KeyT, LockP, StoreBucketValueT, StoreDictValueT, StoreValueT
+from ..types import (
+    AtomicActionP,
+    KeyT,
+    LockP,
+    StoreBucketValueT,
+    StoreDictValueT,
+    StoreValueT,
+)
 from ..utils import now_mono_f
-from .base import BaseAtomicAction, BaseStore, BaseStoreBackend
+from .base import BaseStore, BaseStoreBackend
 
 
 class MemoryStoreBackend(BaseStoreBackend):
@@ -183,5 +190,5 @@ class MemoryStore(BaseStore):
         with self._backend.lock:
             return self._backend.hgetall(name)
 
-    def make_atomic(self, action_cls: Type[BaseAtomicAction]) -> BaseAtomicAction:
+    def make_atomic(self, action_cls: Type[AtomicActionP]) -> AtomicActionP:
         return action_cls(backend=self._backend)

@@ -8,6 +8,10 @@ class StoreType(Enum):
     REDIS: str = "redis"
     MEMORY: str = "memory"
 
+    @classmethod
+    def choice(cls) -> List[str]:
+        return [cls.REDIS.value, cls.MEMORY.value]
+
 
 STORE_TTL_STATE_NOT_TTL: int = -1
 STORE_TTL_STATE_NOT_EXIST: int = -2

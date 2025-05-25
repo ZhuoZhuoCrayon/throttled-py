@@ -24,6 +24,7 @@ from .store import (
     RedisStore,
     RedisStoreBackend,
 )
+from .throttled import Throttled
 
 __all__ = [
     # public module
@@ -54,6 +55,8 @@ __all__ = [
     "MemoryStore",
     "RedisStoreBackend",
     "RedisStore",
+    # throttled
+    "Throttled",
     # constants
     "RateLimiterType",
 ]

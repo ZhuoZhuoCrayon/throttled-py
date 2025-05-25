@@ -3,8 +3,7 @@ from typing import Any, Callable, Dict, Type
 
 import pytest
 
-from throttled import Throttled, per_sec, rate_limiter, store
-from throttled.constants import RateLimiterType
+from throttled import RateLimiterType, Throttled, per_sec, rate_limiter, store
 from throttled.exceptions import BaseThrottledError, DataError, LimitedError
 from throttled.types import TimeLikeValueT
 from throttled.utils import Timer
