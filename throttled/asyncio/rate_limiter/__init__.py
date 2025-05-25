@@ -14,6 +14,7 @@ from .base import BaseRateLimiter, RateLimiterMeta, RateLimiterRegistry
 
 # Trigger to register Async RateLimiter
 from .fixed_window import FixedWindowRateLimiter
+from .gcra import GCRARateLimiterCoreMixin
 from .leaking_bucket import LeakingBucketRateLimiter
 from .sliding_window import SlidingWindowRateLimiter
 from .token_bucket import TokenBucketRateLimiter
@@ -36,4 +37,5 @@ __all__ = [
     "LeakingBucketRateLimiter",
     "SlidingWindowRateLimiter",
     "TokenBucketRateLimiter",
+    "GCRARateLimiterCoreMixin",
 ]
