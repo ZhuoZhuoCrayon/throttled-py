@@ -11,7 +11,7 @@
 
 - refactor: 简化限流器与存储后端实现 @ZhuoZhuoCrayon (#68)
 
-### 🚀 New Features
+### 🚀 功能
 
 - feat: 新增 Throttled 的异步支持 (issue #36) @ZhuoZhuoCrayon (#73)
 - feat: 实现具有异步支持的「GCRA」限流器 (issue #36) @ZhuoZhuoCrayon (#72)

@@ -5,7 +5,7 @@
 
 ## v2.1.0 - 2025-05-26
 
-[简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.md#v210---2025-05-03) | English
+[简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.md#v210---2025-05-26) | English
 
 ### 🚀 New Features
 
