@@ -16,6 +16,9 @@
     <a href="https://github.com/ZhuoZhuoCrayon/throttled-py/issues">
         <img src="https://img.shields.io/badge/issue-welcome-blue.svg" alt="Welcome Issue">
     </a>
+    <a href="https://hellogithub.com/repository/fb094234bf744e108f4ce7d3326a5cb1" target="_blank">
+        <img src="https://api.hellogithub.com/v1/widgets/recommend.svg?rid=fb094234bf744e108f4ce7d3326a5cb1&claim_uid=RzCXpndJ3LrMbUH&theme=small" alt="Featured｜HelloGitHub" />
+    </a>
 </p>
 
 [English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py) | 简体中文
