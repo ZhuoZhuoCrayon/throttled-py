@@ -3,6 +3,23 @@
 [English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md) | 简体中文
 
 
+## v2.2.0 - 2025-05-31
+
+[English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md#v220---2025-05-31) | 简体中文
+
+### 🚀 功能
+
+- feat: 增强 Throttled 装饰器，支持 cost 参数 @River-Shi (#77)
+
+### 📝 文档
+
+- docs: 在 README 中添加 HelloGitHub 推荐徽章 @ZhuoZhuoCrayon (#76)
+
+**完整更新日志**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v2.1.0...v2.2.0
+
+---
+
+
 ## v2.1.0 - 2025-05-26
 
 [English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md#v210---2025-05-26) | 简体中文
