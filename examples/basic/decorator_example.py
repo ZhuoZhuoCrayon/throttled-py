@@ -26,7 +26,7 @@ if __name__ == "__main__":
     try:
         # 第二次调用会被限流
         print(ping())
-    except exceptions.LimitedError as e:
+    except exceptions.LimitedError:
         print("Rate limited!")  # 输出: Rate limited!
 
     # 第一次调用成功，但会消耗 2 个 cost
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     try:
         # 第二次调用会被限流，因为配额只有 2，而每次调用消耗 2 个 cost
         print(heavy_ping())
-    except exceptions.LimitedError as e:
+    except exceptions.LimitedError:
         print("Rate limited!")  # 输出: Rate limited!
 
     # 异步函数示例
@@ -46,7 +46,7 @@ if __name__ == "__main__":
         try:
             # 第二次调用会被限流
             print(await async_ping())
-        except exceptions.LimitedError as e:
+        except exceptions.LimitedError:
             print("Async rate limited!")  # 输出: Async rate limited!
 
     # 运行异步示例

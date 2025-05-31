@@ -44,7 +44,7 @@ class TestSlidingWindowRateLimiter:
         rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
 
         store_key: str = (
-            f"throttled:v1:sliding_window:key" f":period:{utils.now_sec() // period}"
+            f"throttled:v1:sliding_window:key:period:{utils.now_sec() // period}"
         )
         assert await rate_limiter._store.exists(store_key) is False
 

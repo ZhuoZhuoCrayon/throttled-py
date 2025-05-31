@@ -78,8 +78,9 @@ class BaseStoreMixin:
             return
 
         raise DataError(
-            "Invalid timeout: {timeout}, Must be an integer greater "
-            "than 0.".format(timeout=timeout)
+            "Invalid timeout: {timeout}, Must be an integer greater than 0.".format(
+                timeout=timeout
+            )
         )
 
     def __init__(

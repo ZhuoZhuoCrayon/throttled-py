@@ -32,34 +32,14 @@ class BaseThrottled(BaseThrottledMixin, abc.ABC):
         pass
 
     @abc.abstractmethod
-    def __call__(self, func: Optional[Callable[..., Coroutine]] = None) -> Union[Callable[..., Coroutine], Callable[[Callable[..., Coroutine]], Callable[..., Coroutine]]]:
-        """Decorator to apply rate limiting to an async function.
-        The cost value is taken from the Throttled instance's initialization.
-        
-        Usage:
-        @Throttled(key="key")
-        async def func(): pass
-        
-        or with cost:
-        @Throttled(key="key", cost=2)
-        async def func(): pass
-        """
-        def decorator(f: Callable[..., Coroutine]) -> Callable[..., Coroutine]:
-            if not self.key:
-                raise DataError(f"Invalid key: {self.key}, must be a non-empty key.")
-
-            async def _inner(*args, **kwargs):
-                result: RateLimitResult = await self.limit(cost=self._cost)
-                if result.limited:
-                    raise LimitedError(rate_limit_result=result)
-                return await f(*args, **kwargs)
-
-            return _inner
-
-        if func is None:
-            return decorator
-        
-        return decorator(func)
+    def __call__(
+        self, func: Optional[Callable[..., Coroutine]] = None
+    ) -> Union[
+        Callable[..., Coroutine],
+        Callable[[Callable[..., Coroutine]], Callable[..., Coroutine]],
+    ]:
+        """Decorator to apply rate limiting to an async function."""
+        raise NotImplementedError
 
     @abc.abstractmethod
     async def _wait(self, timeout: float, retry_after: float) -> None:
@@ -152,3 +132,38 @@ class Throttled(BaseThrottled):
 
     async def peek(self, key: KeyT) -> RateLimitState:
         return await self.limiter.peek(key)
+
+    def __call__(
+        self, func: Optional[Callable[..., Coroutine]] = None
+    ) -> Union[
+        Callable[..., Coroutine],
+        Callable[[Callable[..., Coroutine]], Callable[..., Coroutine]],
+    ]:
+        """Decorator to apply rate limiting to an async function.
+        The cost value is taken from the Throttled instance's initialization.
+
+        Usage:
+        @Throttled(key="key")
+        async def func(): pass
+
+        or with cost:
+        @Throttled(key="key", cost=2)
+        async def func(): pass
+        """
+
+        def decorator(f: Callable[..., Coroutine]) -> Callable[..., Coroutine]:
+            if not self.key:
+                raise DataError(f"Invalid key: {self.key}, must be a non-empty key.")
+
+            async def _inner(*args, **kwargs):
+                result: RateLimitResult = await self.limit(cost=self._cost)
+                if result.limited:
+                    raise LimitedError(rate_limit_result=result)
+                return await f(*args, **kwargs)
+
+            return _inner
+
+        if func is None:
+            return decorator
+
+        return decorator(func)

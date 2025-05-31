@@ -90,7 +90,7 @@ class BaseThrottledMixin:
 
         self._lock: LockP = self._get_lock()
         self._limiter: Optional[RateLimiterP] = None
-        
+
         self._validate_cost(cost)
         self._cost: int = cost
 
@@ -203,7 +203,9 @@ class BaseThrottled(BaseThrottledMixin, abc.ABC):
         pass
 
     @abc.abstractmethod
-    def __call__(self, func: Callable) -> Callable:
+    def __call__(
+        self, func: Optional[Callable] = None
+    ) -> Union[Callable, Callable[[Callable], Callable]]:
         """Decorator to apply rate limiting to a function."""
         raise NotImplementedError
 
@@ -256,18 +258,21 @@ class Throttled(BaseThrottled):
             raise LimitedError(rate_limit_result=result)
         return result
 
-    def __call__(self, func: Optional[Callable] = None) -> Union[Callable, Callable[[Callable], Callable]]:
+    def __call__(
+        self, func: Optional[Callable] = None
+    ) -> Union[Callable, Callable[[Callable], Callable]]:
         """Decorator to apply rate limiting to a function.
         The cost value is taken from the Throttled instance's initialization.
-        
+
         Usage:
         @Throttled(key="key")
         def func(): pass
-        
+
         or with cost:
         @Throttled(key="key", cost=2)
         def func(): pass
         """
+
         def decorator(f: Callable) -> Callable:
             if not self.key:
                 raise DataError(f"Invalid key: {self.key}, must be a non-empty key.")
@@ -283,7 +288,7 @@ class Throttled(BaseThrottled):
 
         if func is None:
             return decorator
-        
+
         return decorator(func)
 
     def _wait(self, timeout: float, retry_after: float) -> None:
