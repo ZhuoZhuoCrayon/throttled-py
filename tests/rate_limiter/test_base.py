@@ -11,7 +11,11 @@ class TestQuota:
         "per_xx,constructor_kwargs,expect",
         [
             [rate_limiter.per_sec, {"limit": 10}, {"limit": 10, "burst": 10, "sec": 1}],
-            [rate_limiter.per_min, {"limit": 10}, {"limit": 10, "burst": 10, "sec": 60}],
+            [
+                rate_limiter.per_min,
+                {"limit": 10},
+                {"limit": 10, "burst": 10, "sec": 60},
+            ],
             [
                 rate_limiter.per_hour,
                 {"limit": 10},
