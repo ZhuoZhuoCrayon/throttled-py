@@ -3,6 +3,23 @@
 [简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.md) | English
 
 
+## v2.2.0 - 2025-05-31
+
+[简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.md#v220---2025-05-31) | English
+
+### 🚀 New Features
+
+- feat: enhance Throttled decorator with cost parameter @River-Shi (#77)
+
+### 📝 Documentation
+
+- docs: add HelloGitHub recommendation badge to README @ZhuoZhuoCrayon (#76)
+
+**Full Changelog**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v2.1.0...v2.2.0
+
+---
+
+
 ## v2.1.0 - 2025-05-26
 
 [简体中文](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.md#v210---2025-05-26) | English
