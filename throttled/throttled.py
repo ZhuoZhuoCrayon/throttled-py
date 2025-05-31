@@ -33,6 +33,7 @@ class BaseThrottledMixin:
         "_limiter_cls",
         "_limiter",
         "_lock",
+        "_cost",
     )
 
     _REGISTRY_CLASS: Type[RateLimiterRegistry] = None
@@ -55,6 +56,7 @@ class BaseThrottledMixin:
         using: Optional[RateLimiterTypeT] = None,
         quota: Optional[Quota] = None,
         store: Optional[StoreP] = None,
+        cost: int = 1,
     ):
         """Initializes the Throttled class.
         :param key: The unique identifier for the rate limit subject.
@@ -67,6 +69,8 @@ class BaseThrottledMixin:
         :param using: The type of rate limiter to use, default: token_bucket.
         :param quota: The quota for the rate limiter, default: 60 requests per minute.
         :param store: The store to use for the rate limiter, default: MemoryStore.
+        :param cost: The cost of each request in terms of how much of the rate limit
+                    quota it consumes, default: 1.
         """
         # TODO Support key prefix.
         # TODO Support extract key from params.
@@ -86,6 +90,9 @@ class BaseThrottledMixin:
 
         self._lock: LockP = self._get_lock()
         self._limiter: Optional[RateLimiterP] = None
+        
+        self._validate_cost(cost)
+        self._cost: int = cost
 
     @classmethod
     def _get_lock(cls) -> LockP:
@@ -249,18 +256,35 @@ class Throttled(BaseThrottled):
             raise LimitedError(rate_limit_result=result)
         return result
 
-    def __call__(self, func: Callable) -> Callable:
-        if not self.key:
-            raise DataError(f"Invalid key: {self.key}, must be a non-empty key.")
+    def __call__(self, func: Optional[Callable] = None) -> Union[Callable, Callable[[Callable], Callable]]:
+        """Decorator to apply rate limiting to a function.
+        The cost value is taken from the Throttled instance's initialization.
+        
+        Usage:
+        @Throttled(key="key")
+        def func(): pass
+        
+        or with cost:
+        @Throttled(key="key", cost=2)
+        def func(): pass
+        """
+        def decorator(f: Callable) -> Callable:
+            if not self.key:
+                raise DataError(f"Invalid key: {self.key}, must be a non-empty key.")
 
-        def _inner(*args, **kwargs):
-            # TODO Add options to ignore state.
-            result: RateLimitResult = self.limit()
-            if result.limited:
-                raise LimitedError(rate_limit_result=result)
-            return func(*args, **kwargs)
+            def _inner(*args, **kwargs):
+                # TODO Add options to ignore state.
+                result: RateLimitResult = self.limit(cost=self._cost)
+                if result.limited:
+                    raise LimitedError(rate_limit_result=result)
+                return f(*args, **kwargs)
 
-        return _inner
+            return _inner
+
+        if func is None:
+            return decorator
+        
+        return decorator(func)
 
     def _wait(self, timeout: float, retry_after: float) -> None:
         if retry_after <= 0:
