@@ -3,7 +3,7 @@
 [English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md) | 简体中文
 
 
-## v2.1.0 - 2025-05-31
+## v2.2.0 - 2025-05-31
 
 [English Documents Available](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md#v220---2025-05-31) | 简体中文
 
