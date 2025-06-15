@@ -1,0 +1,5 @@
+sphinx
+sphinx-book-theme
+sphinx_thebe
+sphinx-inline-tabs
+sphinx-copybutton

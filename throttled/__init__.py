@@ -31,6 +31,8 @@ VERSION = tuple(map(int, __version__.split(".")))
 
 
 __all__ = [
+    "__version__",
+    "VERSION",
     # public module
     "exceptions",
     "constants",

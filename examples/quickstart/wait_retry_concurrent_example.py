@@ -3,19 +3,20 @@ from throttled import RateLimiterType, Throttled, rate_limiter, utils
 throttle = Throttled(
     using=RateLimiterType.GCRA.value,
     quota=rate_limiter.per_sec(100, burst=100),
-    # ⏳ 设置超时时间为 1 秒，表示允许等待重试，等待时间超过 1 秒返回最后一次限流结果。
+    # ⏳ Set timeout to 1 second, which allows waiting for retry,
+    # and returns the last RateLimitResult if the wait exceeds 1 second.
     timeout=1,
 )
 
 
 def call_api() -> bool:
-    # ⬆️⏳ 函数调用传入 timeout 将覆盖全局设置的 timeout。
+    # ⬆️⏳ Function call with timeout will override the global timeout.
     result = throttle.limit("/ping", cost=1, timeout=1)
     return result.limited
 
 
 if __name__ == "__main__":
-    # 👇 实际 QPS 接近预设容量（100 req/s）：
+    # 👇 The actual QPS is close to the preset quota (100 req/s):
     # ✅ Total: 1000, 🕒 Latency: 35.8103 ms/op, 🚀 Throughput: 111 req/s (--)
     # ❌ Denied: 8 requests
     benchmark: utils.Benchmark = utils.Benchmark()

@@ -1,0 +1,30 @@
+body, code {
+    font-family: "Fira Code", "JetBrains Mono", "Consolas", monospace;
+}
+
+/* Copy code button styles */
+.copybtn {
+    top: 0.5em;
+    right: 0.5em;
+    opacity: 0.5;
+    transition: opacity 0.3s;
+}
+
+.copybtn:hover {
+    opacity: 1;
+}
+
+/* Project title styles */
+.project-title {
+    display: inline-flex;
+    align-items: center;
+    font-size: 1.8rem;
+    font-style: italic;
+}
+
+/* Project version styles */
+.project-version {
+    color: #6c757d;
+    font-size: 1.4rem;
+    font-style: italic;
+}
