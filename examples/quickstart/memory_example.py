@@ -1,6 +1,6 @@
 from throttled import Throttled, rate_limiter, store
 
-# 🌟 使用 Memory 作为存储后端
+# 🌟 Use MemoryStore as the storage backend.
 mem_store = store.MemoryStore()
 
 
@@ -15,8 +15,10 @@ def pong() -> str:
 
 
 def demo():
+    # >> ping
     ping()
-    # raise LimitedError: Rate limit exceeded: remaining=0, reset_after=60
+    # >> throttled.exceptions.LimitedError:
+    # Rate limit exceeded: remaining=0, reset_after=60, retry_after=60.
     pong()
 
 

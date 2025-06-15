@@ -5,7 +5,7 @@
 
 <p align="center">
     <a href="https://github.com/ZhuoZhuoCrayon/throttled-py">
-        <img src="https://badgen.net/badge/python/%3E=3.8/green?icon=github" alt="Python">
+        <img src="https://badgen.net/badge/python/%3E=3.8/green?icon=python" alt="Python">
     </a>
      <a href="https://github.com/ZhuoZhuoCrayon/throttled-py">
         <img src="https://codecov.io/gh/ZhuoZhuoCrayon/throttled-py/graph/badge.svg" alt="Coverage Status">
@@ -14,7 +14,7 @@
         <img src="https://img.shields.io/pypi/v/throttled-py.svg" alt="Coverage Status">
     </a>
     <a href="https://github.com/ZhuoZhuoCrayon/throttled-py/issues">
-        <img src="https://img.shields.io/badge/issue-welcome-blue.svg" alt="Welcome Issue">
+        <img src="https://img.shields.io/badge/issue-welcome-blue.svg?logo=github" alt="Welcome Issue">
     </a>
     <a href="https://hellogithub.com/repository/fb094234bf744e108f4ce7d3326a5cb1" target="_blank">
         <img src="https://api.hellogithub.com/v1/widgets/recommend.svg?rid=fb094234bf744e108f4ce7d3326a5cb1&claim_uid=RzCXpndJ3LrMbUH&theme=small" alt="Featured｜HelloGitHub" />
@@ -60,7 +60,7 @@ $ pip install "throttled-py[redis,in-memory]"
 | Extra       | Description                       |
 |-------------|-----------------------------------|
 | `all`       | Install all extras.               |
-| `in-momory` | Use In-Memory as storage backend. |
+| `in-memory` | Use In-Memory as storage backend. |
 | `redis`     | Use Redis as storage backend.     |
 
 

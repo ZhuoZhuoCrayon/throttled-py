@@ -1,20 +1,17 @@
 from throttled import RateLimiterType, Throttled, rate_limiter, store, utils
 
 throttle = Throttled(
-    # 📈 使用令牌桶作为限流算法。
     # 📈 Use Token Bucket algorithm.
     using=RateLimiterType.TOKEN_BUCKET.value,
-    # 🪣 设置配额：每秒填充 1,000 个 Token（limit），桶大小为 1,000（burst）。
     # 🪣 Set quota: 1,000 tokens per second (limit), bucket size 1,000 (burst).
     quota=rate_limiter.per_sec(1_000, burst=1_000),
-    # 📁 使用内存作为存储
     # 📁 Use In-Memory storage.
     store=store.MemoryStore(),
 )
 
 
 def call_api() -> bool:
-    # 💧消耗 Key=/ping 的一个 Token。
+    # 💧 Deduct 1 token for key="/ping"
     result = throttle.limit("/ping", cost=1)
     return result.limited
 
