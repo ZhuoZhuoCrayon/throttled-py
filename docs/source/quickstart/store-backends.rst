@@ -42,9 +42,11 @@ rate limiting in a distributed environment.
 
 It supports the following arguments:
 
-* ``server``: Standard `Redis URL <https://github.com/redis/lettuce/wiki/Redis-URI-and-connection-details#uri-syntax>`_.
+* ``server``: `Standard Redis URL <https://github.com/redis/lettuce/wiki/Redis-URI-and-connection-details#uri-syntax>`_.
 
-* ``options``: Redis connection configuration, supports all configuration items of `redis-py <https://github.com/redis/redis-py>`_.
+* ``options``: Redis connection configuration, supports all configuration items
+  of `redis-py <https://github.com/redis/redis-py>`_, see
+  `RedisStore Options <https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#redisstore-options>`_.
 
 The following example uses ``RedisStore`` as the storage backend:
 

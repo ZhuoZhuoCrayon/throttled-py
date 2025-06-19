@@ -49,4 +49,3 @@ Contents
    installation
    quickstart/index
    advance_usage/index
-

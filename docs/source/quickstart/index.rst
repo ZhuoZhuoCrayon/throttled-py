@@ -2,21 +2,21 @@
 Quick Start
 =================
 
-Core API
+1) Core API
 =================
 
 * ``limit``: Deduct requests and return `RateLimitResult <https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#1-ratelimitresult>`_.
 * ``peek``: Check current rate limit state for a key and return `RateLimitState <https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#2-ratelimitstate>`_.
 
 
-Async Support
+2) Async Support
 =================
 
 The core API is the same for synchronous and asynchronous code.
 Just replace ``from throttled import ...`` with ``from throttled.asyncio import ...`` in your code.
 
 
-Example
+3) Example
 =================
 
 .. tab:: Sync
@@ -31,7 +31,7 @@ Example
        :language: python
 
 
-Contents
+4) Contents
 =================
 
 .. toctree::
@@ -42,3 +42,5 @@ Contents
    context-manager
    wait-retry
    store-backends
+   specifying-algorithms
+   quota-configuration

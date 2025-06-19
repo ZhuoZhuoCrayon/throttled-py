@@ -62,6 +62,7 @@ immediately, and the 3 requests will be filled in the subsequent 1.5s):
 ``Wait & Retry`` is most effective for smoothing out request rates, and you can feel its effect
 through the following example:
 
+
 .. tab:: Sync
 
     .. literalinclude:: ../../../examples/quickstart/wait_retry_concurrent_example.py

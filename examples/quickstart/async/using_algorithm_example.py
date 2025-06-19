@@ -1,7 +1,9 @@
-from throttled import RateLimiterType, Throttled, rate_limiter
+import asyncio
+
+from throttled.asyncio import RateLimiterType, Throttled, rate_limiter
 
 
-def main():
+async def main():
     throttle = Throttled(
         # 🌟Specifying a current limiting algorithm
         using=RateLimiterType.FIXED_WINDOW.value,
@@ -11,8 +13,8 @@ def main():
         # using=RateLimiterType.GCRA.value,
         quota=rate_limiter.per_min(1),
     )
-    assert throttle.limit("key", 2).limited
+    assert (await throttle.limit("key", 2)).limited
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
