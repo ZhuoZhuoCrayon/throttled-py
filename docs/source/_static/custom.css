@@ -1,0 +1,74 @@
+/* maple-mono-latin-400-normal */
+@font-face {
+    font-family: 'Maple Mono';
+    font-style: normal;
+    font-display: swap;
+    font-weight: 400;
+    src: url(https://cdn.jsdelivr.net/fontsource/fonts/maple-mono@latest/latin-400-normal.woff2) format('woff2'),
+         url(https://cdn.jsdelivr.net/fontsource/fonts/maple-mono@latest/latin-400-normal.woff) format('woff');
+}
+
+* {
+    font-family: 'Maple Mono', monospace;
+}
+
+pre, code, h1, h2, h3, h4, h5, h6 {
+    font-family: 'Maple Mono', monospace !important;
+    /*line-height: 1;*/
+}
+
+
+pre, code, body, p {
+    font-size: 14px;
+}
+
+h1 {
+    font-size: 1.6rem;
+}
+
+h2 {
+    font-size: 1.4rem;
+}
+
+h3 {
+    font-size: 1.2rem;
+}
+
+h4 {
+    font-size: 1rem;
+}
+
+h3, h4, h5, h6 {
+    margin: 0.9rem 0 0.9rem;
+}
+
+h1, h2 {
+    margin: 1.2rem 0 1.2rem;
+}
+
+pre, code, .tab-content, .container, .highlight, .docutils.container {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: auto;
+}
+
+
+/* Project title styles */
+.project-title {
+    font-family: 'Maple Mono', "Fallback Outline", monospace !important;
+    display: inline-flex;
+    align-items: center;
+    font-size: 1.8rem;
+    font-style: italic;
+    font-weight: 700;
+    font-variation-settings: "ital" 1;
+}
+
+/* Project version styles */
+.project-version {
+    color: #6c757d;
+    font-size: 1.4rem;
+    font-style: italic;
+    font-variation-settings: "ital" 1;
+}

@@ -219,19 +219,25 @@ class BaseThrottled(BaseThrottledMixin, abc.ABC):
         self, key: Optional[KeyT] = None, cost: int = 1, timeout: Optional[float] = None
     ) -> RateLimitResult:
         """Apply rate limiting logic to a given key with a specified cost.
+
         :param key: The unique identifier for the rate limit subject.
                     eg: user ID or IP address.
                     Overrides the instance key if provided.
         :param cost: The cost of the current request in terms of how much
                      of the rate limit quota it consumes.
         :param timeout: Maximum wait time in seconds when rate limit is
-                        exceeded.
-                        If set to -1, it will return immediately.
-                        Otherwise, it will block until the request can
-                        be processed or the timeout is reached.
-                        Overrides the instance timeout if provided.
-        :return: RateLimitResult: The result of the rate limiting check.
-        :raise: DataError if invalid parameters.
+                        exceeded, overrides the instance timeout if provided.
+                        When invoked with the ``timeout`` argument set to a
+                        positive float (defaults to -1, which means return immediately):
+
+                        * If timeout < ``RateLimitState.retry_after``, it will
+                          return immediately.
+                        * If timeout >= ``RateLimitState.retry_after``, it will block
+                          until the request can be processed or the timeout is reached.
+
+        :return: The result of the rate limiting check.
+        :rtype: RateLimitResult
+        :raises DataError: if invalid parameters are provided.
         """
         raise NotImplementedError
 
