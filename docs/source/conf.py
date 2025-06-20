@@ -6,12 +6,20 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
+
+import os
+import sys
 from datetime import datetime
 
-from throttled import __version__
+# Add the project root and the current directory to sys.path.
+sys.path.insert(0, os.path.abspath("../../"))
+sys.path.insert(0, os.path.abspath("./"))
 
-version = __version__
-release = __version__
+
+import throttled  # noqa: E402
+
+version = throttled.__version__
+release = throttled.__version__
 project = "throttled-py"
 author = "ZhuoZhuoCrayon"
 copyright = f"{datetime.now().year}, Crayon"
