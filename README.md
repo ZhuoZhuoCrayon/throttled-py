@@ -458,7 +458,7 @@ Thrown when the parameter is invalid, such as: `Invalid key: None, must be a non
 
 ## 📚 Version History
 
-[See CHANGELOG_EN.md](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md)
+[See CHANGELOG](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.rst)
 
 
 ## 📄 License
