@@ -45,7 +45,10 @@ Contents
 
 .. toctree::
    :maxdepth: 3
+   :titlesonly:
 
    installation
    quickstart/index
    advance_usage/index
+   changelog
+   benchmarks
