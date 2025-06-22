@@ -470,7 +470,7 @@ MemoryStore 本质是一个基于内存实现的，带过期时间的 [LRU Cache
 
 ## 📚 Version History
 
-[See CHANGELOG.md](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.md)
+[See CHANGELOG](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.rst)
 
 
 ## 📄 License

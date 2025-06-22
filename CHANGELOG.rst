@@ -4,7 +4,7 @@ Version History
 v2.2.0 - 2025-05-31
 --------------------
 
-`English Documents Available(v2.2.0) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md#v220---2025-05-31>`_ | 简体中文
+`English Documents Available(v2.2.0) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.rst#v220---2025-05-31>`_ | 简体中文
 
 **🚀 功能**
 
@@ -20,7 +20,7 @@ v2.2.0 - 2025-05-31
 v2.1.0 - 2025-05-26
 --------------------
 
-`English Documents Available(v2.1.0) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md#v210---2025-05-26>`_ | 简体中文
+`English Documents Available(v2.1.0) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.rst#v210---2025-05-26>`_ | 简体中文
 
 **✨ 优化**
 
@@ -48,7 +48,7 @@ v2.1.0 - 2025-05-26
 v2.0.2 - 2025-05-03
 --------------------
 
-`English Documents Available(v2.0.2) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md#v202---2025-05-03>`_ | 简体中文
+`English Documents Available(v2.0.2) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.rst#v202---2025-05-03>`_ | 简体中文
 
 **📝 文档**
 
@@ -65,7 +65,7 @@ v2.0.2 - 2025-05-03
 v2.0.1 - 2025-05-02
 --------------------
 
-`English Documents Available(v2.0.1) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md#v201---2025-05-02>`_ | 简体中文
+`English Documents Available(v2.0.1) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.rst#v201---2025-05-02>`_ | 简体中文
 
 **✨ 优化**
 
@@ -94,7 +94,7 @@ v2.0.1 - 2025-05-02
 v2.0.0 - 2025-04-22
 --------------------
 
-`English Documents Available(v2.0.0) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md#v200---2025-04-22>`_ | 简体中文
+`English Documents Available(v2.0.0) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.rst#v200---2025-04-22>`_ | 简体中文
 
 **🔥 破坏性变更**
 
@@ -121,7 +121,7 @@ v2.0.0 - 2025-04-22
 v1.1.1 - 2025-04-19
 --------------------
 
-`English Documents Available(v1.1.1) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md#v111---2025-04-19>`_ | 简体中文
+`English Documents Available(v1.1.1) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.rst#v111---2025-04-19>`_ | 简体中文
 
 **更新内容**
 
@@ -135,7 +135,7 @@ v1.1.1 - 2025-04-19
 v1.1.0 - 2025-04-17
 --------------------
 
-`English Documents Available(v1.1.0) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md#v110---2025-04-17>`_ | 简体中文
+`English Documents Available(v1.1.0) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.rst#v110---2025-04-17>`_ | 简体中文
 
 **更新内容**
 
@@ -149,7 +149,7 @@ v1.1.0 - 2025-04-17
 v1.0.3 - 2025-04-10
 --------------------
 
-`English Documents Available(v1.0.3) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md#v103---2025-04-10>`_ | 简体中文
+`English Documents Available(v1.0.3) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.rst#v103---2025-04-10>`_ | 简体中文
 
 **更新内容**
 
@@ -164,7 +164,7 @@ v1.0.3 - 2025-04-10
 v1.0.2 - 2025-03-29
 --------------------
 
-`English Documents Available(v1.0.2) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md#v102---2025-03-29>`_ | 简体中文
+`English Documents Available(v1.0.2) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.rst#v102---2025-03-29>`_ | 简体中文
 
 **更新内容**
 
@@ -185,7 +185,7 @@ v1.0.2 - 2025-03-29
 v1.0.1 - 2025-03-15
 --------------------
 
-`English Documents Available(v1.0.1) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.md#v101---2025-03-15>`_ | 简体中文
+`English Documents Available(v1.0.1) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.rst#v101---2025-03-15>`_ | 简体中文
 
 **更新内容**
 
