@@ -21,10 +21,12 @@ description = (
     "Leaky Bucket & GCRA) and storage backends (Redis, In-Memory)."
 )
 
-html_title = (
-    f'<span class="project-title">{project}</span> '
-    f'<span class="project-version">v{version}</span>'
-)
+# html_title = (
+#     f'<span class="project-title">{project}</span> '
+#     f'<span class="project-version">v{version}</span>'
+# )
+
+html_title = f"{project} v{version}"
 
 html_theme_options = {
     "repository_url": "https://github.com/ZhuoZhuoCrayon/throttled-py",
