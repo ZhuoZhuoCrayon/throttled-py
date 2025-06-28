@@ -43,23 +43,14 @@ def assert_rate_limit_result(
 
 class TestGCRARateLimiter:
     def test_limit(self, rate_limiter_constructor: Callable[[Quota], BaseRateLimiter]):
-        key: str = "key"
-        rate_limiter: BaseRateLimiter = rate_limiter_constructor(
-            per_min(limit=60, burst=10)
-        )
+        quota: Quota = per_min(limit=60, burst=10)
+        rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
+        for case in parametrizes.GCRA_LIMIT_CASES:
+            if "sleep" in case:
+                time.sleep(case["sleep"])
 
-        result: RateLimitResult = rate_limiter.limit(key)
-        assert_rate_limit_result(False, 9, rate_limiter.quota, result)
-
-        time.sleep(1)
-        result: RateLimitResult = rate_limiter.limit(key, cost=5)
-        assert_rate_limit_result(False, 5, rate_limiter.quota, result)
-
-        result: RateLimitResult = rate_limiter.limit(key, cost=5)
-        assert_rate_limit_result(False, 0, rate_limiter.quota, result)
-
-        result: RateLimitResult = rate_limiter.limit(key)
-        assert_rate_limit_result(True, 0, rate_limiter.quota, result)
+            result: RateLimitResult = rate_limiter.limit("key", cost=case["cost"])
+            assert_rate_limit_result(case["limited"], case["remaining"], quota, result)
 
     @parametrizes.LIMIT_C_QUOTA
     @parametrizes.LIMIT_C_REQUESTS_NUM

@@ -1,5 +1,5 @@
 import time
-from typing import Callable
+from typing import Any, Callable, Generator
 
 import pytest
 
@@ -20,7 +20,9 @@ from . import parametrizes
 
 
 @pytest.fixture
-def rate_limiter_constructor(store: BaseStore) -> Callable[[Quota], BaseRateLimiter]:
+def rate_limiter_constructor(
+    store: BaseStore,
+) -> Generator[Callable[[Quota], BaseRateLimiter], Any, None]:
     def _create_rate_limiter(quota: Quota) -> BaseRateLimiter:
         return RateLimiterRegistry.get(RateLimiterType.TOKEN_BUCKET.value)(quota, store)
 
@@ -42,23 +44,14 @@ def assert_rate_limit_result(
 
 class TestTokenBucketRateLimiter:
     def test_limit(self, rate_limiter_constructor: Callable[[Quota], BaseRateLimiter]):
-        key: str = "key"
         quota: Quota = per_min(limit=60, burst=10)
         rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
+        for case in parametrizes.TOKEN_BUCKET_LIMIT_CASES:
+            if "sleep" in case:
+                time.sleep(case["sleep"])
 
-        time.sleep(1)
-        result: RateLimitResult = rate_limiter.limit(key)
-        assert_rate_limit_result(False, 9, quota, result)
-
-        time.sleep(1)
-        result: RateLimitResult = rate_limiter.limit(key, cost=5)
-        assert_rate_limit_result(False, 5, quota, result)
-
-        result: RateLimitResult = rate_limiter.limit(key, cost=5)
-        assert_rate_limit_result(False, 0, quota, result)
-
-        result: RateLimitResult = rate_limiter.limit(key)
-        assert_rate_limit_result(True, 0, quota, result)
+            result: RateLimitResult = rate_limiter.limit("key", cost=case["cost"])
+            assert_rate_limit_result(case["limited"], case["remaining"], quota, result)
 
     @parametrizes.LIMIT_C_QUOTA
     @parametrizes.LIMIT_C_REQUESTS_NUM

@@ -35,22 +35,14 @@ class TestLeakingBucketRateLimiter:
     async def test_limit(
         self, rate_limiter_constructor: Callable[[Quota], BaseRateLimiter]
     ):
-        key: str = "key"
         quota: Quota = per_min(limit=60, burst=10)
         rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
+        for case in parametrizes.LEAKING_BUCKET_LIMIT_CASES:
+            if "sleep" in case:
+                await asyncio.sleep(case["sleep"])
 
-        result: RateLimitResult = await rate_limiter.limit(key)
-        assert_rate_limit_result(False, 9, quota, result)
-
-        await asyncio.sleep(1)
-        result: RateLimitResult = await rate_limiter.limit(key, cost=5)
-        assert_rate_limit_result(False, 5, quota, result)
-
-        result: RateLimitResult = await rate_limiter.limit(key, cost=5)
-        assert_rate_limit_result(False, 0, quota, result)
-
-        result: RateLimitResult = await rate_limiter.limit(key)
-        assert_rate_limit_result(True, 0, quota, result)
+            result: RateLimitResult = await rate_limiter.limit("key", cost=case["cost"])
+            assert_rate_limit_result(case["limited"], case["remaining"], quota, result)
 
     @parametrizes.LIMIT_C_QUOTA
     @parametrizes.LIMIT_C_REQUESTS_NUM

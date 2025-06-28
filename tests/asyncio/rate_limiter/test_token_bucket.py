@@ -1,5 +1,5 @@
 import asyncio
-from typing import Callable, List
+from typing import Any, Callable, Generator, List
 
 import pytest
 
@@ -21,7 +21,9 @@ from ...rate_limiter.test_token_bucket import assert_rate_limit_result
 
 
 @pytest.fixture
-def rate_limiter_constructor(store: BaseStore) -> Callable[[Quota], BaseRateLimiter]:
+def rate_limiter_constructor(
+    store: BaseStore,
+) -> Generator[Callable[[Quota], BaseRateLimiter], Any, None]:
     def _create_rate_limiter(quota: Quota) -> BaseRateLimiter:
         return RateLimiterRegistry.get(constants.RateLimiterType.TOKEN_BUCKET.value)(
             quota, store
@@ -35,23 +37,14 @@ class TestTokenBucketRateLimiter:
     async def test_limit(
         self, rate_limiter_constructor: Callable[[Quota], BaseRateLimiter]
     ):
-        key: str = "key"
         quota: Quota = per_min(limit=60, burst=10)
         rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
+        for case in parametrizes.TOKEN_BUCKET_LIMIT_CASES:
+            if "sleep" in case:
+                await asyncio.sleep(case["sleep"])
 
-        await asyncio.sleep(1)
-        result: RateLimitResult = await rate_limiter.limit(key)
-        assert_rate_limit_result(False, 9, quota, result)
-
-        await asyncio.sleep(1)
-        result: RateLimitResult = await rate_limiter.limit(key, cost=5)
-        assert_rate_limit_result(False, 5, quota, result)
-
-        result: RateLimitResult = await rate_limiter.limit(key, cost=5)
-        assert_rate_limit_result(False, 0, quota, result)
-
-        result: RateLimitResult = await rate_limiter.limit(key)
-        assert_rate_limit_result(True, 0, quota, result)
+            result: RateLimitResult = await rate_limiter.limit("key", cost=case["cost"])
+            assert_rate_limit_result(case["limited"], case["remaining"], quota, result)
 
     @parametrizes.LIMIT_C_QUOTA
     @parametrizes.LIMIT_C_REQUESTS_NUM

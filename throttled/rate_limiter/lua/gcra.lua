@@ -42,7 +42,9 @@ if remaining < 0 then
     reset_after = math.max(0, last_tat - now)
     remaining = math.min(capacity, cost + remaining)
 else
-    redis.call("SET", KEYS[1], tat, "EX", math.ceil(reset_after))
+    if reset_after > 0 then
+        redis.call("SET", KEYS[1], tat, "EX", math.ceil(reset_after))
+    end
 end
 
 -- Return [limited, remaining, reset_after, retry_after]

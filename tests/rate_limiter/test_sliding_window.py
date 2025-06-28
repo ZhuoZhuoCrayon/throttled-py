@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Callable, List
+from typing import Any, Callable, Generator, List
 
 import pytest
 
@@ -21,7 +21,9 @@ from . import parametrizes
 
 
 @pytest.fixture
-def rate_limiter_constructor(store: BaseStore) -> Callable[[Quota], BaseRateLimiter]:
+def rate_limiter_constructor(
+    store: BaseStore,
+) -> Generator[Callable[[Quota], BaseRateLimiter], Any, None]:
     def _create_rate_limiter(quota: Quota) -> BaseRateLimiter:
         return RateLimiterRegistry.get(RateLimiterType.SLIDING_WINDOW.value)(
             quota, store
@@ -47,24 +49,16 @@ class TestSlidingWindowRateLimiter:
         assert quota.get_limit() == limit
         assert quota.get_period_sec() == period
 
-        key: str = "key"
         rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
-
         store_key: str = f"throttled:v1:sliding_window:key:period:{now_sec() // period}"
         assert rate_limiter._store.exists(store_key) is False
 
-        result: RateLimitResult = rate_limiter.limit(key)
-        assert_rate_limit_result(False, 4, quota, result)
-        assert rate_limiter._store.get(store_key) == 1
-        assert rate_limiter._store.ttl(store_key) == 3 * period
-
-        result: RateLimitResult = rate_limiter.limit(key, cost=4)
-        assert_rate_limit_result(False, 0, quota, result)
-        assert rate_limiter._store.get(store_key) == 5
-
-        result: RateLimitResult = rate_limiter.limit(key, cost=4)
-        assert_rate_limit_result(True, 0, quota, result)
-        assert rate_limiter._store.get(store_key) == 9
+        for case in parametrizes.SLIDING_WINDOW_LIMIT_CASES:
+            result: RateLimitResult = rate_limiter.limit("key", cost=case["cost"])
+            assert_rate_limit_result(case["limited"], case["remaining"], quota, result)
+            assert rate_limiter._store.get(store_key) == case["count"]
+            if "ttl" in case:
+                assert rate_limiter._store.ttl(store_key) == case["ttl"]
 
     @parametrizes.LIMIT_C_QUOTA
     @parametrizes.LIMIT_C_REQUESTS_NUM

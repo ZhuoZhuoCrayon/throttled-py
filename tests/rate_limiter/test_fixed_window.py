@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Callable, List
+from typing import Any, Callable, Generator, List
 
 import pytest
 
@@ -20,11 +20,26 @@ from . import parametrizes
 
 
 @pytest.fixture
-def rate_limiter_constructor(store: BaseStore) -> Callable[[Quota], BaseRateLimiter]:
+def rate_limiter_constructor(
+    store: BaseStore,
+) -> Generator[Callable[[Quota], BaseRateLimiter], Any, None]:
     def _create_rate_limiter(quota: Quota) -> BaseRateLimiter:
         return RateLimiterRegistry.get(RateLimiterType.FIXED_WINDOW.value)(quota, store)
 
     yield _create_rate_limiter
+
+
+def assert_rate_limit_result(
+    limited: bool, remaining: int, quota: Quota, result: RateLimitResult
+):
+    assert result.limited == limited
+    assert result.state.limit == quota.get_limit()
+    assert result.state.remaining == remaining
+
+    period: int = quota.get_period_sec()
+    assert result.state.reset_after == period - (now_sec() % period)
+    if result.limited:
+        assert result.state.retry_after == result.state.reset_after
 
 
 class TestFixedWindowRateLimiter:
@@ -41,28 +56,11 @@ class TestFixedWindowRateLimiter:
         store_key: str = f"throttled:v1:fixed_window:key:period:{now_sec() // period}"
         assert rate_limiter._store.exists(store_key) is False
 
-        def _assert(_remaining: int, _result: RateLimitResult):
-            assert _result.state.limit == limit
-            assert _result.state.remaining == _remaining
-            assert _result.state.reset_after == period - (now_sec() % period)
-            if _result.limited:
-                assert _result.state.retry_after == _result.state.reset_after
-
-        result: RateLimitResult = rate_limiter.limit(key)
-        _assert(4, result)
-        assert result.limited is False
-        assert rate_limiter._store.get(store_key) == 1
-        assert rate_limiter._store.ttl(store_key) == period
-
-        result: RateLimitResult = rate_limiter.limit(key, cost=4)
-        _assert(0, result)
-        assert result.limited is False
-        assert rate_limiter._store.get(store_key) == 5
-
-        result: RateLimitResult = rate_limiter.limit(key, cost=4)
-        _assert(0, result)
-        assert result.limited is True
-        assert rate_limiter._store.get(store_key) == 9
+        # fixture does not support pytest.mark.parametrize scope.
+        for case in parametrizes.FIXED_WINDOW_LIMIT_CASES:
+            result: RateLimitResult = rate_limiter.limit(key, cost=case["cost"])
+            assert_rate_limit_result(case["limited"], case["remaining"], quota, result)
+            assert rate_limiter._store.get(store_key) == case["count"]
 
     @parametrizes.LIMIT_C_QUOTA
     @parametrizes.LIMIT_C_REQUESTS_NUM
