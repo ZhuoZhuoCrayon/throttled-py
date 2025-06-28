@@ -1,5 +1,5 @@
 import time
-from typing import Callable, List
+from typing import Any, Callable, Dict, List
 
 import pytest
 
@@ -30,16 +30,13 @@ def rate_limiter_constructor(store: BaseStore) -> Callable[[Quota], BaseRateLimi
 
 
 def assert_rate_limit_result(
-    limited: bool, remaining: int, quota: Quota, result: RateLimitResult
+    case: Dict[str, Any], quota: Quota, result: RateLimitResult
 ):
-    assert result.limited == limited
+    assert result.limited == case["limited"]
     assert result.state.limit == quota.burst
-    assert result.state.remaining == remaining
-    assert result.state.reset_after == quota.burst - remaining
-    if result.limited:
-        assert result.state.retry_after == 1
-    else:
-        assert result.state.retry_after == 0
+    assert result.state.remaining == case["remaining"]
+    assert result.state.reset_after == quota.burst - case["remaining"]
+    assert result.state.retry_after == case.get("retry_after", 0)
 
 
 class TestLeakingBucketRateLimiter:
@@ -51,7 +48,7 @@ class TestLeakingBucketRateLimiter:
                 time.sleep(case["sleep"])
 
             result: RateLimitResult = rate_limiter.limit("key", cost=case["cost"])
-            assert_rate_limit_result(case["limited"], case["remaining"], quota, result)
+            assert_rate_limit_result(case, quota, result)
 
     @parametrizes.LIMIT_C_QUOTA
     @parametrizes.LIMIT_C_REQUESTS_NUM

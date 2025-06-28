@@ -50,15 +50,13 @@ class TestFixedWindowRateLimiter:
         assert quota.get_limit() == limit
         assert quota.get_period_sec() == period
 
-        key: str = "key"
         rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
-
         store_key: str = f"throttled:v1:fixed_window:key:period:{now_sec() // period}"
         assert rate_limiter._store.exists(store_key) is False
 
         # fixture does not support pytest.mark.parametrize scope.
         for case in parametrizes.FIXED_WINDOW_LIMIT_CASES:
-            result: RateLimitResult = rate_limiter.limit(key, cost=case["cost"])
+            result: RateLimitResult = rate_limiter.limit("key", cost=case["cost"])
             assert_rate_limit_result(case["limited"], case["remaining"], quota, result)
             assert rate_limiter._store.get(store_key) == case["count"]
 

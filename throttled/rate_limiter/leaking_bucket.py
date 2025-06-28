@@ -142,6 +142,24 @@ class LeakingBucketRateLimiterCoreMixin(BaseRateLimiterMixin):
     def _prepare(self, key: str) -> Tuple[str, float, int]:
         return self._prepare_key(key), self.quota.fill_rate, self.quota.burst
 
+    def _refill_sec(self, upper: int, remaining: int) -> int:
+        """Calculate the time in seconds until the bucket reaches the upper limit."""
+        if remaining >= upper:
+            return 0
+        return math.ceil((upper - remaining) / self.quota.fill_rate)
+
+    def _to_result(
+        self, limited: int, cost: int, tokens: int, capacity: int
+    ) -> RateLimitResult:
+        """Convert the limiting result to a RateLimitResult."""
+        reset_after: int = self._refill_sec(capacity, tokens)
+        # When the tokens are filled to the cost, it can be retried.
+        retry_after: int = self._refill_sec(cost, tokens) if limited else 0
+        return RateLimitResult(
+            limited=bool(limited),
+            state_values=(capacity, tokens, reset_after, retry_after),
+        )
+
 
 class LeakingBucketRateLimiter(LeakingBucketRateLimiterCoreMixin, BaseRateLimiter):
     """Concrete implementation of BaseRateLimiter using leaking bucket as algorithm."""
@@ -156,19 +174,7 @@ class LeakingBucketRateLimiter(LeakingBucketRateLimiterCoreMixin, BaseRateLimite
         limited, tokens = self._atomic_actions[ATOMIC_ACTION_TYPE_LIMIT].do(
             [formatted_key], [rate, capacity, cost, now_sec()]
         )
-
-        retry_after: int = 0
-        if limited:
-            retry_after = math.ceil(cost / rate)
-        return RateLimitResult(
-            limited=bool(limited),
-            state_values=(
-                capacity,
-                tokens,
-                math.ceil((capacity - tokens) / rate),
-                retry_after,
-            ),
-        )
+        return self._to_result(limited, cost, tokens, capacity)
 
     def _peek(self, key: str) -> RateLimitState:
         now: int = now_sec()
