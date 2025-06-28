@@ -118,7 +118,7 @@ class BaseThrottledMixin:
         :param cost: The cost of the current request in terms of
                      how much of the rate limit quota it consumes.
                      It must be an integer greater than or equal to 0.
-        :raise: DataError if the cost is not a positive integer.
+        :raise: DataError if the cost is not a non-negative integer.
         """
         if isinstance(cost, int) and cost >= 0:
             return
