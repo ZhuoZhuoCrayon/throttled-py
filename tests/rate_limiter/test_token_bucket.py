@@ -48,7 +48,6 @@ class TestTokenBucketRateLimiter:
                 time.sleep(case["sleep"])
 
             result: RateLimitResult = rate_limiter.limit("key", cost=case["cost"])
-            print(result.state)
             assert_rate_limit_result(case, quota, result)
 
     @parametrizes.LIMIT_C_QUOTA
