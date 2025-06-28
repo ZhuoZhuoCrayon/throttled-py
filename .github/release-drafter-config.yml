@@ -75,7 +75,7 @@ categories:
 template: |
   ## v$RESOLVED_VERSION - YYYY-MM-DD
 
-  [简体中文](https://github.com/$OWNER/$REPOSITORY/blob/main/CHANGELOG.md#vxxx---YYYY-MM-DD) | English
+  [简体中文](https://github.com/$OWNER/$REPOSITORY/blob/main/CHANGELOG.rst#vxxx---YYYY-MM-DD) | English
 
   $CHANGES
 
