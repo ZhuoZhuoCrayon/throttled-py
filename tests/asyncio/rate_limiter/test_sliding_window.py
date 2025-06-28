@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Callable, List
+from typing import Any, Callable, Generator, List
 
 import pytest
 
@@ -22,7 +22,9 @@ from ...rate_limiter.test_sliding_window import assert_rate_limit_result
 
 
 @pytest.fixture
-def rate_limiter_constructor(store: BaseStore) -> Callable[[Quota], BaseRateLimiter]:
+def rate_limiter_constructor(
+    store: BaseStore,
+) -> Generator[Callable[[Quota], BaseRateLimiter], Any, None]:
     def _create_rate_limiter(quota: Quota) -> BaseRateLimiter:
         return RateLimiterRegistry.get(constants.RateLimiterType.SLIDING_WINDOW.value)(
             quota, store
@@ -40,26 +42,18 @@ class TestSlidingWindowRateLimiter:
         period: int = 60
         quota: Quota = Quota(Rate(period=timedelta(minutes=1), limit=limit))
 
-        key: str = "key"
         rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
-
         store_key: str = (
             f"throttled:v1:sliding_window:key:period:{utils.now_sec() // period}"
         )
         assert await rate_limiter._store.exists(store_key) is False
 
-        result: RateLimitResult = await rate_limiter.limit(key)
-        assert_rate_limit_result(False, 4, quota, result)
-        assert await rate_limiter._store.get(store_key) == 1
-        assert await rate_limiter._store.ttl(store_key) == 3 * period
-
-        result: RateLimitResult = await rate_limiter.limit(key, cost=4)
-        assert_rate_limit_result(False, 0, quota, result)
-        assert await rate_limiter._store.get(store_key) == 5
-
-        result: RateLimitResult = await rate_limiter.limit(key, cost=4)
-        assert_rate_limit_result(True, 0, quota, result)
-        assert await rate_limiter._store.get(store_key) == 9
+        for case in parametrizes.SLIDING_WINDOW_LIMIT_CASES:
+            result: RateLimitResult = await rate_limiter.limit("key", cost=case["cost"])
+            assert_rate_limit_result(case["limited"], case["remaining"], quota, result)
+            assert await rate_limiter._store.get(store_key) == case["count"]
+            if "ttl" in case:
+                assert await rate_limiter._store.ttl(store_key) == case["ttl"]
 
     @parametrizes.LIMIT_C_QUOTA
     @parametrizes.LIMIT_C_REQUESTS_NUM

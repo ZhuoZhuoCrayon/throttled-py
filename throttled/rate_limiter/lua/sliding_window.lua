@@ -35,7 +35,7 @@ previous = math.floor((1 - current_proportion) * previous)
 local used = previous + current
 
 local retry_after = 0
-local limited = used > limit
+local limited = used > limit and cost ~= 0
 if limited then
     if cost <= previous then
         retry_after = (1 - current_proportion) * period * cost / previous

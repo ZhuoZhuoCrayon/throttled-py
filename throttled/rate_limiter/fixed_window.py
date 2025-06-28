@@ -58,7 +58,7 @@ class RedisLimitAtomicAction(RedisLimitAtomicActionCoreMixin, BaseAtomicAction):
         current: int = self._backend.get_client().incrby(keys[0], cost)
         if current == cost:
             self._backend.get_client().expire(keys[0], period)
-        return [0, 1][current > limit], current
+        return [0, 1][current > limit and cost != 0], current
 
 
 class MemoryLimitAtomicActionCoreMixin:
@@ -88,7 +88,7 @@ class MemoryLimitAtomicActionCoreMixin:
             current += cost
             backend.get_client()[key] = current
 
-        return (0, 1)[current > limit], current
+        return (0, 1)[current > limit and cost != 0], current
 
 
 class MemoryLimitAtomicAction(MemoryLimitAtomicActionCoreMixin, BaseAtomicAction):

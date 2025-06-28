@@ -275,6 +275,7 @@ class BaseRateLimiter(BaseRateLimiterMixin, metaclass=RateLimiterMeta):
                     eg: user ID or IP address.
         :param cost: The cost of the current request in terms of how much of the rate
                      limit quota it consumes.
+                     It must be an integer greater than or equal to 0.
         :return: A tuple containing two elements:
                  - RateLimitResult: Representing the result after executing the
                                     RateLimiter for the given key.

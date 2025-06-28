@@ -1,8 +1,10 @@
 from datetime import timedelta
-from typing import Callable, List
+from typing import Any, Callable, Generator, List
 
 import pytest
 
+from tests.rate_limiter import parametrizes
+from tests.rate_limiter.test_fixed_window import assert_rate_limit_result
 from throttled.asyncio import (
     BaseRateLimiter,
     BaseStore,
@@ -18,7 +20,9 @@ from throttled.utils import Benchmark, now_sec
 
 
 @pytest.fixture
-def rate_limiter_constructor(store: BaseStore) -> Callable[[Quota], BaseRateLimiter]:
+def rate_limiter_constructor(
+    store: BaseStore,
+) -> Generator[Callable[[Quota], BaseRateLimiter], Any, None]:
     def _create_rate_limiter(quota: Quota) -> BaseRateLimiter:
         return RateLimiterRegistry.get(RateLimiterType.FIXED_WINDOW.value)(quota, store)
 
@@ -40,28 +44,10 @@ class TestFixedWindowRateLimiter:
         store_key: str = f"throttled:v1:fixed_window:key:period:{now_sec() // period}"
         assert await rate_limiter._store.exists(store_key) is False
 
-        def _assert(_remaining: int, _result: RateLimitResult):
-            assert _result.state.limit == limit
-            assert _result.state.remaining == _remaining
-            assert _result.state.reset_after == period - (now_sec() % period)
-            if _result.limited:
-                assert _result.state.retry_after == _result.state.reset_after
-
-        result: RateLimitResult = await rate_limiter.limit(key)
-        _assert(4, result)
-        assert result.limited is False
-        assert await rate_limiter._store.get(store_key) == 1
-        assert await rate_limiter._store.ttl(store_key) == period
-
-        result: RateLimitResult = await rate_limiter.limit(key, cost=4)
-        _assert(0, result)
-        assert result.limited is False
-        assert await rate_limiter._store.get(store_key) == 5
-
-        result: RateLimitResult = await rate_limiter.limit(key, cost=4)
-        _assert(0, result)
-        assert result.limited is True
-        assert await rate_limiter._store.get(store_key) == 9
+        for case in parametrizes.FIXED_WINDOW_LIMIT_CASES:
+            result: RateLimitResult = await rate_limiter.limit(key, cost=case["cost"])
+            assert_rate_limit_result(case["limited"], case["remaining"], quota, result)
+            assert await rate_limiter._store.get(store_key) == case["count"]
 
     @pytest.mark.parametrize(
         "quota", [per_min(1), per_min(10), per_min(100), per_min(1_000)]

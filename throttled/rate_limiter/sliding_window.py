@@ -44,7 +44,7 @@ class RedisLimitAtomicActionCoreMixin:
     local used = previous + current
 
     local retry_after = 0
-    local limited = used > limit
+    local limited = used > limit and cost ~= 0
     if limited then
         if cost <= previous then
             retry_after = (1 - current_proportion) * period * cost / previous
@@ -109,7 +109,7 @@ class MemoryLimitAtomicActionCoreMixin:
         )
 
         used: int = previous + current
-        limited: int = (0, 1)[used > limit]
+        limited: int = (0, 1)[used > limit and cost != 0]
         if limited:
             if cost <= previous:
                 retry_after = (1 - current_proportion) * period * cost / previous

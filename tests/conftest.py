@@ -1,3 +1,5 @@
+from typing import Any, Generator
+
 import pytest
 from fakeredis import FakeConnection
 
@@ -7,7 +9,7 @@ from throttled.utils import Benchmark
 
 
 @pytest.fixture(params=[StoreType.MEMORY.value, StoreType.REDIS.value])
-def store(request) -> BaseStore:
+def store(request) -> Generator[BaseStore, Any, None]:
     def _create_store(store_type: str) -> BaseStore:
         if store_type == StoreType.MEMORY.value:
             return MemoryStore()

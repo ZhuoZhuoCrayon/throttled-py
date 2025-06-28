@@ -59,7 +59,9 @@ class RedisLimitAtomicActionCoreMixin:
         reset_after = math.max(0, last_tat - now)
         remaining = math.min(capacity, cost + remaining)
     else
-        redis.call("SET", KEYS[1], tat, "EX", math.ceil(reset_after))
+        if reset_after > 0 then
+            redis.call("SET", KEYS[1], tat, "EX", math.ceil(reset_after))
+        end
     end
 
     return {limited, remaining, tostring(reset_after), tostring(retry_after)}
@@ -164,7 +166,9 @@ class MemoryLimitAtomicActionCoreMixin:
             limited: int = 0
             retry_after: float = 0
             reset_after: float = tat - now
-            backend.set(key, tat, math.ceil(reset_after))
+            if reset_after > 0:
+                # When cost equals 0, there's no need to update TAT.
+                backend.set(key, tat, math.ceil(reset_after))
 
         return limited, remaining, reset_after, retry_after
 
