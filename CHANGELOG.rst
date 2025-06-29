@@ -5,7 +5,7 @@ Version History
 v2.2.1 - 2025-06-28
 --------------------
 
-`English Documents Available(v2.2.1) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.rst#v221---2025-06-28>`_ | 简体中文
+`English Documents Available (v2.2.1) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.rst#v221---2025-06-28>`_ | 简体中文
 
 **✨ 优化**
 

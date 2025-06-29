@@ -11,7 +11,7 @@ packages = [
 
 homepage = "https://github.com/ZhuoZhuoCrayon/throttled-py"
 repository = "https://github.com/ZhuoZhuoCrayon/throttled-py"
-documentation = "https://throttled-py.readthedocs.org"
+documentation = "https://throttled-py.readthedocs.io"
 
 [tool.poetry.urls]
 Changes = "https://github.com/ZhuoZhuoCrayon/throttled-py/releases"
