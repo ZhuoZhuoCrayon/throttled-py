@@ -1,6 +1,31 @@
 Version History
 =================
 
+
+v2.2.1 - 2025-06-28
+--------------------
+
+`English Documents Available(v2.2.1) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.rst#v221---2025-06-28>`_ | 简体中文
+
+**✨ 优化**
+
+- perf: 在 Throttled 中添加对 cost=0 的支持 @ZhuoZhuoCrayon (#85)
+
+**🐛 Bug 修复**
+
+- fix: 修复「令牌桶」和「漏桶」算法 ``retry_after`` 计算不准确的问题 @ZhuoZhuoCrayon (#87)
+
+**📝 文档**
+
+- docs: 添加 throttled-py 使用文档，欢迎访问 <https://throttled-py.readthedocs.io/en/latest/> @ZhuoZhuoCrayon (#84)
+
+**🍃 维护工作**
+
+- ci: 更新 release drafter 配置中的 changelog 链接格式 @ZhuoZhuoCrayon (#86)
+
+**完整更新日志**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v2.2.0...v2.2.1
+
+
 v2.2.0 - 2025-05-31
 --------------------
 
