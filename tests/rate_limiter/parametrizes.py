@@ -32,20 +32,15 @@ GCRA_LIMIT_CASES: List[Dict[str, Any]] = [
 LEAKING_BUCKET_LIMIT_CASES: List[Dict[str, Any]] = [
     {"cost": 0, "limited": False, "remaining": 10},
     {"cost": 1, "limited": False, "remaining": 9},
+    {"cost": 10, "limited": True, "remaining": 9, "retry_after": 1},
     {"cost": 5, "limited": False, "remaining": 5, "sleep": 1},
+    {"cost": 8, "limited": True, "remaining": 5, "retry_after": 3},
     {"cost": 5, "limited": False, "remaining": 0},
-    {"cost": 1, "limited": True, "remaining": 0},
+    {"cost": 1, "limited": True, "remaining": 0, "retry_after": 1},
     {"cost": 0, "limited": False, "remaining": 0},
 ]
 
-TOKEN_BUCKET_LIMIT_CASES: List[Dict[str, Any]] = [
-    {"cost": 0, "limited": False, "remaining": 10},
-    {"cost": 1, "limited": False, "remaining": 9},
-    {"cost": 5, "limited": False, "remaining": 5, "sleep": 1},
-    {"cost": 5, "limited": False, "remaining": 0},
-    {"cost": 1, "limited": True, "remaining": 0},
-    {"cost": 0, "limited": False, "remaining": 0},
-]
+TOKEN_BUCKET_LIMIT_CASES: List[Dict[str, Any]] = LEAKING_BUCKET_LIMIT_CASES
 
 SLIDING_WINDOW_LIMIT_CASES: List[Dict[str, Any]] = [
     {"cost": 0, "limited": False, "remaining": 5, "count": 0, "ttl": 3 * 60},

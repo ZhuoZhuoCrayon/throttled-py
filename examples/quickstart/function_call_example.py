@@ -25,7 +25,7 @@ def main():
     # This will consume 60 tokens, which exceeds the limit of 60 tokens per minute.
     assert result.limited
 
-    # >> RateLimitState(limit=60, remaining=59, reset_after=1, retry_after=60))
+    # >> RateLimitState(limit=60, remaining=59, reset_after=1, retry_after=1))
     print(result.state)
 
 

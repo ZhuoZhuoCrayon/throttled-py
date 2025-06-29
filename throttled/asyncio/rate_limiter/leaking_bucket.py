@@ -45,19 +45,7 @@ class LeakingBucketRateLimiter(LeakingBucketRateLimiterCoreMixin, BaseRateLimite
         limited, tokens = await self._atomic_actions[ATOMIC_ACTION_TYPE_LIMIT].do(
             [formatted_key], [rate, capacity, cost, now_sec()]
         )
-
-        retry_after: int = 0
-        if limited:
-            retry_after = math.ceil(cost / rate)
-        return RateLimitResult(
-            limited=bool(limited),
-            state_values=(
-                capacity,
-                tokens,
-                math.ceil((capacity - tokens) / rate),
-                retry_after,
-            ),
-        )
+        return self._to_result(limited, cost, tokens, capacity)
 
     async def _peek(self, key: str) -> RateLimitState:
         now: int = now_sec()
