@@ -1,6 +1,31 @@
 Version History
 ================
 
+
+v2.2.1 - 2025-06-28
+---------------------
+
+`简体中文 (v2.2.1) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.rst#v221---2025-06-28>`_ | English
+
+**✨ Improvements**
+
+- perf: added support for cost=0 in Throttled @ZhuoZhuoCrayon (#85)
+
+**🐛 Bug Fixes**
+
+- fix: fixed the inaccurate retry_after issue for "Token Bucket" & "Leaking Bucket" @ZhuoZhuoCrayon (#87)
+
+**📝 Documentation**
+
+- docs: added throttled-py usage documentation, welcome to visit <https://throttled-py.readthedocs.io/en/latest/> @ZhuoZhuoCrayon (#84)
+
+**🍃 Maintenance**
+
+- ci: update changelog link format in release drafter config @ZhuoZhuoCrayon (#86)
+
+**Full Changelog**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v2.2.0...v2.2.1
+
+
 v2.2.0 - 2025-05-31
 -------------------
 
