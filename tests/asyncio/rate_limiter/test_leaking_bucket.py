@@ -42,7 +42,7 @@ class TestLeakingBucketRateLimiter:
                 await asyncio.sleep(case["sleep"])
 
             result: RateLimitResult = await rate_limiter.limit("key", cost=case["cost"])
-            assert_rate_limit_result(case["limited"], case["remaining"], quota, result)
+            assert_rate_limit_result(case, quota, result)
 
     @parametrizes.LIMIT_C_QUOTA
     @parametrizes.LIMIT_C_REQUESTS_NUM
