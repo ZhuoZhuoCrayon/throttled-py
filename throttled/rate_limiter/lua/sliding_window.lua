@@ -47,13 +47,13 @@ if limited then
     end
 else
     -- Update the current window count.
-    current = current + cost
-    if not exists then
+    if exists then
+        -- Increment the current count by the cost.
+        redis.call("INCRBY", KEYS[1], cost)
+    else
         -- Set expiration only for the first request in a new window.
-        redis.call("EXPIRE", KEYS[1], 3 * period)
+        redis.call("SET", KEYS[1], cost, "EX", 3 * period)
     end
-    -- Store the updated current count.
-    redis.call("SET", KEYS[1], current)
 end
 
 -- Return [limited, current]

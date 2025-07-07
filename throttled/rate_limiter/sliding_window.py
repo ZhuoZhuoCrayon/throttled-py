@@ -55,7 +55,7 @@ class RedisLimitAtomicActionCoreMixin:
             retry_after = previous_proportion * period
         end
     else
-        if exists == true then
+        if exists then
             redis.call("INCRBY", KEYS[1], cost)
         else
             redis.call("SET", KEYS[1], cost, "EX", 3 * period)
