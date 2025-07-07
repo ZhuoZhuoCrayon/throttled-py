@@ -11,11 +11,12 @@ local limit = tonumber(ARGV[2])
 local cost = tonumber(ARGV[3])
 local now_ms = tonumber(ARGV[4])
 
--- Update current window count.
-local current = redis.call("INCRBY", KEYS[1], cost)
--- Set expiration only for first request in new window.
-if current == cost then
-    redis.call("EXPIRE", KEYS[1], 3 * period)
+local exists = true
+local current = redis.call("GET", KEYS[1])
+if current == false then
+    -- Initialize the current window count if it doesn't exist.
+    current = 0
+    exists = false
 end
 
 -- Get previous window count.
@@ -30,19 +31,29 @@ end
 -- the current window count proportion is (1234567890 % 10000) / 10000 = 0.23456789.
 local period_ms = period * 1000
 local current_proportion = (now_ms % period_ms) / period_ms
+local previous_proportion = 1- current_proportion
 -- Calculate the previous window count proportion.
-previous = math.floor((1 - current_proportion) * previous)
-local used = previous + current
+previous = math.floor(previous_proportion * previous)
 
 local retry_after = 0
+local used = previous + current + cost
 local limited = used > limit and cost ~= 0
 if limited then
     if cost <= previous then
-        retry_after = (1 - current_proportion) * period * cost / previous
+        retry_after = previous_proportion * period * cost / previous
     else
         -- |-- previous --|- current -|------- new period -------|
-        retry_after = (1 - current_proportion) * period
+        retry_after = previous_proportion * period
     end
+else
+    -- Update the current window count.
+    current = current + cost
+    if not exists then
+        -- Set expiration only for the first request in a new window.
+        redis.call("EXPIRE", KEYS[1], 3 * period)
+    end
+    -- Store the updated current count.
+    redis.call("SET", KEYS[1], current)
 end
 
 -- Return [limited, current]

@@ -1,3 +1,4 @@
+import math
 from datetime import timedelta
 from typing import Any, Callable, Generator, List
 
@@ -72,8 +73,9 @@ class TestSlidingWindowRateLimiter:
         def _callback(elapsed: TimeLikeValueT, *args, **kwargs):
             accessed_num: int = requests_num - sum(results)
             limit: int = min(requests_num, quota.get_limit())
-            rate: float = quota.get_limit() / quota.get_period_sec()
-            assert abs(accessed_num - limit) <= (elapsed + 2) * rate
+            assert abs(accessed_num - limit) <= math.ceil(
+                (elapsed + 2) * quota.fill_rate
+            )
 
         with Timer(callback=_callback):
             rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)

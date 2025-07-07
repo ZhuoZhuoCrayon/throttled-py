@@ -28,9 +28,11 @@ class RedisLimitAtomicActionCoreMixin:
     local cost = tonumber(ARGV[3])
     local now_ms = tonumber(ARGV[4])
 
-    local current = redis.call("INCRBY", KEYS[1], cost)
-    if current == cost then
-        redis.call("EXPIRE", KEYS[1], 3 * period)
+    local exists = true
+    local current = redis.call("GET", KEYS[1])
+    if current == false then
+        current = 0
+        exists = false
     end
 
     local previous = redis.call("GET", KEYS[2])
@@ -40,16 +42,23 @@ class RedisLimitAtomicActionCoreMixin:
 
     local period_ms = period * 1000
     local current_proportion = (now_ms % period_ms) / period_ms
-    previous = math.floor((1 - current_proportion) * previous)
-    local used = previous + current
+    local previous_proportion = 1 - current_proportion
+    previous = math.floor(previous_proportion * previous)
 
     local retry_after = 0
+    local used = previous + current + cost
     local limited = used > limit and cost ~= 0
     if limited then
         if cost <= previous then
-            retry_after = (1 - current_proportion) * period * cost / previous
+            retry_after = previous_proportion * period * cost / previous
         else
-            retry_after = (1 - current_proportion) * period
+            retry_after = previous_proportion * period
+        end
+    else
+        if exists == true then
+            redis.call("INCRBY", KEYS[1], cost)
+        else
+            redis.call("SET", KEYS[1], cost, "EX", 3 * period)
         end
     end
 
@@ -96,27 +105,29 @@ class MemoryLimitAtomicActionCoreMixin:
 
         current: Optional[int] = backend.get(current_key)
         if current is None:
-            current = cost
+            current = 0
+            # set expiration only for the first request in a new window.
             backend.set(current_key, cost, 3 * period)
-        else:
-            current += cost
-            backend.get_client()[current_key] = current
 
+        # calculate the current window count proportion.
         period_ms: int = period * 1000
         current_proportion: float = (args[3] % period_ms) / period_ms
+        previous_proportion: float = 1 - current_proportion
         previous: int = math.floor(
-            (1 - current_proportion) * (backend.get(previous_key) or 0)
+            previous_proportion * (backend.get(previous_key) or 0)
         )
 
-        used: int = previous + current
+        retry_after: float = 0
+        used: int = previous + current + cost
         limited: int = (0, 1)[used > limit and cost != 0]
         if limited:
             if cost <= previous:
-                retry_after = (1 - current_proportion) * period * cost / previous
+                retry_after = previous_proportion * period * cost / previous
             else:
-                retry_after = (1 - current_proportion) * period
+                retry_after = previous_proportion * period
         else:
-            retry_after = 0
+            # increment the current key by cost.
+            backend.get_client()[current_key] += cost
 
         return limited, used, retry_after
 
