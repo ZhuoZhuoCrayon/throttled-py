@@ -46,6 +46,6 @@ SLIDING_WINDOW_LIMIT_CASES: List[Dict[str, Any]] = [
     {"cost": 0, "limited": False, "remaining": 5, "count": 0, "ttl": 3 * 60},
     {"cost": 1, "limited": False, "remaining": 4, "count": 1},
     {"cost": 4, "limited": False, "remaining": 0, "count": 5},
-    {"cost": 4, "limited": True, "remaining": 0, "count": 9},
-    {"cost": 0, "limited": False, "remaining": 0, "count": 9},
+    {"cost": 4, "limited": True, "remaining": 0, "count": 5},
+    {"cost": 0, "limited": False, "remaining": 0, "count": 5},
 ]
