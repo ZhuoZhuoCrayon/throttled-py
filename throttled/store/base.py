@@ -95,16 +95,19 @@ class BaseStore(BaseStoreMixin, abc.ABC):
     @abc.abstractmethod
     def exists(self, key: KeyT) -> bool:
         """Check if the specified key exists.
+
         :param key: The key to check.
-        :return: True if the specified key exists, False otherwise.
+        :return: ``True`` if the specified key exists, ``False`` otherwise.
         """
         raise NotImplementedError
 
     @abc.abstractmethod
     def ttl(self, key: KeyT) -> int:
         """Returns the number of seconds until the specified key will expire.
+
         :param key: The key to check.
-        :raise: DataError
+        :raise: :class:`throttled.exceptions.DataError` if the key does not exist
+            or is not set.
         """
         raise NotImplementedError
 
