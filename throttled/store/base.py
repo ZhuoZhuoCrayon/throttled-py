@@ -113,11 +113,17 @@ class BaseStore(BaseStoreMixin, abc.ABC):
 
     @abc.abstractmethod
     def expire(self, key: KeyT, timeout: int) -> None:
+        """Set the expiration time for the specified key.
+
+        :param key: The key to set the expiration for.
+        :param timeout: The timeout in seconds.
+        """
         raise NotImplementedError
 
     @abc.abstractmethod
     def set(self, key: KeyT, value: StoreValueT, timeout: int) -> None:
         """Set a value for the specified key with specified timeout.
+
         :param key: The key to set.
         :param value: The value to set.
         :param timeout: The timeout in seconds.
@@ -127,6 +133,7 @@ class BaseStore(BaseStoreMixin, abc.ABC):
     @abc.abstractmethod
     def get(self, key: KeyT) -> Optional[StoreValueT]:
         """Get a value for the specified key.
+
         :param key: The key for which to get a value.
         :return: The value for the specified key, or None if it does not exist.
         """
@@ -141,6 +148,7 @@ class BaseStore(BaseStoreMixin, abc.ABC):
         mapping: Optional[StoreDictValueT] = None,
     ) -> None:
         """Set a value for the specified key in the specified hash.
+
         :param name: The name of the hash.
         :param key: The key in the hash.
         :param value: The value to set.

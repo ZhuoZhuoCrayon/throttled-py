@@ -2,7 +2,6 @@ import abc
 import logging
 from dataclasses import dataclass
 from datetime import timedelta
-from functools import cached_property
 from typing import Dict, List, Optional, Set, Tuple, Type
 
 from ..exceptions import SetUpError
@@ -90,8 +89,6 @@ class RateLimitState:
     """RateLimitState represents the current state of the rate limiter for the given
     key."""
 
-    __slots__ = ("limit", "remaining", "reset_after")
-
     #: Represents the maximum number of requests allowed to pass in the initial
     #: state.
     limit: int
@@ -113,16 +110,20 @@ class RateLimitResult:
     """RateLimitResult represents the result after executing the RateLimiter for the
     given key."""
 
-    __slots__ = ("limited", "_state_values")
+    __slots__ = ("limited", "_state_values", "_state")
 
     def __init__(self, limited: bool, state_values: Tuple[int, int, float, float]):
         #: Represents whether this request is allowed to pass.
         self.limited: bool = limited
         self._state_values: Tuple[int, int, float, float] = state_values
+        self._state: Optional[RateLimitState] = None
 
-    @cached_property
+    @property
     def state(self) -> RateLimitState:
-        return RateLimitState(*self._state_values)
+        if self._state:
+            return self._state
+        self._state = RateLimitState(*self._state_values)
+        return self._state
 
 
 class RateLimiterRegistry:

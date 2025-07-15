@@ -19,8 +19,15 @@ Store
 =================
 
 .. autoclass:: throttled.store.BaseStore
-    :members:
 
+
+.. autoclass:: throttled.store.MemoryStore
+    :special-members: __init__
+    :show-inheritance:
+
+.. autoclass:: throttled.store.RedisStore
+    :special-members: __init__
+    :show-inheritance:
 
 Rate Limiting
 =================
