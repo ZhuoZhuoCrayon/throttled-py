@@ -52,3 +52,4 @@ Contents
    advance_usage/index
    changelog
    benchmarks
+   api

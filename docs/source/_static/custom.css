@@ -8,6 +8,16 @@
          url(https://cdn.jsdelivr.net/fontsource/fonts/maple-mono@latest/latin-400-normal.woff) format('woff');
 }
 
+/* maple-mono-latin-700-normal (for bold) */
+@font-face {
+    font-family: 'Maple Mono';
+    font-style: normal;
+    font-display: swap;
+    font-weight: 700;
+    src: url(https://cdn.jsdelivr.net/fontsource/fonts/maple-mono@latest/latin-700-normal.woff2) format('woff2'),
+         url(https://cdn.jsdelivr.net/fontsource/fonts/maple-mono@latest/latin-700-normal.woff) format('woff');
+}
+
 * {
     font-family: 'Maple Mono', monospace;
 }
@@ -53,6 +63,11 @@ pre, code, .tab-content, .container, .highlight, .docutils.container {
     overflow-x: auto;
 }
 
+/* Remove the default margin from the class method blocks */
+dl[class]:not(.option-list,.field-list,.footnote,.glossary,.simple) {
+    margin-bottom: 1rem;
+}
+
 .title {
     font-family: 'Maple Mono', "Fallback Outline", monospace !important;
     display: inline-flex;
@@ -61,4 +76,19 @@ pre, code, .tab-content, .container, .highlight, .docutils.container {
     font-style: italic;
     font-weight: 700;
     font-variation-settings: "ital" 1;
+}
+
+/* Improve bold text visibility in dark mode */
+@media (prefers-color-scheme: dark) {
+    html[data-theme="dark"] strong,
+    html[data-theme="dark"] b {
+        /* Use a slightly lighter color for bold text */
+        color: #EBCB8B; /* Or another light color like #e0e0e0 */
+    }
+}
+
+/* Fallback for themes that don't use data-theme but might use a class */
+.dark-theme strong,
+.dark-theme b {
+    color: #EBCB8B;
 }

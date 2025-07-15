@@ -59,18 +59,22 @@ class BaseThrottledMixin:
         cost: int = 1,
     ):
         """Initializes the Throttled class.
-        :param key: The unique identifier for the rate limit subject.
-                    eg: user ID or IP address.
-        :param timeout: Maximum wait time in seconds when rate limit is
-                        exceeded.
-                        (Default) If set to -1, it will return immediately.
-                        Otherwise, it will block until the request can be
-                        processed or the timeout is reached.
-        :param using: The type of rate limiter to use, default: token_bucket.
+
+        :param key: The unique identifier for the rate limit subject,
+            e.g. user ID or IP address.
+        :param timeout: Maximum wait time in seconds when rate limit is exceeded.
+            (Default) If set to -1, it will return immediately.
+            Otherwise, it will block until the request can be processed
+            or the timeout is reached.
+        :param using: The type of rate limiter to use, you can choose from
+            :class:`RateLimiterType`, default: ``token_bucket``.
         :param quota: The quota for the rate limiter, default: 60 requests per minute.
-        :param store: The store to use for the rate limiter, default: MemoryStore.
+        :param store: The store to use for the rate limiter. Bt default, it uses
+            the global shared :class:`throttled.store.MemoryStore` instance with
+            maximum capacity of 1024, so you don't usually need to create it manually.
+        :type store: :class:`throttled.store.BaseStore`
         :param cost: The cost of each request in terms of how much of the rate limit
-                    quota it consumes, default: 1.
+            quota it consumes, default: 1.
         """
         # TODO Support key prefix.
         # TODO Support extract key from params.
@@ -115,10 +119,11 @@ class BaseThrottledMixin:
     @classmethod
     def _validate_cost(cls, cost: int) -> None:
         """Validate the cost of the current request.
-        :param cost: The cost of the current request in terms of
-                     how much of the rate limit quota it consumes.
-                     It must be an integer greater than or equal to 0.
-        :raise: DataError if the cost is not a non-negative integer.
+        :param cost: The cost of the current request in terms of how much of
+            the rate limit quota it consumes.
+            It must be an integer greater than or equal to 0.
+        :raise: :class:`throttled.exceptions.DataError` if the cost is
+            not a non-negative integer.
         """
         if isinstance(cost, int) and cost >= 0:
             return
@@ -189,8 +194,10 @@ class BaseThrottled(BaseThrottledMixin, abc.ABC):
     @abc.abstractmethod
     def __enter__(self) -> RateLimitResult:
         """Context manager to apply rate limiting to a block of code.
-        :return: RateLimitResult
-        :raise: LimitedError if rate limit is exceeded.
+
+        :return: :class:`RateLimitResult` - The result of the rate limiting check.
+        :raise: :class:`throttled.exceptions.LimitedError` if the rate limit
+            is exceeded.
         """
         raise NotImplementedError
 
@@ -221,24 +228,22 @@ class BaseThrottled(BaseThrottledMixin, abc.ABC):
     ) -> RateLimitResult:
         """Apply rate limiting logic to a given key with a specified cost.
 
-        :param key: The unique identifier for the rate limit subject.
-                    eg: user ID or IP address.
-                    Overrides the instance key if provided.
+        :param key: The unique identifier for the rate limit subject,
+            e.g. user ID or IP address, it will override the instance key if provided.
         :param cost: The cost of the current request in terms of how much
-                     of the rate limit quota it consumes.
+            of the rate limit quota it consumes.
         :param timeout: Maximum wait time in seconds when rate limit is
-                        exceeded, overrides the instance timeout if provided.
-                        When invoked with the ``timeout`` argument set to a
-                        positive float (defaults to -1, which means return immediately):
+            exceeded, overrides the instance timeout if provided.
+            When invoked with the ``timeout`` argument set to a
+            positive float (defaults to -1, which means return immediately):
 
-                        * If timeout < ``RateLimitState.retry_after``, it will
-                          return immediately.
-                        * If timeout >= ``RateLimitState.retry_after``, it will block
-                          until the request can be processed or the timeout is reached.
+            * If timeout < ``RateLimitState.retry_after``, it will return immediately.
+            * If timeout >= ``RateLimitState.retry_after``, it will block until
+              the request can be processed or the timeout is reached.
 
         :return: The result of the rate limiting check.
-        :rtype: RateLimitResult
-        :raises DataError: if invalid parameters are provided.
+        :raise: :class:`throttled.exceptions.DataError` if invalid parameters
+            are provided.
         """
         raise NotImplementedError
 
@@ -246,15 +251,19 @@ class BaseThrottled(BaseThrottledMixin, abc.ABC):
     def peek(self, key: KeyT) -> RateLimitState:
         """Retrieve the current state of rate limiter for the given key
            without actually modifying the state.
-        :param key: The unique identifier for the rate limit subject.
-                    eg: user ID or IP address.
-        :return: RateLimitState - Representing the current state of
-                 the rate limiter for the given key.
+
+        :param key: The unique identifier for the rate limit subject,
+            e.g. user ID or IP address.
+
+        :return: :class:`throttled.RateLimitState` - The current state of the
+            rate limiter for the given key.
         """
         raise NotImplementedError
 
 
 class Throttled(BaseThrottled):
+    """Throttled class for synchronous rate limiting."""
+
     _REGISTRY_CLASS: Type[RateLimiterRegistry] = RateLimiterRegistry
 
     _DEFAULT_GLOBAL_STORE: StoreP = MemoryStore()
@@ -271,13 +280,19 @@ class Throttled(BaseThrottled):
         """Decorator to apply rate limiting to a function.
         The cost value is taken from the Throttled instance's initialization.
 
-        Usage:
-        @Throttled(key="key")
-        def func(): pass
+        Usage::
+
+        >>> from throttled import Throttled
+        >>>
+        >>> @Throttled(key="key")
+        >>> def demo(): pass
 
         or with cost:
-        @Throttled(key="key", cost=2)
-        def func(): pass
+
+        >>> from throttled import Throttled
+        >>>
+        >>> @Throttled(key="key", cost=2)
+        >>> def demo(): pass
         """
 
         def decorator(f: Callable) -> Callable:

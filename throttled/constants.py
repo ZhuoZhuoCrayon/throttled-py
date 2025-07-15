@@ -22,6 +22,8 @@ ATOMIC_ACTION_TYPE_PEEK: AtomicActionTypeT = "peek"
 
 
 class RateLimiterType(Enum):
+    """Enumeration for types of RateLimiter."""
+
     FIXED_WINDOW: RateLimiterTypeT = "fixed_window"
     SLIDING_WINDOW: RateLimiterTypeT = "sliding_window"
     LEAKING_BUCKET: RateLimiterTypeT = "leaking_bucket"

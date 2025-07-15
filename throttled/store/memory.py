@@ -139,13 +139,19 @@ class MemoryStoreBackend(BaseStoreBackend):
 class MemoryStore(BaseStore):
     """Concrete implementation of BaseStore using Memory as backend.
 
-    Below are the performance benchmarks for different configurations of the LRU cache,
-    tested using LeetCode problems (https://leetcode.cn/problems/lru-cache/):
-    - LRU with Lock and Expiry  -> 265 ms, 76.8 MB
-    - LRU with Lock only        -> 211 ms, 76.8 MB
-    - LRU only                  -> 103 ms, 76.8 MB  (Beat 92.77% of submissions)
-    - LRU implemented in Golang -> 86 ms,  76.43 MB (Beat 52.98% of submissions)
+    :class:`throttled.store.MemoryStore` is essentially a memory-based
+    `LRU Cache <https://en.wikipedia.org/wiki/Cache_replacement_policies#LRU>`_
+    with expiration time, it is thread-safe and can be used for rate limiting
+    in a single process.
     """
+
+    # Below are the performance benchmarks for different configurations of the LRU cache,
+    # tested using LeetCode problems (https://leetcode.cn/problems/lru-cache/):
+    #
+    # * LRU with Lock and Expiry  -> 265 ms, 76.8 MB
+    # * LRU with Lock only        -> 211 ms, 76.8 MB
+    # * LRU only                  -> 103 ms, 76.8 MB  (Beat 92.77% of submissions)
+    # * LRU implemented in Golang -> 86 ms,  76.43 MB (Beat 52.98% of submissions)
 
     TYPE: str = StoreType.MEMORY.value
 
