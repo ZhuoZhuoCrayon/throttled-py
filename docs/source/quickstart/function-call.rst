@@ -2,20 +2,23 @@
 Function Call
 =================
 
-Using ``Throttled`` to check if a request is allowed is very simple.
+Using :class:`Throttled <throttled.Throttled>` to check if a request is allowed is very simple.
 
-You just need to call the ``limit`` method and pass in the specified ``key``, which will return a ``RateLimitResult``.
+You just need to call the :py:meth:`Throttled.limit <throttled.Throttled.limit>` method and pass in the specified ``key``,
+which will return a :class:`RateLimitResult <throttled.RateLimitResult>` object.
 
-**It is important to note that** ``limit`` **does not raise any exceptions**, you can determine whether the request is
-allowed by checking the ``RateLimitResult.limited`` attribute.
+**It is important to note that** :py:meth:`Throttled.limit <throttled.Throttled.limit>`
+**does not raise any exceptions**, you can determine whether the request is allowed by checking the
+:py:attr:`RateLimitResult.limited <throttled.RateLimitResult.limited>` attribute.
 
-You can also get a snapshot of the Throttled state after calling ``limit`` through the ``RateLimitResult.state``
-attribute.
+You can also get a snapshot of the Throttled state after calling :py:meth:`Throttled.limit <throttled.Throttled.limit>`
+through the :py:attr:`RateLimitResult.state <throttled.RateLimitResult.state>` attribute.
 
-If you just want to check the latest state of ``Throttled`` without deducting requests, you can use the ``peek``
-method, which will also return a ``RateLimitState``.
+If you just want to check the latest state of :class:`Throttled <throttled.Throttled>` without deducting requests,
+you can use the :py:meth:`Throttled.peek <throttled.Throttled.peek>` method,
+which will also return a :class:`RateLimitState <throttled.RateLimitState>` object.
 
-The following example will guide you through the basic usage of ``Throttled``:
+The following example will guide you through the basic usage of :class:`Throttled <throttled.Throttled>`:
 
 .. tab:: Sync
 

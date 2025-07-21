@@ -160,6 +160,10 @@ class MemoryStore(BaseStore):
     def __init__(
         self, server: Optional[str] = None, options: Optional[Dict[str, Any]] = None
     ):
+        """
+        Initialize MemoryStore, see
+        :ref:`MemoryStore Arguments <store-configuration-memory-store-arguments>`.
+        """
         super().__init__(server, options)
         self._backend: MemoryStoreBackend = self._BACKEND_CLASS(server, options)
 

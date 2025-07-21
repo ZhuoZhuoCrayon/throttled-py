@@ -2,10 +2,11 @@
 Decorator
 =================
 
-You can use ``Throttled`` as a decorator, and the ``limit`` method will check if the request is allowed
-before the wrapped function call.
+You can use :class:`Throttled <throttled.Throttled>` as a decorator, and
+the :py:meth:`limit <throttled.Throttled.limit>` method will check if
+the request is allowed before the wrapped function call.
 
-If the request is not allowed, it will raise a ``LimitedError``.
+If the request is not allowed, it will raise :class:`LimitedError <throttled.exceptions.LimitedError>`.
 
 .. tab:: Sync
 

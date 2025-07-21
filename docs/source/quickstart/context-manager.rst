@@ -3,10 +3,10 @@ Context Manager
 =================
 
 You can use the context manager to limit the code block.
-When access is allowed, return `RateLimitResult <https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#1-ratelimitresult>`_.
+When access is allowed, return :class:`RateLimitResult <throttled.RateLimitResult>`.
 
 If the limit is exceeded or the retry timeout is exceeded,
-it will raise `LimitedError <https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#limitederror>`_.
+it will raise :class:`LimitedError <throttled.exceptions.LimitedError>`.
 
 .. tab:: Sync
 

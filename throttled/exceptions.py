@@ -40,6 +40,7 @@ class LimitedError(BaseThrottledError):
     """
 
     def __init__(self, rate_limit_result: Optional["RateLimitResult"] = None):
+        #: The result after executing the RateLimiter for the given key.
         self.rate_limit_result: Optional["RateLimitResult"] = rate_limit_result
         if not self.rate_limit_result or not self.rate_limit_result.state:
             message: str = "Rate limit exceeded."

@@ -69,7 +69,7 @@ class BaseThrottledMixin:
         :param using: The type of rate limiter to use, you can choose from
             :class:`RateLimiterType`, default: ``token_bucket``.
         :param quota: The quota for the rate limiter, default: 60 requests per minute.
-        :param store: The store to use for the rate limiter. Bt default, it uses
+        :param store: The store to use for the rate limiter. By default, it uses
             the global shared :class:`throttled.store.MemoryStore` instance with
             maximum capacity of 1024, so you don't usually need to create it manually.
         :type store: :class:`throttled.store.BaseStore`

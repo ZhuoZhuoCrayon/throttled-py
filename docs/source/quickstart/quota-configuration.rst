@@ -2,13 +2,13 @@
 Quota Configuration
 ======================
 
-``Quota`` represents the rules for rate limiting.
+:class:`Quota <throttled.rate_limiter.Quota>` represents the rules for rate limiting.
 
 
 1) Quick Setup
 =======================
 
-``throttled-py`` provides quick functions to configure common time-based ``Quota``.
+``throttled-py`` provides quick functions to configure common time-based :class:`Quota <throttled.rate_limiter.Quota>`.
 
 .. tab:: Sync
 
@@ -39,7 +39,8 @@ Quota Configuration
 2) Custom Quota
 ===================
 
-If the quick configuration does not meet your needs, you can customize the ``Quota`` through the ``per_duration`` method:
+If the quick configuration does not meet your needs, you can customize the :class:`Quota <throttled.rate_limiter.Quota>`
+through the :py:meth:`per_duration <throttled.rate_limiter.per_duration>` method:
 
 .. tab:: Sync
 
@@ -66,7 +67,8 @@ If the quick configuration does not meet your needs, you can customize the ``Quo
 3) Burst Capacity
 ===================
 
-The ``burst`` argument can be used to adjust the ability of the throttling object to handle burst traffic.
+The :py:attr:`burst <throttled.rate_limiter.Quota.burst>` argument can be used to adjust the ability of
+the throttling object to handle burst traffic.
 
 This is valid for the following algorithms:
 

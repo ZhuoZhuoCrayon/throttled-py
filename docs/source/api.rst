@@ -64,6 +64,7 @@ All exceptions inherit from :class:`throttled.exceptions.BaseThrottledError`.
 .. autoexception:: throttled.exceptions.DataError
 .. autoexception:: throttled.exceptions.StoreUnavailableError
 .. autoexception:: throttled.exceptions.LimitedError
+    :members:
 
 
 Lower-Level Classes
