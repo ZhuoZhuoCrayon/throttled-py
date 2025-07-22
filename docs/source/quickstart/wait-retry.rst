@@ -2,16 +2,15 @@
 Wait & Retry
 =================
 
-By default, ``Throttled`` returns
-`RateLimitResult <https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#1-ratelimitresult>`_ immediately.
+By default, :class:`Throttled <throttled.Throttled>` returns :class:`RateLimitResult <throttled.RateLimitResult>` immediately.
 
 To enable wait-and-retry behavior, you can use the ``timeout`` parameter.
 
-``Throttled`` will wait according to the ``RateLimitState.retry_after`` in
-`RateLimitState <https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#2-ratelimitstate>`_
-and retry automatically.
+:class:`Throttled <throttled.Throttled>` will wait according to the
+:py:attr:`RateLimitState.retry_after <throttled.RateLimitState.retry_after>` and retry automatically.
 
-In the :doc:`Function Call </quickstart/function-call>` mode will return the last retried ``RateLimitResult``:
+In the :doc:`Function Call </quickstart/function-call>` mode will return
+the last retried :class:`RateLimitResult <throttled.RateLimitResult>`:
 
 .. tab:: Sync
 
@@ -27,7 +26,7 @@ In the :doc:`Function Call </quickstart/function-call>` mode will return the las
 
 
 In the :doc:`Decorator </quickstart/decorator>` and :doc:`Context Manager </quickstart/context-manager>` modes,
-``LimitedError`` will be raised if the request is not allowed after the timeout:
+:class:`LimitedError <throttled.exceptions.LimitedError>` will be raised if the request is not allowed after the timeout:
 
 .. tab:: Sync
 
@@ -41,7 +40,7 @@ In the :doc:`Decorator </quickstart/decorator>` and :doc:`Context Manager </quic
        :language: python
 
 In the above example, ``per_sec(2, burst=2)`` means allows 2 requests per second, and allows
-2 burst requests (Bucket's capacity). In other words, ``Throttled`` will consume the burst after 2 requests.
+2 burst requests (Bucket's capacity). In other words, :class:`Throttled <throttled.Throttled>` will consume the burst after 2 requests.
 If timeout>=0.5 is set, the above example will complete all requests in 1.5 seconds (the burst is consumed
 immediately, and the 3 requests will be filled in the subsequent 1.5s):
 

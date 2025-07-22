@@ -39,7 +39,12 @@ class RedisStoreBackend(BaseStoreBackend):
 
 
 class RedisStore(BaseStore):
-    """Concrete implementation of BaseStore using Redis as backend."""
+    """Concrete implementation of BaseStore using Redis as backend.
+
+    :class:`throttled.store.RedisStore` is implemented based on
+    `redis-py <https://github.com/redis/redis-py>`_, you can use it for
+    rate limiting in a distributed environment.
+    """
 
     TYPE: str = StoreType.REDIS.value
 
@@ -48,6 +53,10 @@ class RedisStore(BaseStore):
     def __init__(
         self, server: Optional[str] = None, options: Optional[Dict[str, Any]] = None
     ):
+        """
+        Initialize RedisStore, see
+        :ref:`RedisStore Arguments <store-configuration-redis-store-arguments>`.
+        """
         super().__init__(server, options)
         self._backend: RedisStoreBackend = self._BACKEND_CLASS(server, options)
 

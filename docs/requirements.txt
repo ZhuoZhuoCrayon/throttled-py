@@ -3,3 +3,4 @@ sphinx-book-theme
 sphinx_thebe
 sphinx-inline-tabs
 sphinx-copybutton
+sphinx-autodoc-typehints

@@ -2,7 +2,6 @@ import abc
 import logging
 from dataclasses import dataclass
 from datetime import timedelta
-from functools import cached_property
 from typing import Dict, List, Optional, Set, Tuple, Type
 
 from ..exceptions import SetUpError
@@ -15,10 +14,10 @@ logger: logging.Logger = logging.getLogger(__name__)
 class Rate:
     """Rate represents the rate limit configuration."""
 
-    # The time period for which the rate limit applies.
+    #: The time period for which the rate limit applies.
     period: timedelta
 
-    # The maximum number of requests allowed within the specified period.
+    #: The maximum number of requests allowed within the specified period.
     limit: int
 
 
@@ -26,18 +25,18 @@ class Rate:
 class Quota:
     """Quota represents the quota limit configuration."""
 
-    # The base rate limit configuration.
+    #: The base rate limit configuration.
     rate: Rate
 
-    # Optional burst capacity that allows exceeding the rate limit momentarily.
-    # Default is 0, which means no burst capacity.
+    #: Optional burst capacity that allows exceeding the rate limit momentarily.
+    #: Default is 0, which means no burst capacity.
     burst: int = 0
 
-    # The period in seconds.
+    #: The period in seconds.
     period_sec: int = None
-    # The emission interval in seconds.
+    #: The emission interval in seconds.
     emission_interval: float = None
-    # The fill rate per second.
+    #: The fill rate per second.
     fill_rate: float = None
 
     def __post_init__(self):
@@ -90,35 +89,41 @@ class RateLimitState:
     """RateLimitState represents the current state of the rate limiter for the given
     key."""
 
-    # Limit represents the maximum number of requests allowed to pass in the initial
-    # state.
+    #: Represents the maximum number of requests allowed to pass in the initial
+    #: state.
     limit: int
 
-    # Remaining represents the maximum number of requests allowed to pass for the given
-    # key in the current state.
+    #: Represents the maximum number of requests allowed to pass for the given
+    #: key in the current state.
     remaining: int
 
-    # ResetAfter represents the time in seconds for the RateLimiter to return to its
-    # initial state. In the initial state, Limit=Remaining.
+    #: Represents the time in seconds for the RateLimiter to return to its
+    #: initial state. In the initial state, :attr:`limit` = :attr:`remaining`.
     reset_after: float
 
-    # RetryAfter represents the time in seconds for the request to be retried, 0 if
-    # the request is allowed.
+    #: Represents the time in seconds for the request to be retried, 0 if
+    #: the request is allowed.
     retry_after: float = 0
 
 
 class RateLimitResult:
-    """RateLimitState represents the result after executing the RateLimiter for the
+    """RateLimitResult represents the result after executing the RateLimiter for the
     given key."""
 
+    __slots__ = ("limited", "_state_values", "_state")
+
     def __init__(self, limited: bool, state_values: Tuple[int, int, float, float]):
-        # Limited represents whether this request is allowed to pass.
+        #: Represents whether this request is allowed to pass.
         self.limited: bool = limited
         self._state_values: Tuple[int, int, float, float] = state_values
+        self._state: Optional[RateLimitState] = None
 
-    @cached_property
+    @property
     def state(self) -> RateLimitState:
-        return RateLimitState(*self._state_values)
+        if self._state:
+            return self._state
+        self._state = RateLimitState(*self._state_values)
+        return self._state
 
 
 class RateLimiterRegistry:
