@@ -1,6 +1,21 @@
 Version History
 =================
 
+v2.2.2 - 2025-07-25
+--------------------
+
+`English Documents Available (v2.2.2) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.rst#v221---2025-07-25>`_ | 简体中文
+
+**🐛 Bug 修复**
+
+- fix: 修复「滑动窗口」算法的 retry_after 计算不准确的问题 @ZhuoZhuoCrayon (#89)
+
+**📝 文档**
+
+- docs: 添加 API 参考文档 @ZhuoZhuoCrayon (#90)
+
+**完整更新日志**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v2.2.1...v2.2.2
+
 
 v2.2.1 - 2025-06-28
 --------------------
