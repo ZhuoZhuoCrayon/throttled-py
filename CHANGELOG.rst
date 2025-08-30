@@ -1,6 +1,18 @@
 Version History
 =================
 
+v2.2.3 - 2025-08-30
+--------------------
+
+`English Documents Available (v2.2.3) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.rst#v223---2025-08-30>`_ | 简体中文
+
+**🐛 Bug 修复**
+
+- fix: 移除注册阶段冗余的提示性日志 @ZhuoZhuoCrayon (fixed #93) @ZhuoZhuoCrayon (#94)
+
+**完整更新日志**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v2.2.2...v2.2.3
+
+
 v2.2.2 - 2025-07-25
 --------------------
 
