@@ -26,7 +26,7 @@ from .store import (
 )
 from .throttled import Throttled
 
-__version__ = "2.2.2"
+__version__ = "2.2.3"
 VERSION = tuple(map(int, __version__.split(".")))
 
 __all__ = [

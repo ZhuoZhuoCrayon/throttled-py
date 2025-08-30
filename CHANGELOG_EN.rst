@@ -1,6 +1,18 @@
 Version History
 ================
 
+v2.2.2 - 2025-08-30
+---------------------
+
+`简体中文 (v2.2.3) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.rst#v223---2025-08-30>`_ | English
+
+**🐛 Bug Fixes**
+
+- fix: removed redundant prompt logs during registration (fixed #93) @ZhuoZhuoCrayon (#94)
+
+**Full Changelog**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v2.2.2...v2.2.3
+
+
 v2.2.2 - 2025-07-25
 ---------------------
 
