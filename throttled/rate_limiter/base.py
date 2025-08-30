@@ -200,14 +200,6 @@ class BaseRateLimiterMixin:
         """Define the supported AtomicAction types for RateLimiter."""
         raise NotImplementedError
 
-    def try_register_atomic_action(self, action_cls: Type[AtomicActionP]) -> None:
-        """Try to register AtomicAction class.
-        :param action_cls: AtomicAction class to be registered.
-        :raise: SetUpError
-        """
-        action_cls.match_or_raise(self._store.TYPE)
-        self._atomic_actions[action_cls.TYPE] = self._store.make_atomic(action_cls)
-
     def _validate_registered_atomic_actions(self) -> None:
         """Validate that all required AtomicAction types have been registered.
         :raise: SetUpError
@@ -220,20 +212,18 @@ class BaseRateLimiterMixin:
         missing_types: Set[str] = supported_types - registered_types
         if missing_types:
             raise SetUpError(
-                "Missing AtomicActionTypes: expected {expected} but missing "
-                "{missing}.".format(expected=supported_types, missing=missing_types)
+                "Missing AtomicActionTypes: expected [{expected}] but missing "
+                "[{missing}].".format(
+                    expected=",".join(supported_types), missing=",".join(missing_types)
+                )
             )
 
     def _register_atomic_actions(self, classes: List[Type[AtomicActionP]]) -> None:
         """Register AtomicAction classes for default and additional classes."""
         for action_cls in self._default_atomic_action_classes() + classes:
-            try:
-                self.try_register_atomic_action(action_cls)
-            except SetUpError as e:
-                logger.debug(
-                    "Failed to register AtomicAction class for %s: %s", action_cls, e
-                )
-                pass
+            if action_cls.STORE_TYPE != self._store.TYPE:
+                continue
+            self._atomic_actions[action_cls.TYPE] = self._store.make_atomic(action_cls)
 
         self._validate_registered_atomic_actions()
 

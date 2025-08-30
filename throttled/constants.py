@@ -5,8 +5,8 @@ from .types import AtomicActionTypeT, RateLimiterTypeT
 
 
 class StoreType(Enum):
-    REDIS: str = "redis"
-    MEMORY: str = "memory"
+    REDIS = "redis"
+    MEMORY = "memory"
 
     @classmethod
     def choice(cls) -> List[str]:
@@ -24,11 +24,11 @@ ATOMIC_ACTION_TYPE_PEEK: AtomicActionTypeT = "peek"
 class RateLimiterType(Enum):
     """Enumeration for types of RateLimiter."""
 
-    FIXED_WINDOW: RateLimiterTypeT = "fixed_window"
-    SLIDING_WINDOW: RateLimiterTypeT = "sliding_window"
-    LEAKING_BUCKET: RateLimiterTypeT = "leaking_bucket"
-    TOKEN_BUCKET: RateLimiterTypeT = "token_bucket"
-    GCRA: RateLimiterTypeT = "gcra"
+    FIXED_WINDOW = "fixed_window"
+    SLIDING_WINDOW = "sliding_window"
+    LEAKING_BUCKET = "leaking_bucket"
+    TOKEN_BUCKET = "token_bucket"
+    GCRA = "gcra"
 
     @classmethod
     def choice(cls) -> List[RateLimiterTypeT]:

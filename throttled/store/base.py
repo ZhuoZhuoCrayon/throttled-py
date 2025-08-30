@@ -1,8 +1,8 @@
 import abc
 from typing import Any, Dict, Optional, Sequence, Type
 
-from ..exceptions import DataError, SetUpError
-from ..types import AtomicActionP, KeyT, StoreDictValueT, StoreValueT
+from ..exceptions import DataError
+from ..types import AtomicActionP, AtomicActionTypeT, KeyT, StoreDictValueT, StoreValueT
 
 
 class BaseStoreBackend(abc.ABC):
@@ -28,25 +28,12 @@ class BaseAtomicActionMixin:
     """
 
     # TYPE is the identifier of AtomicAction, must be unique under STORE_TYPE.
-    TYPE: str = ""
+    TYPE: str = AtomicActionTypeT
     # STORE_TYPE is the expected type of store with which AtomicAction is compatible.
     STORE_TYPE: str = ""
 
     def __init__(self, backend: BaseStoreBackend):
         pass
-
-    @classmethod
-    def match_or_raise(cls, store_type: str) -> None:
-        """Ensure the store type matches the expected type, or raise SetUpError.
-        :param store_type: The type of the store to be checked.
-        :raise: SetUpError
-        """
-        if cls.STORE_TYPE != store_type:
-            raise SetUpError(
-                "Unmatched store type: expected {expected} but got {got}".format(
-                    expected=cls.STORE_TYPE, got=store_type
-                )
-            )
 
 
 class BaseAtomicAction(BaseAtomicActionMixin, abc.ABC):
