@@ -59,11 +59,9 @@ class _SyncAtomicActionP(Protocol):
 
     TYPE: AtomicActionTypeT
 
-    def __init__(self, backend: StoreBackendP) -> None:
-        ...
+    STORE_TYPE: str
 
-    @classmethod
-    def match_or_raise(cls, store_type: str) -> None:
+    def __init__(self, backend: StoreBackendP) -> None:
         ...
 
     def do(self, keys: Sequence[KeyT], args: Optional[Sequence[StoreValueT]]) -> Any:
@@ -75,11 +73,9 @@ class _AsyncAtomicActionP(Protocol):
 
     TYPE: AtomicActionTypeT
 
-    def __init__(self, backend: StoreBackendP) -> None:
-        ...
+    STORE_TYPE: str
 
-    @classmethod
-    def match_or_raise(cls, store_type: str) -> None:
+    def __init__(self, backend: StoreBackendP) -> None:
         ...
 
     async def do(

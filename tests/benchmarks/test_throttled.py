@@ -1,8 +1,9 @@
 import threading
-from typing import Dict, List
+from typing import Any, Dict, Generator, List
 
 import pytest
 import redis
+from redis import Redis
 
 from throttled import (
     BaseStore,
@@ -46,7 +47,7 @@ def call_api(throttle: Throttled) -> bool:
 
 
 @pytest.fixture(params=StoreType.choice())
-def store(request) -> BaseStore:
+def store(request) -> Generator[BaseStore, Any, None]:
     def _create_store(store_type: str) -> BaseStore:
         if store_type == StoreType.MEMORY.value:
             return MemoryStore()
@@ -62,7 +63,7 @@ def store(request) -> BaseStore:
 
 
 @pytest.fixture
-def redis_client() -> redis.Redis:
+def redis_client() -> Generator[Redis, Any, None]:
     client: redis.Redis = redis.Redis.from_url(REDIS_URL)
 
     yield client
