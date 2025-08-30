@@ -214,7 +214,8 @@ class BaseRateLimiterMixin:
             raise SetUpError(
                 "Missing AtomicActionTypes: expected [{expected}] but missing "
                 "[{missing}].".format(
-                    expected=",".join(supported_types), missing=",".join(missing_types)
+                    expected=",".join(sorted(supported_types)),
+                    missing=",".join(sorted(missing_types)),
                 )
             )
 

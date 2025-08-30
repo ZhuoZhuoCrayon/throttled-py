@@ -28,7 +28,7 @@ class BaseAtomicActionMixin:
     """
 
     # TYPE is the identifier of AtomicAction, must be unique under STORE_TYPE.
-    TYPE: str = AtomicActionTypeT
+    TYPE: AtomicActionTypeT = ""
     # STORE_TYPE is the expected type of store with which AtomicAction is compatible.
     STORE_TYPE: str = ""
 
