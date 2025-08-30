@@ -1,7 +1,7 @@
 Version History
 =================
 
-v2.2.2 - 2025-08-30
+v2.2.3 - 2025-08-30
 --------------------
 
 `English Documents Available (v2.2.3) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.rst#v223---2025-08-30>`_ | 简体中文
