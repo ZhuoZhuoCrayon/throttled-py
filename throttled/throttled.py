@@ -1,8 +1,8 @@
 import abc
 import threading
 import time
+from collections.abc import Callable
 from types import TracebackType
-from typing import Callable, Optional, Type, Union
 
 from .asyncio.rate_limiter import BaseRateLimiter as AsyncBaseRateLimiter
 from .constants import RateLimiterType
@@ -19,7 +19,7 @@ from .store import MemoryStore
 from .types import KeyT, LockP, RateLimiterTypeT, StoreP
 from .utils import now_mono_f
 
-RateLimiterP = Union[BaseRateLimiter, AsyncBaseRateLimiter]
+RateLimiterP = BaseRateLimiter | AsyncBaseRateLimiter
 
 
 class BaseThrottledMixin:
@@ -36,7 +36,7 @@ class BaseThrottledMixin:
         "_cost",
     )
 
-    _REGISTRY_CLASS: Type[RateLimiterRegistry] = None
+    _REGISTRY_CLASS: type[RateLimiterRegistry] = None
 
     # Default store for the rate limiter.
     # By default, the global shared MemoryStore is used, when no store is specified.
@@ -51,11 +51,11 @@ class BaseThrottledMixin:
 
     def __init__(
         self,
-        key: Optional[KeyT] = None,
-        timeout: Optional[float] = None,
-        using: Optional[RateLimiterTypeT] = None,
-        quota: Optional[Quota] = None,
-        store: Optional[StoreP] = None,
+        key: KeyT | None = None,
+        timeout: float | None = None,
+        using: RateLimiterTypeT | None = None,
+        quota: Quota | None = None,
+        store: StoreP | None = None,
         cost: int = 1,
     ):
         """Initializes the Throttled class.
@@ -79,7 +79,7 @@ class BaseThrottledMixin:
         # TODO Support key prefix.
         # TODO Support extract key from params.
         # TODO Support get cost weight by key.
-        self.key: Optional[str] = key
+        self.key: str | None = key
 
         if timeout is None:
             timeout = self._NON_BLOCKING
@@ -88,12 +88,12 @@ class BaseThrottledMixin:
 
         self._quota: Quota = quota or per_min(60)
         self._store: StoreP = store or self._DEFAULT_GLOBAL_STORE
-        self._limiter_cls: Type[RateLimiterP] = self._REGISTRY_CLASS.get(
+        self._limiter_cls: type[RateLimiterP] = self._REGISTRY_CLASS.get(
             using or RateLimiterType.TOKEN_BUCKET.value
         )
 
         self._lock: LockP = self._get_lock()
-        self._limiter: Optional[RateLimiterP] = None
+        self._limiter: RateLimiterP | None = None
 
         self._validate_cost(cost)
         self._cost: int = cost
@@ -119,6 +119,7 @@ class BaseThrottledMixin:
     @classmethod
     def _validate_cost(cls, cost: int) -> None:
         """Validate the cost of the current request.
+
         :param cost: The cost of the current request in terms of how much of
             the rate limit quota it consumes.
             It must be an integer greater than or equal to 0.
@@ -135,21 +136,21 @@ class BaseThrottledMixin:
     @classmethod
     def _validate_timeout(cls, timeout: float) -> None:
         """Validate the timeout value.
+
         :param timeout: Maximum wait time in seconds when rate limit is exceeded.
         :raise: DataError if the timeout is not a positive float or -1(non-blocking).
         """
-
         if timeout == cls._NON_BLOCKING:
             return
 
-        if (isinstance(timeout, float) or isinstance(timeout, int)) and timeout > 0:
+        if isinstance(timeout, (int, float)) and timeout > 0:
             return
 
         raise DataError(
             f"Invalid timeout: {timeout}, must be a positive float or -1(non-blocking)."
         )
 
-    def _get_key(self, key: Optional[KeyT] = None) -> KeyT:
+    def _get_key(self, key: KeyT | None = None) -> KeyT:
         # Use the provided key if available.
         if key:
             return key
@@ -159,7 +160,7 @@ class BaseThrottledMixin:
 
         raise DataError(f"Invalid key: {key}, must be a non-empty key.")
 
-    def _get_timeout(self, timeout: Optional[float] = None) -> float:
+    def _get_timeout(self, timeout: float | None = None) -> float:
         if timeout is not None:
             self._validate_timeout(timeout)
             return timeout
@@ -168,7 +169,6 @@ class BaseThrottledMixin:
 
     def _get_wait_time(self, retry_after: float) -> float:
         """Calculate the wait time based on the retry_after value."""
-
         # WAIT_INTERVAL: Chunked waiting interval to avoid long blocking periods.
         # Also helps reduce actual wait time considering thread context switches.
         # WAIT_MIN_INTERVAL: Minimum wait interval to prevent busy-waiting.
@@ -183,9 +183,7 @@ class BaseThrottledMixin:
         # we don't directly use sleep_time to calculate elapsed time.
         # Instead, we re-fetch the current time and subtract it from the start time.
         elapsed: float = now_mono_f() - start_time
-        if elapsed >= retry_after or elapsed >= timeout:
-            return True
-        return False
+        return elapsed >= retry_after or elapsed >= timeout
 
 
 class BaseThrottled(BaseThrottledMixin, abc.ABC):
@@ -203,17 +201,16 @@ class BaseThrottled(BaseThrottledMixin, abc.ABC):
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ):
         """Exit the context manager."""
-        pass
 
     @abc.abstractmethod
     def __call__(
-        self, func: Optional[Callable] = None
-    ) -> Union[Callable, Callable[[Callable], Callable]]:
+        self, func: Callable | None = None
+    ) -> Callable | Callable[[Callable], Callable]:
         """Decorator to apply rate limiting to a function."""
         raise NotImplementedError
 
@@ -224,7 +221,7 @@ class BaseThrottled(BaseThrottledMixin, abc.ABC):
 
     @abc.abstractmethod
     def limit(
-        self, key: Optional[KeyT] = None, cost: int = 1, timeout: Optional[float] = None
+        self, key: KeyT | None = None, cost: int = 1, timeout: float | None = None
     ) -> RateLimitResult:
         """Apply rate limiting logic to a given key with a specified cost.
 
@@ -249,8 +246,7 @@ class BaseThrottled(BaseThrottledMixin, abc.ABC):
 
     @abc.abstractmethod
     def peek(self, key: KeyT) -> RateLimitState:
-        """Retrieve the current state of rate limiter for the given key
-           without actually modifying the state.
+        """Retrieve the current state of rate limiter for the given key.
 
         :param key: The unique identifier for the rate limit subject,
             e.g. user ID or IP address.
@@ -264,7 +260,7 @@ class BaseThrottled(BaseThrottledMixin, abc.ABC):
 class Throttled(BaseThrottled):
     """Throttled class for synchronous rate limiting."""
 
-    _REGISTRY_CLASS: Type[RateLimiterRegistry] = RateLimiterRegistry
+    _REGISTRY_CLASS: type[RateLimiterRegistry] = RateLimiterRegistry
 
     _DEFAULT_GLOBAL_STORE: StoreP = MemoryStore()
 
@@ -275,9 +271,10 @@ class Throttled(BaseThrottled):
         return result
 
     def __call__(
-        self, func: Optional[Callable] = None
-    ) -> Union[Callable, Callable[[Callable], Callable]]:
+        self, func: Callable | None = None
+    ) -> Callable | Callable[[Callable], Callable]:
         """Decorator to apply rate limiting to a function.
+
         The cost value is taken from the Throttled instance's initialization.
 
         Usage::
@@ -327,7 +324,7 @@ class Throttled(BaseThrottled):
                 break
 
     def limit(
-        self, key: Optional[KeyT] = None, cost: int = 1, timeout: Optional[float] = None
+        self, key: KeyT | None = None, cost: int = 1, timeout: float | None = None
     ) -> RateLimitResult:
         self._validate_cost(cost)
         key: KeyT = self._get_key(key)

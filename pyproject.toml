@@ -1,111 +1,137 @@
-[tool.poetry]
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
 name = "throttled-py"
 version = "2.2.3"
 description = "🔧 High-performance Python rate limiting library with multiple algorithms (Fixed Window, Sliding Window, Token Bucket, Leaky Bucket & GCRA) and storage backends (Redis, In-Memory)."
-authors = ["ZhuoZhuoCrayon <crayon.ccxx@gmail.com>"]
-license = "MIT"
-readme = "README.md"
-packages = [
-    { include = "throttled" },
+authors = [
+    {name = "ZhuoZhuoCrayon", email = "crayon.ccxx@gmail.com"},
 ]
+license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation :: PyPy"
+]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
 
-homepage = "https://github.com/ZhuoZhuoCrayon/throttled-py"
-repository = "https://github.com/ZhuoZhuoCrayon/throttled-py"
-documentation = "https://throttled-py.readthedocs.io"
-
-[tool.poetry.urls]
+[project.urls]
+Homepage = "https://github.com/ZhuoZhuoCrayon/throttled-py"
+Repository = "https://github.com/ZhuoZhuoCrayon/throttled-py"
+Documentation = "https://throttled-py.readthedocs.io"
 Changes = "https://github.com/ZhuoZhuoCrayon/throttled-py/releases"
 "Bug Tracker" = "https://github.com/ZhuoZhuoCrayon/throttled-py/issues"
 
-[tool.poetry.dependencies]
-python = ">=3.8,<4.0"
-redis = { version = "^5.2.1", optional = true }
+[project.optional-dependencies]
+memory = []
+redis = ["redis>3,!=4.5.2,!=4.5.3,<8.0.0"]
 
-[tool.poetry.extras]
-in-memory = []
-redis = ["redis"]
-all = ["redis"]
-
-[tool.poetry.group.dev.dependencies]
-poetry-setup = "^0.3.6"
-twine = "^6.0.1"
-ipython = [
-    { version = "^7.34.0", python = "~3.8 || ~3.9" },
-    { version = "^8", python = "^3.10" }
+[dependency-groups]
+dev = [
+    "hatchling",
+    "twine>=6.0.1",
+    "ipython>=8.0",
+    "pre-commit>=3.4.0",
+    "pytest>=8.3.4",
+    "pytest-cov>=4.0",
+    "pytest-asyncio>=0.23.0",
+    "fakeredis[lua]>=2.20.0",
+    "ruff>=0.5.5",
+    "build>=1.2.1"
 ]
-pre-commit = "^3.4.0"
-pytest = "^8.3.4"
-pytest-cov = [
-    {version = "^2", python = "~3.8"},
-    {version = "^6", python = "^3.9"}
+docs = [
+    "sphinx",
+    "sphinx-book-theme",
+    "sphinx_thebe",
+    "sphinx-inline-tabs",
+    "sphinx-copybutton",
+    "sphinx-autodoc-typehints"
 ]
-pytest-asyncio = [
-    {version = "~0.24.0", python = "~3.8"},
-    {version = "^0.26.0", python = "^3.9"}
+all = [
+    { include-group = "dev" },
+    { include-group = "docs" }
 ]
-fakeredis = {extras = ["lua"], version = "^2.26.2"}
 
-[[tool.poetry.source]]
-priority = "primary"
-name = "tencent-mirror"
-url = "https://mirrors.tencent.com/pypi/simple/"
+[tool.hatch.build.targets.wheel]
+packages = ["throttled"]
 
-[build-system]
-requires = [
-    "poetry-core>=1.0.0; python_version != '3.8'",
-    "poetry-core>=1.0.0,<2; python_version == '3.8'"
-]
-build-backend = "poetry.core.masonry.api"
+#[tool.uv]
+#index-url = "https://mirrors.tencent.com/pypi/simple/"
 
-[tool.flake8]
-python_requires = ">= 3.8"
-ignore = "F405,W503,E203,TYP001"
-max-line-length = 89
-max-complexity = 26
-format = "pylint"
-show_source = "false"
-statistics = "true"
-count = "true"
-exclude = [
-    "migrations",
-    "*.pyc",
-    ".git",
-    "__pycache__",
-    "static",
-    "node_modules",
-    "templates",
-    "bin",
-    "config",
-    "scripts",
-    "script",
-]
-#per-file-ignores = """
-#    xxx.py: E501
-#"""
-
-[tool.black]
+[tool.ruff]
 line-length = 89
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | _build
-  | buck-out
-  | build
-  | dist
-  | migrations
-)/
-'''
 
-[tool.isort]
-# refer: https://pycqa.github.io/isort/docs/configuration/options.html
-profile = "black"
-line_length = 89
-skip_glob = ["*/migrations/*", "*/node_modules/*"]
+[tool.ruff.lint]
+# refer: https://docs.astral.sh/ruff/rules/
+select = [
+    "F",      # Pyflakes
+    "E",      # pycodestyle (Error)
+    "W",      # pycodestyle (Warning)
+    "C90",    # pycodestyle (Complexity)
+    "I",      # isort
+    "D",      # pydocstyle
+    "UP",     # pyupgrade
+    "SIM",    # flake8-simplify
+    "G",      # flake8-logging-format
+    "LOG",    # flake8-logging
+    "N",      # pep8-naming
+    "TRY",    # tryceratops
+    "YTT",    # flake8-2020
+    "B",      # flake8-bugbear
+    "T10",    # flake8-debugger
+    "T20",    # flake8-print
+    "C4",     # flake8-comprehensions
+    "RET",    # flake8-return
+    "PERF",   # Perflint
+    "PL",     # Pylint
+    "PIE",    # flake8-pie
+    "PYI006", # flake8-pyi
+    "PYI062", # flake8-pyi
+    "PYI063", # flake8-pyi
+    "PYI066", # flake8-pyi
+    "PT",     # flake8-pytest-style
+]
+ignore = [
+    "E501",
+    "D102",     # disable missing docstring in public method
+    "D105",     # disable missing docstring in magic method
+    "D106",     # disable missing docstring in public nested class
+    "D107",     # disable missing docstring in __init__
+    "D203",
+    "D213",     # disable multi-line-summary-second-line to avoid conflict with D212,
+    "D100",     # Missing docstring in public module
+    "TRY003",   # disable check for long exception messages that are not defined in the exception class itself
+]
+preview = true
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.isort]
+known-third-party = ["throttled", "tests"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+# Allow too many arguments in throttled.py.
+"throttled.py" = ["PLR0913", "PLR0917", "UP038"]
+# Ignore all docs style related rules in tests.
+"tests/*.py" = ["D"]
+
+[tool.ruff.format]
+quote-style = "double"
+
 
 [tool.pytest.ini_options]
 asyncio_default_fixture_loop_scope = "function"
