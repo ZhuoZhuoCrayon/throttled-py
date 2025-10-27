@@ -17,38 +17,65 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      python-version: 3.8
-      poetry-version: 1.8.5
+      python-version: "3.12"
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Fetch full history so we can diff against base commits
+          fetch-depth: 0
+
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ env.python-version }}
-      - name: Install Poetry
-        uses: abatilo/actions-poetry@v4
-        with:
-          poetry-version: ${{ env.poetry-version }}
-      - name: Setup Poetry
-        run: |
-          poetry config virtualenvs.create true --local
-          poetry config virtualenvs.in-project true --local
-      - name: Define a cache for the virtual environment
-        uses: actions/cache@v3
-        with:
-          path: ./.venv
-          key: venv-${{ env.python-version }}-${{ env.poetry-version }}-${{ hashFiles('poetry.lock')}}
-      - name: Define a cache for the pre-commit virtual environment
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pre-commit
-          key: venv-precommit-${{ env.python-version }}-${{ env.poetry-version }}-${{ hashFiles('poetry.lock')}}
-      - name: Install the project dependencies
-        run: poetry install
-      - name: Pre-commit run
-        run: poetry run pre-commit run --show-diff-on-failure --color=always --all-files
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Install dependencies
+        run: uv sync --locked --only-dev
+
+      - name: Pre-commit run (changed files only)
         shell: bash
+        run: |
+          set -euo pipefail
+          # Determine diff range for PRs and pushes
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            FROM_SHA="${{ github.event.pull_request.base.sha }}"
+          else
+            FROM_SHA="${{ github.event.before }}"
+          fi
+          TO_SHA="${{ github.sha }}"
+
+          # Handle edge cases: branch creation or missing base
+          if [[ -z "${FROM_SHA}" || "${FROM_SHA}" == "0000000000000000000000000000000000000000" ]]; then
+            if git rev-parse HEAD^ >/dev/null 2>&1; then
+              FROM_SHA="$(git rev-parse HEAD^)"
+            else
+              echo "No base commit detected (first commit). Running on all files."
+              uv run pre-commit run --show-diff-on-failure --color=always --verbose --all-files
+              exit 0
+            fi
+          fi
+
+          # Collect changed files between FROM_SHA..TO_SHA
+          CHANGED_FILES="$(git diff --name-only --diff-filter=ACMR "${FROM_SHA}" "${TO_SHA}")"
+          if [[ -z "${CHANGED_FILES}" ]]; then
+            echo "No changed files between ${FROM_SHA} and ${TO_SHA}; skipping pre-commit."
+            exit 0
+          fi
+
+          echo "Running pre-commit for range ${FROM_SHA}..${TO_SHA}"
+          echo "Files to scan (one per line):"
+          echo "${CHANGED_FILES}" | sed 's/^/  - /'
+
+          # Use ref range (lets pre-commit resolve hooks properly) and enable verbose output
+          uv run pre-commit run --show-diff-on-failure --color=always --verbose \
+            --from-ref "${FROM_SHA}" --to-ref "${TO_SHA}"
+
       - name: Run tests
-        run: poetry run pytest --junitxml=pytest.xml --cov-report=term-missing:skip-covered --cov=throttled tests/ | tee pytest-coverage.txt
+        run: uv run pytest --junitxml=pytest.xml --cov-report=term-missing:skip-covered --cov=throttled tests/ | tee pytest-coverage.txt
+
       - name: Pytest coverage comment
         uses: MishaKav/pytest-coverage-comment@main
         with:
