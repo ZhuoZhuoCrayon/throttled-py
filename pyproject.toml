@@ -51,7 +51,8 @@ dev = [
     "pytest-asyncio>=0.23.0",
     "fakeredis[lua]>=2.20.0",
     "ruff>=0.5.5",
-    "build>=1.2.1"
+    "build>=1.2.1",
+    "pytest-xdist>=3.8.0",
 ]
 docs = [
     "sphinx",
