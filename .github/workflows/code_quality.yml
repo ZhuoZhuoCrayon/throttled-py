@@ -74,7 +74,7 @@ jobs:
             --from-ref "${FROM_SHA}" --to-ref "${TO_SHA}"
 
       - name: Run tests
-        run: uv run pytest --junitxml=pytest.xml --cov-report=term-missing:skip-covered --cov=throttled tests/ | tee pytest-coverage.txt
+        run: uv run pytest -n auto --junitxml=pytest.xml --cov-report=term-missing:skip-covered --cov=throttled tests/ | tee pytest-coverage.txt
 
       - name: Pytest coverage comment
         uses: MishaKav/pytest-coverage-comment@main
