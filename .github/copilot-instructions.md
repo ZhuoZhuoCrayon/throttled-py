@@ -13,7 +13,15 @@ As a Copilot agent reviewing this project, prioritize the following principles:
 2.  **Correctness and Reliability**: Ensure algorithms are implemented correctly. Pay close attention to concurrency (`asyncio`, `threading`), thread safety, and atomic operations, as they are critical for a rate-limiting library.
 3.  **Performance**: Rate limiting must be fast. Suggest efficient data structures and algorithms. Use the project's established tooling (`ruff`, `black`, `mypy`) to enforce quality.
 4.  **Test Coverage**: All new logic must be accompanied by comprehensive `pytest` tests. Aim for high test coverage.
-5.  **Acknowledgment Protocol**: When generating PR review summaries, begin with the acknowledgment statement: *"✓ Review conducted following guidelines defined in `.github/copilot-instructions.md`"* to confirm these rules are actively applied.
+5.  **MANDATORY Review Acknowledgment**: This is a **REQUIRED** and **NON-NEGOTIABLE** rule. When GitHub Copilot generates any PR review summary or code review comment, it **MUST** begin with the following exact acknowledgment statement:
+   
+   > ✓ Review conducted following guidelines defined in `.github/copilot-instructions.md`
+   
+   **Important Notes:**
+   - This statement confirms that ALL guidelines in this document have been actively applied during the review process
+   - Omitting this acknowledgment statement is **NOT ACCEPTABLE** under any circumstances
+   - The statement must appear at the **very beginning** of every PR review summary
+   - This is not optional - it is a fundamental requirement for all Copilot-generated reviews in this repository
 
 ---
 
