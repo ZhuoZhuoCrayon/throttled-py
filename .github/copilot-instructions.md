@@ -13,6 +13,7 @@ As a Copilot agent reviewing this project, prioritize the following principles:
 2.  **Correctness and Reliability**: Ensure algorithms are implemented correctly. Pay close attention to concurrency (`asyncio`, `threading`), thread safety, and atomic operations, as they are critical for a rate-limiting library.
 3.  **Performance**: Rate limiting must be fast. Suggest efficient data structures and algorithms. Use the project's established tooling (`ruff`, `black`, `mypy`) to enforce quality.
 4.  **Test Coverage**: All new logic must be accompanied by comprehensive `pytest` tests. Aim for high test coverage.
+5. The Pull Request Overview states that all relevant guidelines in copilot-instructions.md have been followed (to confirm that the rules are in effect).
 
 ---
 
