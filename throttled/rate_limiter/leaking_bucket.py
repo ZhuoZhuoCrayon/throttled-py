@@ -1,5 +1,6 @@
 import math
-from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple, Type, Union
+from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 from ..constants import ATOMIC_ACTION_TYPE_LIMIT, RateLimiterType, StoreType
 from ..store import BaseAtomicAction
@@ -20,7 +21,7 @@ if TYPE_CHECKING:
 
     from ..store import MemoryStoreBackend, RedisStoreBackend
 
-    Script = Union[AsyncScript, SyncScript]
+    Script = AsyncScript | SyncScript
 
 
 class RedisLimitAtomicActionCoreMixin:
@@ -33,7 +34,7 @@ class RedisLimitAtomicActionCoreMixin:
     local rate = tonumber(ARGV[1])
     local capacity = tonumber(ARGV[2])
     local cost = tonumber(ARGV[3])
-    local now = tonumber(ARGV[4])
+    local now = tonumber(redis.call("TIME")[1])
 
     local last_tokens = 0
     local last_refreshed = now
@@ -67,8 +68,8 @@ class RedisLimitAtomicAction(RedisLimitAtomicActionCoreMixin, BaseAtomicAction):
     """Redis-based implementation of AtomicAction for LeakingBucketRateLimiter."""
 
     def do(
-        self, keys: Sequence[KeyT], args: Optional[Sequence[StoreValueT]]
-    ) -> Tuple[int, int]:
+        self, keys: Sequence[KeyT], args: Sequence[StoreValueT] | None
+    ) -> tuple[int, int]:
         return self._script(keys, args)
 
 
@@ -87,13 +88,13 @@ class MemoryLimitAtomicActionCoreMixin:
         cls,
         backend: "MemoryStoreBackend",
         keys: Sequence[KeyT],
-        args: Optional[Sequence[StoreValueT]],
-    ) -> Tuple[int, int]:
+        args: Sequence[StoreValueT] | None,
+    ) -> tuple[int, int]:
         key: str = keys[0]
         rate: float = args[0]
         capacity: int = args[1]
         cost: int = args[2]
-        now: int = args[3]
+        now: int = now_sec()
 
         bucket: StoreDictValueT = backend.hgetall(key)
         last_tokens: int = bucket.get("tokens", 0)
@@ -117,8 +118,8 @@ class MemoryLimitAtomicAction(MemoryLimitAtomicActionCoreMixin, BaseAtomicAction
     """Memory-based implementation of AtomicAction for LeakingBucketRateLimiter."""
 
     def do(
-        self, keys: Sequence[KeyT], args: Optional[Sequence[StoreValueT]]
-    ) -> Tuple[int, int]:
+        self, keys: Sequence[KeyT], args: Sequence[StoreValueT] | None
+    ) -> tuple[int, int]:
         with self._backend.lock:
             return self._do(self._backend, keys, args)
 
@@ -126,20 +127,20 @@ class MemoryLimitAtomicAction(MemoryLimitAtomicActionCoreMixin, BaseAtomicAction
 class LeakingBucketRateLimiterCoreMixin(BaseRateLimiterMixin):
     """Core mixin for LeakingBucketRateLimiter."""
 
-    _DEFAULT_ATOMIC_ACTION_CLASSES: List[Type[AtomicActionP]] = []
+    _DEFAULT_ATOMIC_ACTION_CLASSES: list[type[AtomicActionP]] = []
 
     class Meta:
         type: RateLimiterTypeT = RateLimiterType.LEAKING_BUCKET.value
 
     @classmethod
-    def _default_atomic_action_classes(cls) -> List[Type[AtomicActionP]]:
+    def _default_atomic_action_classes(cls) -> list[type[AtomicActionP]]:
         return cls._DEFAULT_ATOMIC_ACTION_CLASSES
 
     @classmethod
-    def _supported_atomic_action_types(cls) -> List[AtomicActionTypeT]:
+    def _supported_atomic_action_types(cls) -> list[AtomicActionTypeT]:
         return [ATOMIC_ACTION_TYPE_LIMIT]
 
-    def _prepare(self, key: str) -> Tuple[str, float, int]:
+    def _prepare(self, key: str) -> tuple[str, float, int]:
         return self._prepare_key(key), self.quota.fill_rate, self.quota.burst
 
     def _refill_sec(self, upper: int, remaining: int) -> int:
@@ -164,7 +165,7 @@ class LeakingBucketRateLimiterCoreMixin(BaseRateLimiterMixin):
 class LeakingBucketRateLimiter(LeakingBucketRateLimiterCoreMixin, BaseRateLimiter):
     """Concrete implementation of BaseRateLimiter using leaking bucket as algorithm."""
 
-    _DEFAULT_ATOMIC_ACTION_CLASSES: List[Type[AtomicActionP]] = [
+    _DEFAULT_ATOMIC_ACTION_CLASSES: list[type[AtomicActionP]] = [
         RedisLimitAtomicAction,
         MemoryLimitAtomicAction,
     ]
@@ -172,7 +173,7 @@ class LeakingBucketRateLimiter(LeakingBucketRateLimiterCoreMixin, BaseRateLimite
     def _limit(self, key: str, cost: int = 1) -> RateLimitResult:
         formatted_key, rate, capacity = self._prepare(key)
         limited, tokens = self._atomic_actions[ATOMIC_ACTION_TYPE_LIMIT].do(
-            [formatted_key], [rate, capacity, cost, now_sec()]
+            [formatted_key], [rate, capacity, cost]
         )
         return self._to_result(limited, cost, tokens, capacity)
 
