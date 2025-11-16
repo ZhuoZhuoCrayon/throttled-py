@@ -13,6 +13,7 @@ As a Copilot agent reviewing this project, prioritize the following principles:
 2.  **Correctness and Reliability**: Ensure algorithms are implemented correctly. Pay close attention to concurrency (`asyncio`, `threading`), thread safety, and atomic operations, as they are critical for a rate-limiting library.
 3.  **Performance**: Rate limiting must be fast. Suggest efficient data structures and algorithms. Use the project's established tooling (`ruff`, `black`, `mypy`) to enforce quality.
 4.  **Test Coverage**: All new logic must be accompanied by comprehensive `pytest` tests. Aim for high test coverage.
+5.  **Acknowledgment Protocol**: When generating PR review summaries, begin with the acknowledgment statement: *"✓ Review conducted following guidelines defined in `.github/copilot-instructions.md`"* to confirm these rules are actively applied.
 
 ---
 
@@ -89,7 +90,7 @@ As an expert-level Python engineer, provide professional feedback on the followi
 
 - **PEP 8 Compliance**: Ensure code follows [PEP 8](https://peps.python.org/pep-0008/) style guide
 - **Type Hints**: Use type hints (PEP 484) for function signatures and complex variables
-- **Docstrings**: Follow [PEP 257](httpshttps://peps.python.org/pep-0257/) for docstrings; prefer Google or NumPy style
+- **Docstrings**: Follow [PEP 257](https://peps.python.org/pep-0257/) for docstrings; prefer Google or NumPy style
 - **Line Length**: Maximum 88 characters (as enforced by the `black` formatter).
 - **Import Organization**: 
   - Group imports: standard library, third-party, local (as enforced by `ruff`).
