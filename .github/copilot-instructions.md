@@ -1,10 +1,18 @@
 # GitHub Copilot Code Review Instructions
 
-## Overview
+This document provides comprehensive code review guidelines for the throttled-py project, 
+ensuring consistency and quality in all pull requests reviewed by GitHub Copilot.
 
-This document defines the code review guidelines for the throttled-py project. All pull requests reviewed by GitHub Copilot should adhere to these rules.
+[TOC]
 
-**Acknowledgment**: This review follows the established guidelines defined in this document.
+## Core Review Principles
+
+As a Copilot agent reviewing this project, prioritize the following principles:
+
+1.  **Clarity and Maintainability**: Code must be easy to read and understand. Follow PEP 8, use clear naming, and provide meaningful docstrings (PEP 257).
+2.  **Correctness and Reliability**: Ensure algorithms are implemented correctly. Pay close attention to concurrency (`asyncio`, `threading`), thread safety, and atomic operations, as they are critical for a rate-limiting library.
+3.  **Performance**: Rate limiting must be fast. Suggest efficient data structures and algorithms. Use the project's established tooling (`ruff`, `black`, `mypy`) to enforce quality.
+4.  **Test Coverage**: All new logic must be accompanied by comprehensive `pytest` tests. Aim for high test coverage.
 
 ---
 
@@ -81,10 +89,10 @@ As an expert-level Python engineer, provide professional feedback on the followi
 
 - **PEP 8 Compliance**: Ensure code follows [PEP 8](https://peps.python.org/pep-0008/) style guide
 - **Type Hints**: Use type hints (PEP 484) for function signatures and complex variables
-- **Docstrings**: Follow [PEP 257](https://peps.python.org/pep-0257/) for docstrings; prefer Google or NumPy style
-- **Line Length**: Maximum 88 characters (Black formatter standard) or 79 (PEP 8)
+- **Docstrings**: Follow [PEP 257](httpshttps://peps.python.org/pep-0257/) for docstrings; prefer Google or NumPy style
+- **Line Length**: Maximum 88 characters (as enforced by the `black` formatter).
 - **Import Organization**: 
-  - Group imports: standard library, third-party, local
+  - Group imports: standard library, third-party, local (as enforced by `ruff`).
   - Use absolute imports over relative imports
   - Avoid wildcard imports (`from module import *`)
 
@@ -183,12 +191,11 @@ As an expert-level Python engineer, provide professional feedback on the followi
 
 ### 11. Tooling & Development Workflow
 
-- **Linters**: Use `ruff`, `flake8`, or `pylint` for static analysis
-- **Formatters**: Use `black` for consistent code formatting
-- **Type Checkers**: Use `mypy` or `pyright` for static type checking
-- **Pre-commit Hooks**: Set up pre-commit hooks for automated checks
-- **CI/CD**: Implement continuous integration with automated tests
-- **Code Coverage**: Use `coverage.py` or `pytest-cov` to measure test coverage
+- **Linters & Formatters**: Use `ruff` for linting and `black` for formatting. Ensure code is compliant before merging.
+- **Type Checkers**: Use `mypy` or `pyright` for static type checking.
+- **Pre-commit Hooks**: Set up pre-commit hooks for automated checks to catch issues early.
+- **CI/CD**: Implement continuous integration with automated tests.
+- **Code Coverage**: Use `coverage.py` or `pytest-cov` to measure test coverage.
 
 ### 12. Specific to Rate Limiting Projects
 
@@ -268,4 +275,3 @@ As an expert-level Python engineer, provide professional feedback on the followi
 ---
 
 **Last Updated**: 2025-11-16
-
