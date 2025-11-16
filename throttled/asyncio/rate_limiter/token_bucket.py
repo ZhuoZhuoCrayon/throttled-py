@@ -1,5 +1,5 @@
 import math
-from typing import List, Optional, Sequence, Tuple, Type
+from collections.abc import Sequence
 
 from ...constants import ATOMIC_ACTION_TYPE_LIMIT
 from ...rate_limiter.token_bucket import (
@@ -17,8 +17,8 @@ class RedisLimitAtomicAction(RedisLimitAtomicActionCoreMixin, BaseAtomicAction):
     """Redis-based implementation of AtomicAction for Async TokenBucketRateLimiter."""
 
     async def do(
-        self, keys: Sequence[KeyT], args: Optional[Sequence[StoreValueT]]
-    ) -> Tuple[int, int]:
+        self, keys: Sequence[KeyT], args: Sequence[StoreValueT] | None
+    ) -> tuple[int, int]:
         return await self._script(keys, args)
 
 
@@ -26,8 +26,8 @@ class MemoryLimitAtomicAction(MemoryLimitAtomicActionCoreMixin, BaseAtomicAction
     """Memory-based implementation of AtomicAction for Async LeakingBucketRateLimiter."""
 
     async def do(
-        self, keys: Sequence[KeyT], args: Optional[Sequence[StoreValueT]]
-    ) -> Tuple[int, int]:
+        self, keys: Sequence[KeyT], args: Sequence[StoreValueT] | None
+    ) -> tuple[int, int]:
         async with self._backend.lock:
             return self._do(self._backend, keys, args)
 
@@ -35,7 +35,7 @@ class MemoryLimitAtomicAction(MemoryLimitAtomicActionCoreMixin, BaseAtomicAction
 class TokenBucketRateLimiter(TokenBucketRateLimiterCoreMixin, BaseRateLimiter):
     """Concrete implementation of BaseRateLimiter using leaking bucket as algorithm."""
 
-    _DEFAULT_ATOMIC_ACTION_CLASSES: List[Type[AtomicActionP]] = [
+    _DEFAULT_ATOMIC_ACTION_CLASSES: list[type[AtomicActionP]] = [
         RedisLimitAtomicAction,
         MemoryLimitAtomicAction,
     ]
@@ -43,7 +43,7 @@ class TokenBucketRateLimiter(TokenBucketRateLimiterCoreMixin, BaseRateLimiter):
     async def _limit(self, key: str, cost: int = 1) -> RateLimitResult:
         formatted_key, rate, capacity = self._prepare(key)
         limited, tokens = await self._atomic_actions[ATOMIC_ACTION_TYPE_LIMIT].do(
-            [formatted_key], [rate, capacity, cost, now_sec()]
+            [formatted_key], [rate, capacity, cost]
         )
         return self._to_result(limited, cost, tokens, capacity)
 
