@@ -54,12 +54,6 @@ categories:
   - title: "🚀 New Features"
     labels:
       - "kind/feat"
-  - title: "🧪 Tests"
-    labels:
-      - "kind/test"
-  - title: "📝 Documentation"
-    labels:
-      - "kind/docs"
   - title: "✨ Improvements"
     labels:
       - "kind/perf"
@@ -71,6 +65,8 @@ categories:
     labels:
       - "kind/style"
       - "kind/ci"
+      - "kind/docs"
+      - "kind/test"
 
 template: |
   ## v$RESOLVED_VERSION - YYYY-MM-DD
