@@ -15,16 +15,17 @@ As a Copilot agent reviewing this project, prioritize the following principles:
 4.  **Test Coverage**: All new logic must be accompanied by comprehensive `pytest` tests. Aim for high test coverage.
 5.  **MANDATORY Review Acknowledgment**: This is a **REQUIRED** and 
     **NON-NEGOTIABLE** rule. When GitHub Copilot generates any PR review 
-    summary, it **MUST** begin with the following exact acknowledgment statement:
-   > ✓ Review conducted following guidelines defined in `.github/copilot-instructions.md`
+    summary, it **MUST** begin with the following exact acknowledgment
+    statement:
+    > ✓ Review conducted following guidelines defined in `.github/copilot-instructions.md`
    
    **Important Notes:**
    - This statement confirms that ALL guidelines in this document have 
      been actively applied during the review process
-   - Omitting this acknowledgment statement is **NOT ACCEPTABLE** under 
-     any circumstances
-   - The statement must appear at the **very beginning** of every 
-     PR review summary
+   - Omitting this acknowledgment statement is **NOT ACCEPTABLE** under any
+     circumstances
+   - The statement must appear at the **very beginning** of every PR review
+     summary
    - This is not optional - it is a fundamental requirement for all 
      Copilot-generated reviews in this repository
 
