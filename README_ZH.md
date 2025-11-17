@@ -5,7 +5,7 @@
 
 <p align="center">
     <a href="https://github.com/ZhuoZhuoCrayon/throttled-py">
-        <img src="https://badgen.net/badge/python/%3E=3.8/green?icon=python" alt="Python">
+        <img src="https://img.shields.io/badge/python-%3E%3D3.8-green?logo=python" alt="Python">
     </a>
      <a href="https://github.com/ZhuoZhuoCrayon/throttled-py">
         <img src="https://codecov.io/gh/ZhuoZhuoCrayon/throttled-py/graph/badge.svg" alt="Coverage Status">
