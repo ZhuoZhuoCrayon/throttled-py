@@ -8,7 +8,7 @@
 local rate = tonumber(ARGV[1])
 local capacity = tonumber(ARGV[2])
 local cost = tonumber(ARGV[3])
-local now = tonumber(ARGV[4])
+local now = tonumber(redis.call("TIME")[1])
 
 -- Initialize default bucket state.
 local last_tokens = capacity    -- Start with full bucket.

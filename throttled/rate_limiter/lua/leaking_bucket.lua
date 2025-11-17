@@ -2,13 +2,12 @@
 -- ARGV[1]: rate - Leak rate (requests processed per second).
 -- ARGV[2]: capacity - Maximum capacity of the bucket.
 -- ARGV[3]: cost - Weight of current request.
--- ARGV[4]: now - Current timestamp in seconds.
 -- KEYS[1]: Redis hash key storing bucket state.
 
 local rate = tonumber(ARGV[1])
 local capacity = tonumber(ARGV[2])
 local cost = tonumber(ARGV[3])
-local now = tonumber(ARGV[4])
+local now = tonumber(redis.call("TIME")[1])
 
 -- Start with empty bucket.
 local last_tokens = 0
