@@ -1,4 +1,6 @@
-from .. import constants, exceptions, types, utils
+"""Asyncio support for throttled."""
+
+from .. import constants, exceptions, rate_limiter, types, utils
 from ..constants import RateLimiterType
 from .rate_limiter import (
     BaseRateLimiter,
@@ -26,7 +28,7 @@ from .store import (
 )
 from .throttled import Throttled
 
-__version__ = "2.2.3"
+__version__ = "3.0.0"
 VERSION = tuple(map(int, __version__.split(".")))
 
 __all__ = [

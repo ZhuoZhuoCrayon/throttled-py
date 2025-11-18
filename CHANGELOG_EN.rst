@@ -1,6 +1,41 @@
 Version History
 ================
 
+v3.0.0 - 2025-11-18
+---------------------
+
+`简体中文 (v3.0.0) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.rst#v300---2025-11-18>`_ | English
+
+**🔥 Breaking Changes**
+
+- build: migrate from Poetry to Hatch and uv @ZhuoZhuoCrayon (#97)
+    - Drop support for Python 3.8 and 3.9, the minimum required Python version is now 3.10.
+
+**🚀 New Features**
+
+- feat: add support for Python 3.13 and 3.14 @ZhuoZhuoCrayon (#98)
+
+**✨ Improvements**
+
+- perf: replace manual timestamp with Redis server time in bucket algorithms @ZhuoZhuoCrayon (#108)
+- perf: optimize bucket counting accuracy in high-concurrency scenarios @ZhuoZhuoCrayon (#101)
+
+**📦 Dependencies**
+
+- build: relax the dependency version restrictions for redis-py @ZhuoZhuoCrayon (#97) (resolved #96)
+
+**🍃 Maintenance**
+
+- ci: adjust release draft categories and labels @ZhuoZhuoCrayon (#106)
+- ci: speed up pytest execution by adding parallel test execution support @ZhuoZhuoCrayon (#103)
+- docs: update Python badge to use Shields.io format @ZhuoZhuoCrayon (#107)
+- docs: strengthen Copilot review acknowledgment rules @ZhuoZhuoCrayon (#105)
+- docs: add PR guideline confirmation requirement @ZhuoZhuoCrayon (#102)
+- docs: add GitHub Copilot code review guidelines @ZhuoZhuoCrayon (#100)
+
+**Full Changelog**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v2.2.3...v3.0.0
+
+
 v2.2.3 - 2025-08-30
 ---------------------
 

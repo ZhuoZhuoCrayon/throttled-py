@@ -1,6 +1,41 @@
 Version History
 =================
 
+v3.0.0 - 2025-11-18
+---------------------
+
+`English Documents Available (v3.0.0) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.rst#v300---2025-11-18>`_ | 简体中文
+
+**🔥 破坏性变更**
+
+- build: 从 Poetry 迁移到 Hatch 和 uv @ZhuoZhuoCrayon (#97)
+    - 结束对 Python 3.8 和 3.9 的支持，最低要求的 Python 版本现在是 3.10。
+
+**🚀 功能**
+
+- feat: 添加对 Python 3.13 和 3.14 的支持 @ZhuoZhuoCrayon (#98)
+
+**✨ 优化**
+
+- perf: 在桶算法中用 Redis 服务器时间替换服务时间戳 @ZhuoZhuoCrayon (#108)
+- perf: 优化高并发场景下的桶计数准确性 @ZhuoZhuoCrayon (#101)
+
+**📦 依赖项更新**
+
+- build: 放宽对 redis-py 的依赖版本限制 @ZhuoZhuoCrayon (#97) (resolved #96)
+
+**🍃 维护工作**
+
+- ci: 调整发布草稿的类别和标签 @ZhuoZhuoCrayon (#106)
+- ci: 通过添加并行测试执行支持来加快 pytest 执行速度 @ZhuoZhuoCrayon (#103)
+- docs: 更新 Python 徽章以使用 Shields.io 格式 @ZhuoZhuoCrayon (#107)
+- docs: 加强 Copilot 审查确认规则 @ZhuoZhuoCrayon (#105)
+- docs: 添加 PR 指南确认要求 @ZhuoZhuoCrayon (#102)
+- docs: 添加 GitHub Copilot 代码审查指南 @ZhuoZhuoCrayon (#100)
+
+**完整更新日志**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v2.2.3...v3.0.0
+
+
 v2.2.3 - 2025-08-30
 --------------------
 
