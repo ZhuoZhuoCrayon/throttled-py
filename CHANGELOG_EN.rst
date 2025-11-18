@@ -9,11 +9,11 @@ v3.0.0 - 2025-11-18
 **🔥 Breaking Changes**
 
 - build: migrate from Poetry to Hatch and uv @ZhuoZhuoCrayon (#97)
-    - Drop support for python 3.8 and 3.9, the minimum required Python version is now 3.10.
+    - Drop support for Python 3.8 and 3.9, the minimum required Python version is now 3.10.
 
 **🚀 New Features**
 
-- feat: add support for python 3.13 and 3.14 @ZhuoZhuoCrayon (#98)
+- feat: add support for Python 3.13 and 3.14 @ZhuoZhuoCrayon (#98)
 
 **✨ Improvements**
 
