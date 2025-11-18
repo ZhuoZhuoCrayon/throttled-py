@@ -1,4 +1,6 @@
-from . import asyncio, rate_limiter
+"""High-performance Python rate limiting library."""
+
+from . import asyncio, constants, exceptions, rate_limiter, types, utils
 from .constants import RateLimiterType
 from .rate_limiter import (
     BaseRateLimiter,
@@ -26,7 +28,7 @@ from .store import (
 )
 from .throttled import Throttled
 
-__version__ = "2.2.3"
+__version__ = "3.0.0"
 VERSION = tuple(map(int, __version__.split(".")))
 
 

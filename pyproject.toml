@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "throttled-py"
-version = "2.2.3"
+version = "3.0.0"
 description = "🔧 High-performance Python rate limiting library with multiple algorithms (Fixed Window, Sliding Window, Token Bucket, Leaky Bucket & GCRA) and storage backends (Redis, In-Memory)."
 authors = [
     {name = "ZhuoZhuoCrayon", email = "crayon.ccxx@gmail.com"},
