@@ -10,6 +10,8 @@ v3.0.1 - 2025-11-27
 
 - build: 添加 py.typed 文件以支持类型提示 @ZhuoZhuoCrayon (#113) (resolved #112)
 
+**完整更新日志**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v3.0.0...v3.0.1
+
 
 v3.0.0 - 2025-11-18
 ---------------------
