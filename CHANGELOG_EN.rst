@@ -1,6 +1,18 @@
 Version History
 ================
 
+v3.0.1 - 2025-11-27
+---------------------
+
+`简体中文 (v3.0.1) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.rst#v301---2025-11-27>`_ | English
+
+**📦 Dependencies**
+
+- build: add py.typed file for type hinting support @ZhuoZhuoCrayon (#113) (resolved #112)
+
+**Full Changelog**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v3.0.0...v3.0.1
+
+
 v3.0.0 - 2025-11-18
 ---------------------
 
