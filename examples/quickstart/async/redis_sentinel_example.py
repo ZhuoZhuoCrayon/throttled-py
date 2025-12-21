@@ -8,7 +8,10 @@ from throttled.asyncio import RateLimiterType, Throttled, rate_limiter, store
     using=RateLimiterType.TOKEN_BUCKET.value,
     quota=rate_limiter.per_min(1),
     # 🌟 use RedisStore as storage
-    store=store.RedisStore(server="redis://127.0.0.1:6379/0", options={}),
+    store=store.RedisStore(
+        server="redis+sentinel://:pass@host1:26379,host2:26379/mymaster",
+        options={"SENTINEL_KWARGS": {}},
+    ),
 )
 async def products() -> list:
     return [{"name": "iPhone"}, {"name": "MacBook"}]

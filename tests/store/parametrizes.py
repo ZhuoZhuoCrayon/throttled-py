@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Type
+from typing import Any
 
 import pytest
 
@@ -27,7 +27,7 @@ STORE_TTL_TIMEOUT = pytest.mark.parametrize(
 STORE_SET_KEY_TIMEOUT = pytest.mark.parametrize("key,timeout", [("one", 1)])
 
 
-def store_set_raise_parametrize(data_error: Type[BaseException]):
+def store_set_raise_parametrize(data_error: type[BaseException]):
     return pytest.mark.parametrize(
         "key,timeout,exc,match",
         [
@@ -121,7 +121,7 @@ STORE_HGETALL_PARAMETRIZE = pytest.mark.parametrize(
 )
 
 
-def store_hset_raise_parametrize(data_error: Type[BaseException]):
+def store_hset_raise_parametrize(data_error: type[BaseException]):
     return pytest.mark.parametrize(
         "params, exc, match",
         [
@@ -131,5 +131,32 @@ def store_hset_raise_parametrize(data_error: Type[BaseException]):
                 data_error,
                 "hset must with key value pairs",
             ],
+        ],
+    )
+
+
+REDIS_STORE_PARSE_INPUTS: dict[str, dict[str, Any]] = {
+    "standalone": {"server": "redis://localhost:6379/0", "options": None},
+    "sentinel": {
+        "server": "redis+sentinel://h1:26379,h2/mymaster",
+        "options": None,
+    },
+    "sentinel_with_auth": {
+        "server": "redis+sentinel://user:pass@localhost:26379/mymaster",
+        "options": None,
+    },
+}
+
+
+def redis_store_parse_parametrize(expected_results: dict[str, dict[str, Any]]):
+    return pytest.mark.parametrize(
+        "input_data, expected_result",
+        [
+            pytest.param(
+                REDIS_STORE_PARSE_INPUTS[key],
+                expected_results[key],
+                id=key,
+            )
+            for key in REDIS_STORE_PARSE_INPUTS
         ],
     )

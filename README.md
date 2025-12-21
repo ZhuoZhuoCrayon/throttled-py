@@ -74,15 +74,14 @@ $ pip install "throttled-py[redis,in-memory]"
 ### 2) Example
 
 ```python
-from throttled import RateLimiterType, Throttled, rate_limiter, store, utils
+from throttled import RateLimiterType, Throttled, rate_limiter, utils
 
 throttle = Throttled(
     # 📈 Use Token Bucket algorithm
     using=RateLimiterType.TOKEN_BUCKET.value,
     # 🪣 Set quota: 1,000 tokens per second (limit), bucket size 1,000 (burst)
     quota=rate_limiter.per_sec(1_000, burst=1_000),
-    # 📁 Use In-Memory storage
-    store=store.MemoryStore(),
+    # 📁 By default, global MemoryStore is used as the storage backend.
 )
 
 def call_api() -> bool:
@@ -107,12 +106,11 @@ For example, rewrite `2) Example` to asynchronous:
 
 ```python
 import asyncio
-from throttled.asyncio import RateLimiterType, Throttled, rate_limiter, store, utils
+from throttled.asyncio import RateLimiterType, Throttled, rate_limiter, utils
 
 throttle = Throttled(
     using=RateLimiterType.TOKEN_BUCKET.value,
-    quota=rate_limiter.per_sec(1_000, burst=1_000),
-    store=store.MemoryStore(),
+    quota=rate_limiter.per_sec(1_000, burst=1_000)
 )
 
 
@@ -240,7 +238,7 @@ from throttled import RateLimiterType, Throttled, rate_limiter, store
     key="/api/products",
     using=RateLimiterType.TOKEN_BUCKET.value,
     quota=rate_limiter.per_min(1),
-    store=store.RedisStore(server="redis://127.0.0.1:6379/0", options={"PASSWORD": ""}),
+    store=store.RedisStore(server="redis://127.0.0.1:6379/0"),
 )
 def products() -> list:
     return [{"name": "iPhone"}, {"name": "MacBook"}]
@@ -281,13 +279,12 @@ The rate limiting algorithm is specified by the **`using`** parameter. The suppo
 * [Generic Cell Rate Algorithm, GCRA](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#25-gcra): `RateLimiterType.GCRA.value`
 
 ```python
-from throttled import RateLimiterType, Throttled, rate_limiter, store
+from throttled import RateLimiterType, Throttled, rate_limiter
 
 throttle = Throttled(
     # 🌟Specifying a current limiting algorithm
     using=RateLimiterType.FIXED_WINDOW.value, 
-    quota=rate_limiter.per_min(1),
-    store=store.MemoryStore()
+    quota=rate_limiter.per_min(1)
 )
 assert throttle.limit("key", 2).limited is True
 ```
@@ -377,10 +374,10 @@ Rate represents the rate limit configuration.
 
 #### Common Parameters
 
-| Param     | Description                     | Default                      |
-|-----------|---------------------------------|------------------------------|
-| `server`  | Redis connection URL            | `"redis://localhost:6379/0"` |
-| `options` | Storage-specific configurations | `{}`                         |
+| Param     | Description                                                                      | Default                      |
+|-----------|----------------------------------------------------------------------------------|------------------------------|
+| `server`  | Redis connection URL, you can use it to connect to Redis in any deployment mode. | `"redis://localhost:6379/0"` |
+| `options` | Storage-specific configurations                                                  | `{}`                         |
 
 #### RedisStore Options
 
@@ -388,18 +385,17 @@ RedisStore is developed based on the Redis API provided by [redis-py](https://gi
 
 In terms of Redis connection configuration management, the configuration naming of [django-redis](https://github.com/jazzband/django-redis) is basically used to reduce the learning cost.
 
-| Parameter                  | Description                                                                                                                                                    | Default                               |
-|----------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------|
-| `CONNECTION_FACTORY_CLASS` | ConnectionFactory is used to create and maintain [ConnectionPool](https://redis-py.readthedocs.io/en/stable/connections.html#redis.connection.ConnectionPool). | `"throttled.store.ConnectionFactory"` |
-| `CONNECTION_POOL_CLASS`    | ConnectionPool import path.                                                                                                                                    | `"redis.connection.ConnectionPool"`   |
-| `CONNECTION_POOL_KWARGS`   | [ConnectionPool construction parameters](https://redis-py.readthedocs.io/en/stable/connections.html#connectionpool).                                           | `{}`                                  |
-| `REDIS_CLIENT_CLASS`       | RedisClient import path, uses [redis.client.Redis](https://redis-py.readthedocs.io/en/stable/connections.html#redis.Redis) by default.                         | `"redis.client.Redis"`                |
-| `REDIS_CLIENT_KWARGS`      | [RedisClient construction parameters](https://redis-py.readthedocs.io/en/stable/connections.html#redis.Redis).                                                 | `{}`                                  |
-| `PASSWORD`                 | Password.                                                                                                                                                      | `null`                                |
-| `SOCKET_TIMEOUT`           | ConnectionPool parameters.                                                                                                                                     | `null`                                |
-| `SOCKET_CONNECT_TIMEOUT`   | ConnectionPool parameters.                                                                                                                                     | `null`                                |
-| `SENTINELS`                | `(host, port)` tuple list, for sentinel mode, please use `SentinelConnectionFactory` and provide this configuration.                                           | `[]`                                  |
-| `SENTINEL_KWARGS`          | [Sentinel construction parameters](https://redis-py.readthedocs.io/en/stable/connections.html#id1).                                                            | `{}`                                  |
+| Parameter                  | Description                                                  | Default                                                      |
+| -------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
+| `SOCKET_TIMEOUT`           | ConnectionPool parameters.                                   | `null`                                                       |
+| `SOCKET_CONNECT_TIMEOUT`   | ConnectionPool parameters.                                   | `null`                                                       |
+| `CONNECTION_POOL_KWARGS`   | [ConnectionPool construction parameters](https://redis.readthedocs.io/en/stable/connections.html#connectionpool). | `{}`                                                         |
+| `REDIS_CLIENT_KWARGS`      | [RedisClient construction parameters](https://redis.readthedocs.io/en/stable/connections.html#redis.Redis). | `{}`                                                         |
+| `SENTINEL_KWARGS`          | [Sentinel construction parameters](https://redis.readthedocs.io/en/stable/connections.html#id1). | `{}`                                                         |
+| `CONNECTION_FACTORY_CLASS` | ConnectionFactory is used to create and maintain [ConnectionPool](https://redis.readthedocs.io/en/stable/connections.html#redis.connection.ConnectionPool). | Automatically select via the `server` scheme by default. <br />Standalone: `"throttled.store.ConnectionFactory"` <br />Sentinel:`"throttled.store.SentinelConnectionFactory"` |
+| `REDIS_CLIENT_CLASS`       | RedisClient import path.                                     | Automatically select sync/async mode by default.<br />Sync: `"redis.client.Redis"`<br />Async: `"redis.asyncio.client.Redis"` |
+| `CONNECTION_POOL_CLASS`    | ConnectionPool import path.                                  | Automatically select via the `server` scheme and sync/async mode by default.<br />Sync(Standalone): `"redis.connection.ConnectionPool"`<br />Async(Standalone): `"redis.asyncio.connection.ConnectionPool"`<br />Sync(Sentinel): `"redis.sentinel.SentinelConnectionPool"`<br />Async(Sentinel): `"redis.asyncio.sentinel.SentinelConnectionPool"` |
+| `SENTINEL_CLASS`           | Sentinel import path.                                        | Automatically select sync/async mode by default.<br />Sync: `"redis.Sentinel"`<br />Async: `"redis.asyncio.Sentinel"` |
 
 #### MemoryStore Options
 
