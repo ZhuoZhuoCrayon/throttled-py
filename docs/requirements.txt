@@ -1,6 +1,6 @@
 sphinx
 sphinx-book-theme
-sphinx_thebe
-sphinx-inline-tabs
+sphinx-thebe
+sphinx-design
 sphinx-copybutton
 sphinx-autodoc-typehints

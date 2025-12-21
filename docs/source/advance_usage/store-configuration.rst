@@ -12,22 +12,25 @@ In terms of Redis connection configuration management, the configuration naming 
 `django-redis <https://github.com/jazzband/django-redis>`_ is basically used to reduce the learning cost.
 
 
-.. tab:: Sync
+.. tab-set::
 
-    .. code-block:: python
+    .. tab-item:: Sync
+        :sync: sync
 
-        from throttled import store
+        .. code-block:: python
 
-        store.RedisStore(server="redis://127.0.0.1:6379/0", options={})
+            from throttled import store
 
+            store.RedisStore(server="redis://127.0.0.1:6379/0", options={})
 
-.. tab:: Async
+    .. tab-item:: Async
+        :sync: async
 
-    .. code-block:: python
+        .. code-block:: python
 
-        from throttled.asyncio import store
+            from throttled.asyncio import store
 
-        store.RedisStore(server="redis://127.0.0.1:6379/0", options={})
+            store.RedisStore(server="redis://127.0.0.1:6379/0", options={})
 
 .. _store-configuration-redis-store-arguments:
 
@@ -115,21 +118,25 @@ Options
 `LRU Cache <https://en.wikipedia.org/wiki/Cache_replacement_policies#LRU>`_ with expiration time.
 
 
-.. tab:: Sync
+.. tab-set::
 
-    .. code-block:: python
+    .. tab-item:: Sync
+        :sync: sync
 
-        from throttled import store
+        .. code-block:: python
 
-        store.MemoryStore(options={"MAX_SIZE": 10240})
+            from throttled import store
 
-.. tab:: Async
+            store.MemoryStore(options={"MAX_SIZE": 10240})
 
-    .. code-block:: python
+    .. tab-item:: Async
+        :sync: async
 
-        from throttled.asyncio import store
+        .. code-block:: python
 
-        store.MemoryStore(options={"MAX_SIZE": 10240})
+            from throttled.asyncio import store
+
+            store.MemoryStore(options={"MAX_SIZE": 10240})
 
 .. _store-configuration-memory-store-arguments:
 

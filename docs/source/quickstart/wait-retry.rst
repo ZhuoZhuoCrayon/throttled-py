@@ -12,32 +12,38 @@ To enable wait-and-retry behavior, you can use the ``timeout`` parameter.
 In the :doc:`Function Call </quickstart/function-call>` mode will return
 the last retried :class:`RateLimitResult <throttled.RateLimitResult>`:
 
-.. tab:: Sync
+.. tab-set::
 
-    .. literalinclude:: ../../../examples/quickstart/wait_retry_function_call_example.py
-       :language: python
+    .. tab-item:: Sync
+        :sync: sync
 
+        .. literalinclude:: ../../../examples/quickstart/wait_retry_function_call_example.py
+           :language: python
 
-.. tab:: Async
+    .. tab-item:: Async
+        :sync: async
 
-    .. literalinclude:: ../../../examples/quickstart/async/wait_retry_function_call_example.py
-       :language: python
+        .. literalinclude:: ../../../examples/quickstart/async/wait_retry_function_call_example.py
+           :language: python
 
 
 
 In the :doc:`Decorator </quickstart/decorator>` and :doc:`Context Manager </quickstart/context-manager>` modes,
 :class:`LimitedError <throttled.exceptions.LimitedError>` will be raised if the request is not allowed after the timeout:
 
-.. tab:: Sync
+.. tab-set::
 
-    .. literalinclude:: ../../../examples/quickstart/wait_retry_example.py
-       :language: python
+    .. tab-item:: Sync
+        :sync: sync
 
+        .. literalinclude:: ../../../examples/quickstart/wait_retry_example.py
+           :language: python
 
-.. tab:: Async
+    .. tab-item:: Async
+        :sync: async
 
-    .. literalinclude:: ../../../examples/quickstart/async/wait_retry_example.py
-       :language: python
+        .. literalinclude:: ../../../examples/quickstart/async/wait_retry_example.py
+           :language: python
 
 In the above example, ``per_sec(2, burst=2)`` means allows 2 requests per second, and allows
 2 burst requests (Bucket's capacity). In other words, :class:`Throttled <throttled.Throttled>` will consume the burst after 2 requests.
@@ -62,13 +68,16 @@ immediately, and the 3 requests will be filled in the subsequent 1.5s):
 through the following example:
 
 
-.. tab:: Sync
+.. tab-set::
 
-    .. literalinclude:: ../../../examples/quickstart/wait_retry_concurrent_example.py
-       :language: python
+    .. tab-item:: Sync
+        :sync: sync
 
+        .. literalinclude:: ../../../examples/quickstart/wait_retry_concurrent_example.py
+           :language: python
 
-.. tab:: Async
+    .. tab-item:: Async
+        :sync: async
 
-    .. literalinclude:: ../../../examples/quickstart/async/wait_retry_concurrent_example.py
-       :language: python
+        .. literalinclude:: ../../../examples/quickstart/async/wait_retry_concurrent_example.py
+           :language: python

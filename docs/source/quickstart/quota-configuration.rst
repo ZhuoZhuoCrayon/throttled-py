@@ -10,30 +10,34 @@ Quota Configuration
 
 ``throttled-py`` provides quick functions to configure common time-based :class:`Quota <throttled.rate_limiter.Quota>`.
 
-.. tab:: Sync
+.. tab-set::
 
-    .. code-block:: python
+    .. tab-item:: Sync
+        :sync: sync
 
-        from throttled import rate_limiter
+        .. code-block:: python
 
-        rate_limiter.per_sec(60)    # 60 req/sec
-        rate_limiter.per_min(60)    # 60 req/min
-        rate_limiter.per_hour(60)   # 60 req/hour
-        rate_limiter.per_day(60)    # 60 req/day
-        rate_limiter.per_week(60)   # 60 req/week
+            from throttled import rate_limiter
+
+            rate_limiter.per_sec(60)    # 60 req/sec
+            rate_limiter.per_min(60)    # 60 req/min
+            rate_limiter.per_hour(60)   # 60 req/hour
+            rate_limiter.per_day(60)    # 60 req/day
+            rate_limiter.per_week(60)   # 60 req/week
 
 
-.. tab:: Async
+    .. tab-item:: Async
+        :sync: async
 
-    .. code-block:: python
+        .. code-block:: python
 
-        from throttled.asyncio import rate_limiter
+            from throttled.asyncio import rate_limiter
 
-        rate_limiter.per_sec(60)    # 60 req/sec
-        rate_limiter.per_min(60)    # 60 req/min
-        rate_limiter.per_hour(60)   # 60 req/hour
-        rate_limiter.per_day(60)    # 60 req/day
-        rate_limiter.per_week(60)   # 60 req/week
+            rate_limiter.per_sec(60)    # 60 req/sec
+            rate_limiter.per_min(60)    # 60 req/min
+            rate_limiter.per_hour(60)   # 60 req/hour
+            rate_limiter.per_day(60)    # 60 req/day
+            rate_limiter.per_week(60)   # 60 req/week
 
 
 2) Custom Quota
@@ -42,26 +46,30 @@ Quota Configuration
 If the quick configuration does not meet your needs, you can customize the :class:`Quota <throttled.rate_limiter.Quota>`
 through the :py:meth:`per_duration <throttled.rate_limiter.per_duration>` method:
 
-.. tab:: Sync
+.. tab-set::
 
-    .. code-block:: python
+    .. tab-item:: Sync
+        :sync: sync
 
-        from datetime import timedelta
-        from throttled import rate_limiter
+        .. code-block:: python
 
-        # A total of 120 requests are allowed in two minutes, and a burst of 150 requests is allowed.
-        rate_limiter.per_duration(timedelta(minutes=2), limit=120, burst=150)
+            from datetime import timedelta
+            from throttled import rate_limiter
+
+            # A total of 120 requests are allowed in two minutes, and a burst of 150 requests is allowed.
+            rate_limiter.per_duration(timedelta(minutes=2), limit=120, burst=150)
 
 
-.. tab:: Async
+    .. tab-item:: Async
+        :sync: async
 
-    .. code-block:: python
+        .. code-block:: python
 
-        from datetime import timedelta
-        from throttled.asyncio import rate_limiter
+            from datetime import timedelta
+            from throttled.asyncio import rate_limiter
 
-        # A total of 120 requests are allowed in two minutes, and a burst of 150 requests is allowed.
-        rate_limiter.per_duration(timedelta(minutes=2), limit=120, burst=150)
+            # A total of 120 requests are allowed in two minutes, and a burst of 150 requests is allowed.
+            rate_limiter.per_duration(timedelta(minutes=2), limit=120, burst=150)
 
 
 3) Burst Capacity
@@ -76,23 +84,27 @@ This is valid for the following algorithms:
 * ``LEAKING_BUCKET``
 * ``GCRA``
 
-.. tab:: Sync
+.. tab-set::
 
-    .. code-block:: python
+    .. tab-item:: Sync
+        :sync: sync
 
-        from throttled import rate_limiter
+        .. code-block:: python
 
-        # Allow 120 burst requests.
-        # When burst is not specified, the default setting is the limit passed in.
-        rate_limiter.per_min(60, burst=120)
+            from throttled import rate_limiter
+
+            # Allow 120 burst requests.
+            # When burst is not specified, the default setting is the limit passed in.
+            rate_limiter.per_min(60, burst=120)
 
 
-.. tab:: Async
+    .. tab-item:: Async
+        :sync: async
 
-    .. code-block:: python
+        .. code-block:: python
 
-        from throttled.asyncio import rate_limiter
+            from throttled.asyncio import rate_limiter
 
-        # Allow 120 burst requests.
-        # When burst is not specified, the default setting is the limit passed in.
-        rate_limiter.per_min(60, burst=120)
+            # Allow 120 burst requests.
+            # When burst is not specified, the default setting is the limit passed in.
+            rate_limiter.per_min(60, burst=120)

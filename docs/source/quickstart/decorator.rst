@@ -8,13 +8,16 @@ the request is allowed before the wrapped function call.
 
 If the request is not allowed, it will raise :class:`LimitedError <throttled.exceptions.LimitedError>`.
 
-.. tab:: Sync
+.. tab-set::
 
-    .. literalinclude:: ../../../examples/quickstart/decorator_example.py
-       :language: python
+    .. tab-item:: Sync
+        :sync: sync
 
+        .. literalinclude:: ../../../examples/quickstart/decorator_example.py
+           :language: python
 
-.. tab:: Async
+    .. tab-item:: Async
+        :sync: async
 
-    .. literalinclude:: ../../../examples/quickstart/async/decorator_example.py
-       :language: python
+        .. literalinclude:: ../../../examples/quickstart/async/decorator_example.py
+           :language: python

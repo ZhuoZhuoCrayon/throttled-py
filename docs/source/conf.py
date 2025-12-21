@@ -54,7 +54,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx_autodoc_typehints",
     "sphinx_thebe",
-    "sphinx_inline_tabs",
+    "sphinx_design",
     "sphinx_copybutton",
 ]
 

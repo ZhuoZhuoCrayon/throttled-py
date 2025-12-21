@@ -58,9 +58,9 @@ docs = [
     "sphinx",
     "sphinx-book-theme",
     "sphinx_thebe",
-    "sphinx-inline-tabs",
     "sphinx-copybutton",
-    "sphinx-autodoc-typehints"
+    "sphinx-autodoc-typehints",
+    "sphinx-design>=0.6.1",
 ]
 all = [
     { include-group = "dev" },

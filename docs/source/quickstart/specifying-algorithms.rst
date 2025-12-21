@@ -13,13 +13,16 @@ The supported algorithms are as follows:
 * `Leaky Bucket <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#24-%E6%BC%8F%E6%A1%B6>`_: ``RateLimiterType.LEAKING_BUCKET.value``
 * `Generic Cell Rate Algorithm, GCRA <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#25-gcra>`_: ``RateLimiterType.GCRA.value``
 
-.. tab:: Sync
+.. tab-set::
 
-    .. literalinclude:: ../../../examples/quickstart/using_algorithm_example.py
-       :language: python
+    .. tab-item:: Sync
+        :sync: sync
 
+        .. literalinclude:: ../../../examples/quickstart/using_algorithm_example.py
+           :language: python
 
-.. tab:: Async
+    .. tab-item:: Async
+        :sync: async
 
-    .. literalinclude:: ../../../examples/quickstart/async/using_algorithm_example.py
-       :language: python
+        .. literalinclude:: ../../../examples/quickstart/async/using_algorithm_example.py
+           :language: python
