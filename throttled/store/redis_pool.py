@@ -26,7 +26,7 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import abc
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
+from typing import TYPE_CHECKING, Any
 from urllib.parse import ParseResult, ParseResultBytes, parse_qs, urlparse
 
 from ..exceptions import SetUpError
@@ -38,70 +38,67 @@ if TYPE_CHECKING:
     from redis.asyncio.connection import DefaultParser as AsyncDefaultParser
     from redis.connection import DefaultParser as SyncDefaultParser
 
-    ConnectionPool = Union[redis.ConnectionPool, aioredis.ConnectionPool]
-    Redis = Union[redis.Redis, aioredis.Redis]
-    Sentinel = Union[redis.Sentinel, aioredis.Sentinel]
-    DefaultParser = Union[SyncDefaultParser, AsyncDefaultParser]
+    ConnectionPool = redis.ConnectionPool | aioredis.ConnectionPool
+    Redis = redis.Redis | aioredis.Redis
+    Sentinel = redis.Sentinel | aioredis.Sentinel
+    DefaultParser = SyncDefaultParser | AsyncDefaultParser
 
 
 class BaseConnectionFactory(abc.ABC):
     """Base connection factory."""
 
-    _pools: Dict[str, "ConnectionPool"] = {}
+    _pools: dict[str, "ConnectionPool"] = {}
 
-    def __init__(self, options: Dict[str, Any]):
+    def __init__(self, options: dict[str, Any]):
         pool_cls_path: str = options.get("CONNECTION_POOL_CLASS", "redis.ConnectionPool")
         try:
-            self.pool_cls: Type[ConnectionPool] = import_string(pool_cls_path)
+            self.pool_cls: type[ConnectionPool] = import_string(pool_cls_path)
         except ImportError:
             raise ImportError(
                 f"Could not import connection pool class '{pool_cls_path}', "
                 f"possible reasons are: \n- The module does not exist.\n"
                 f"- Redis storage backend requires extra dependencies, "
                 f'please install with `pip install "throttled-py[redis]"`.'
-            )
+            ) from None
 
-        self.pool_cls_kwargs: Dict[str, Any] = options.get("CONNECTION_POOL_KWARGS", {})
+        self.pool_cls_kwargs: dict[str, Any] = options.get("CONNECTION_POOL_KWARGS", {})
 
         self.redis_client_cls_path: str = options.get(
             "REDIS_CLIENT_CLASS", "redis.Redis"
         )
-        self.redis_client_cls: Type[Redis] = import_string(self.redis_client_cls_path)
-        self.redis_client_cls_kwargs: Dict[str, Any] = options.get(
+        self.redis_client_cls: type[Redis] = import_string(self.redis_client_cls_path)
+        self.redis_client_cls_kwargs: dict[str, Any] = options.get(
             "REDIS_CLIENT_KWARGS", {}
         )
 
         parser_cls_path: str = options.get(
             "PARSER_CLASS", "redis.connection.DefaultParser"
         )
-        self.parser_cls: Type[DefaultParser] = import_string(parser_cls_path)
+        self.parser_cls: type[DefaultParser] = import_string(parser_cls_path)
 
-        self.options: Dict[str, Any] = options
+        self.options: dict[str, Any] = options
 
     @abc.abstractmethod
-    def make_connection_params(self, url: str = None) -> Dict[str, Any]:
-        """Given a main connection parameters, build a complete dict of
-        connection parameters.
-        """
+    def make_connection_params(self, url: str = None) -> dict[str, Any]:
+        """Build a complete dict of connection parameters."""
         raise NotImplementedError
 
     @abc.abstractmethod
-    def connect(self, url: Optional[str] = None) -> "Redis":
+    def connect(self, url: str | None = None) -> "Redis":
         """Given a basic connection parameters, return a new connection."""
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_connection(self, params: Dict[str, Any]) -> "Redis":
+    def get_connection(self, params: dict[str, Any]) -> "Redis":
         """Given a now preformatted params, return a new connection.
+
         The default implementation uses a cached pools for create new connection.
         """
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_or_create_connection_pool(self, params: Dict[str, Any]) -> "ConnectionPool":
-        """
-        Given a connection parameters and return a new
-        or cached connection pool for them.
+    def get_or_create_connection_pool(self, params: dict[str, Any]) -> "ConnectionPool":
+        """Return a new or cached connection pool for the given parameters.
 
         Implement this method if you want distinct
         connection pool instance caching behavior.
@@ -109,9 +106,9 @@ class BaseConnectionFactory(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_connection_pool(self, params: Dict[str, Any]) -> "ConnectionPool":
-        """
-        Given a connection parameters, return a new connection pool for them.
+    def get_connection_pool(self, params: dict[str, Any]) -> "ConnectionPool":
+        """Given a connection parameters, return a new connection pool for them.
+
         Implement this method if you want a custom behavior on creating connection pool.
         """
         raise NotImplementedError
@@ -119,36 +116,37 @@ class BaseConnectionFactory(abc.ABC):
 
 class ConnectionFactory(BaseConnectionFactory):
     """Store connection pool by backend options.
+
     _pools is a process-global, as otherwise _pools is cleared every time.
     """
 
     DEFAULT_URL: str = "redis://localhost:6379/0"
 
-    def make_connection_params(self, url: Optional[str] = None) -> Dict[str, Any]:
-        kwargs: Dict[str, Any] = {
+    def make_connection_params(self, url: str | None = None) -> dict[str, Any]:
+        kwargs: dict[str, Any] = {
             "url": url or self.DEFAULT_URL,
             "parser_class": self.parser_cls,
         }
-        password: Optional[str] = self.options.get("PASSWORD", None)
+        password: str | None = self.options.get("PASSWORD", None)
         if password:
             kwargs["password"] = password
 
         socket_timeout: Any = self.options.get("SOCKET_TIMEOUT", None)
         if socket_timeout:
-            if not isinstance(socket_timeout, (int, float)):
+            if not isinstance(socket_timeout, int | float):
                 raise SetUpError("Socket timeout should be float or integer")
             kwargs["socket_timeout"] = socket_timeout
 
         socket_connect_timeout: Any = self.options.get("SOCKET_CONNECT_TIMEOUT", None)
         if socket_connect_timeout:
-            if not isinstance(socket_connect_timeout, (int, float)):
+            if not isinstance(socket_connect_timeout, int | float):
                 raise SetUpError("Socket connect timeout should be float or integer")
             kwargs["socket_connect_timeout"] = socket_connect_timeout
 
         return kwargs
 
-    def connect(self, url: Optional[str] = None) -> "Redis":
-        params: Dict[str, Any] = self.make_connection_params(url)
+    def connect(self, url: str | None = None) -> "Redis":
+        params: dict[str, Any] = self.make_connection_params(url)
         return self.get_connection(params)
 
     def get_connection(self, params) -> "Redis":
@@ -157,11 +155,8 @@ class ConnectionFactory(BaseConnectionFactory):
             connection_pool=pool, **self.redis_client_cls_kwargs
         )
 
-    def get_or_create_connection_pool(self, params: Dict[str, Any]) -> "ConnectionPool":
-        """Given a connection parameters and return a new
-        or cached connection pool for them.
-        """
-
+    def get_or_create_connection_pool(self, params: dict[str, Any]) -> "ConnectionPool":
+        """Return a new or cached connection pool for the given parameters."""
         # Use redis client class path as part of the key, to avoid collisions
         # between different connection pool classes, e.g. Redis vs asyncio.Redis.
         key: str = f"{self.redis_client_cls_path}:{params['url']}"
@@ -172,25 +167,27 @@ class ConnectionFactory(BaseConnectionFactory):
             self._pools[key] = self.get_connection_pool(params)
         return self._pools[key]
 
-    def get_connection_pool(self, params: Dict[str, Any]) -> "ConnectionPool":
-        cp_params: Dict[str, Any] = dict(params)
+    def get_connection_pool(self, params: dict[str, Any]) -> "ConnectionPool":
+        cp_params: dict[str, Any] = dict(params)
         cp_params.update(self.pool_cls_kwargs)
         pool: ConnectionPool = self.pool_cls.from_url(**cp_params)
 
         if pool.connection_kwargs.get("password", None) is None:
-            pool.connection_kwargs["password"] = params.get("password", None)
+            pool.connection_kwargs["password"] = params.get("password")
             pool.reset()
 
         return pool
 
 
 class SentinelConnectionFactory(ConnectionFactory):
+    """Connection factory for Redis Sentinel."""
+
     def __init__(self, options):
         # allow overriding the default SentinelConnectionPool class
         options.setdefault("CONNECTION_POOL_CLASS", "redis.SentinelConnectionPool")
         super().__init__(options)
 
-        sentinels: List[Tuple[str, Union[str, int]]] = options.get("SENTINELS")
+        sentinels: list[tuple[str, str | int]] = options.get("SENTINELS")
         if not sentinels:
             raise SetUpError("SENTINELS must be provided as a list of (host, port).")
 
@@ -199,27 +196,28 @@ class SentinelConnectionFactory(ConnectionFactory):
         connection_kwargs = self.make_connection_params(None)
         connection_kwargs.pop("url")
         connection_kwargs.update(self.pool_cls_kwargs)
-        sentinel_cls: Type[Sentinel] = import_string("redis.Sentinel")
+
+        sentinel_cls_path: str = options.get("SENTINEL_CLASS", "redis.Sentinel")
+        sentinel_cls: type[Sentinel] = import_string(sentinel_cls_path)
         self._sentinel: Sentinel = sentinel_cls(
             sentinels,
             sentinel_kwargs=options.get("SENTINEL_KWARGS"),
             **connection_kwargs,
         )
 
-    def get_connection_pool(self, params: Dict[str, Any]) -> "ConnectionPool":
-        """Given a connection parameters, return a new sentinel connection
-        pool for them."""
-        url: Union[ParseResult, ParseResultBytes] = urlparse(params["url"])
+    def get_connection_pool(self, params: dict[str, Any]) -> "ConnectionPool":
+        """Return a new sentinel connection pool for the given parameters."""
+        url: ParseResult | ParseResultBytes = urlparse(params["url"])
 
         # explicitly set service_name and sentinel_manager for the
         # SentinelConnectionPool constructor since will be called by from_url.
-        cp_params: Dict[str, Any] = dict(params)
+        cp_params: dict[str, Any] = dict(params)
         cp_params.update(service_name=url.hostname, sentinel_manager=self._sentinel)
         pool: ConnectionPool = super().get_connection_pool(cp_params)
 
         # convert "is_master" to a boolean if set on the URL, otherwise if not
         # provided it defaults to True.
-        is_master: Optional[str] = parse_qs(url.query).get("is_master")
+        is_master: str | None = parse_qs(url.query).get("is_master")
         if is_master:
             pool.is_master = to_bool(is_master[0])
 
@@ -227,11 +225,10 @@ class SentinelConnectionFactory(ConnectionFactory):
 
 
 def get_connection_factory(
-    path: Optional[str] = None, options: Optional[Dict[str, Any]] = None
+    path: str | None = None, options: dict[str, Any] | None = None
 ) -> BaseConnectionFactory:
-    """Given a ConnectionFactory class path and options,
-    return a ConnectionFactory instance."""
+    """Return a ConnectionFactory instance given a class path and options."""
     # TODO read from env.
     default_path: str = "throttled.store.ConnectionFactory"
-    cls: Type[BaseConnectionFactory] = import_string(path or default_path)
+    cls: type[BaseConnectionFactory] = import_string(path or default_path)
     return cls(options or {})

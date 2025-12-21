@@ -1,14 +1,13 @@
 import asyncio
 
-from throttled.asyncio import RateLimiterType, Throttled, rate_limiter, store, utils
+from throttled.asyncio import RateLimiterType, Throttled, rate_limiter, utils
 
 throttle = Throttled(
     # 📈 Use Token Bucket algorithm
     using=RateLimiterType.TOKEN_BUCKET.value,
     # 🪣 Set quota: 1,000 tokens per second (limit), bucket size 1,000 (burst)
     quota=rate_limiter.per_sec(1_000, burst=1_000),
-    # 📁 Use In-Memory storage
-    store=store.MemoryStore(),
+    # 📁 By default, global MemoryStore is used as the storage backend.
 )
 
 

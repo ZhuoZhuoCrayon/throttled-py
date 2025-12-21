@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Type
+from typing import Any
 
 from ... import constants, store, utils
 from ...exceptions import DataError
@@ -9,17 +9,25 @@ from . import BaseStore
 class RedisStoreBackend(store.RedisStoreBackend):
     """Backend for Async RedisStore."""
 
-    def __init__(
-        self, server: Optional[str] = None, options: Optional[Dict[str, Any]] = None
-    ):
-        options = options or {}
-        # Set default options for asyncio Redis.
+    @classmethod
+    def _set_options(cls, options: dict[str, Any]):
+        super()._set_options(options)
         options.setdefault("REUSE_CONNECTION", False)
-        options.setdefault("CONNECTION_POOL_CLASS", "redis.asyncio.ConnectionPool")
         options.setdefault("REDIS_CLIENT_CLASS", "redis.asyncio.Redis")
         options.setdefault("PARSER_CLASS", "redis.asyncio.connection.DefaultParser")
 
-        super().__init__(server, options)
+    @classmethod
+    def _set_sentinel_options(cls, options: dict[str, Any]):
+        super()._set_sentinel_options(options)
+        options.setdefault("SENTINEL_CLASS", "redis.asyncio.Sentinel")
+        options.setdefault(
+            "CONNECTION_POOL_CLASS", "redis.asyncio.SentinelConnectionPool"
+        )
+
+    @classmethod
+    def _set_standalone_options(cls, options: dict[str, Any]):
+        super()._set_standalone_options(options)
+        options.setdefault("CONNECTION_POOL_CLASS", "redis.asyncio.ConnectionPool")
 
 
 class RedisStore(BaseStore):
@@ -27,11 +35,9 @@ class RedisStore(BaseStore):
 
     TYPE: str = constants.StoreType.REDIS.value
 
-    _BACKEND_CLASS: Type[RedisStoreBackend] = RedisStoreBackend
+    _BACKEND_CLASS: type[RedisStoreBackend] = RedisStoreBackend
 
-    def __init__(
-        self, server: Optional[str] = None, options: Optional[Dict[str, Any]] = None
-    ):
+    def __init__(self, server: str | None = None, options: dict[str, Any] | None = None):
         super().__init__(server, options)
         self._backend: RedisStoreBackend = self._BACKEND_CLASS(server, options)
 
@@ -49,8 +55,8 @@ class RedisStore(BaseStore):
         self._validate_timeout(timeout)
         await self._backend.get_client().set(key, value, ex=timeout)
 
-    async def get(self, key: KeyT) -> Optional[StoreValueT]:
-        value: Optional[StoreValueT] = await self._backend.get_client().get(key)
+    async def get(self, key: KeyT) -> StoreValueT | None:
+        value: StoreValueT | None = await self._backend.get_client().get(key)
         if value is None:
             return None
 
@@ -59,9 +65,9 @@ class RedisStore(BaseStore):
     async def hset(
         self,
         name: KeyT,
-        key: Optional[KeyT] = None,
-        value: Optional[StoreValueT] = None,
-        mapping: Optional[StoreDictValueT] = None,
+        key: KeyT | None = None,
+        value: StoreValueT | None = None,
+        mapping: StoreDictValueT | None = None,
     ) -> None:
         if key is None and not mapping:
             raise DataError("hset must with key value pairs")
@@ -70,5 +76,5 @@ class RedisStore(BaseStore):
     async def hgetall(self, name: KeyT) -> StoreDictValueT:
         return utils.format_kv(await self._backend.get_client().hgetall(name))
 
-    def make_atomic(self, action_cls: Type[AtomicActionP]) -> AtomicActionP:
+    def make_atomic(self, action_cls: type[AtomicActionP]) -> AtomicActionP:
         return action_cls(backend=self._backend)

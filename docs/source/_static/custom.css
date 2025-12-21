@@ -92,3 +92,14 @@ dl[class]:not(.option-list,.field-list,.footnote,.glossary,.simple) {
 .dark-theme b {
     color: #EBCB8B;
 }
+
+/* Adjust row spacing for list-table */
+article table td, article table th {
+    padding-top: 0.2rem !important;
+    padding-bottom: 0.2rem !important;
+}
+
+article table td p, article table th p {
+    margin-bottom: 0.5rem !important;
+}
+
