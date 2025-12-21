@@ -8,13 +8,16 @@ When access is allowed, return :class:`RateLimitResult <throttled.RateLimitResul
 If the limit is exceeded or the retry timeout is exceeded,
 it will raise :class:`LimitedError <throttled.exceptions.LimitedError>`.
 
-.. tab:: Sync
+.. tab-set::
 
-    .. literalinclude:: ../../../examples/quickstart/context_manager_example.py
-       :language: python
+    .. tab-item:: Sync
+        :sync: sync
 
+        .. literalinclude:: ../../../examples/quickstart/context_manager_example.py
+           :language: python
 
-.. tab:: Async
+    .. tab-item:: Async
+        :sync: async
 
-    .. literalinclude:: ../../../examples/quickstart/async/context_manager_example.py
-       :language: python
+        .. literalinclude:: ../../../examples/quickstart/async/context_manager_example.py
+           :language: python

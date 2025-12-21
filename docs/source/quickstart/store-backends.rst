@@ -15,16 +15,19 @@ By default, :class:`Throttled <throttled.Throttled>` will initialize a global
 :class:`MemoryStore <throttled.store.MemoryStore>` instance with maximum capacity of 1024,
 so **you don't usually need to create it manually.**
 
-.. tab:: Sync
+.. tab-set::
 
-    .. literalinclude:: ../../../examples/quickstart/global_memory_example.py
-       :language: python
+    .. tab-item:: Sync
+        :sync: sync
 
+        .. literalinclude:: ../../../examples/quickstart/global_memory_example.py
+           :language: python
 
-.. tab:: Async
+    .. tab-item:: Async
+        :sync: async
 
-    .. literalinclude:: ../../../examples/quickstart/async/global_memory_example.py
-       :language: python
+        .. literalinclude:: ../../../examples/quickstart/async/global_memory_example.py
+           :language: python
 
 
 Also note that ``throttled.store.MemoryStore`` and ``throttled.asyncio.store.MemoryStore`` are implemented based on
@@ -39,16 +42,19 @@ in your program, **make sure that** :class:`Throttled <throttled.Throttled>` **r
 The following example uses :class:`MemoryStore <throttled.store.MemoryStore>` as the storage backend and
 throttles the same Key on ping and pong:
 
-.. tab:: Sync
+.. tab-set::
 
-    .. literalinclude:: ../../../examples/quickstart/memory_example.py
-       :language: python
+    .. tab-item:: Sync
+        :sync: sync
 
+        .. literalinclude:: ../../../examples/quickstart/memory_example.py
+           :language: python
 
-.. tab:: Async
+    .. tab-item:: Async
+        :sync: async
 
-    .. literalinclude:: ../../../examples/quickstart/async/memory_example.py
-       :language: python
+        .. literalinclude:: ../../../examples/quickstart/async/memory_example.py
+           :language: python
 
 
 .. _store-backends-redis:
@@ -88,16 +94,19 @@ For example:
     rediss://[[username]:[password]@]localhost:6379/0
     unix://[username@]/path/to/socket.sock?db=0[&password=password]
 
-.. tab:: Sync
+.. tab-set::
 
-    .. literalinclude:: ../../../examples/quickstart/redis_example.py
-       :language: python
+    .. tab-item:: Sync
+        :sync: sync
 
+        .. literalinclude:: ../../../examples/quickstart/redis_example.py
+           :language: python
 
-.. tab:: Async
+    .. tab-item:: Async
+        :sync: async
 
-    .. literalinclude:: ../../../examples/quickstart/async/redis_example.py
-       :language: python
+        .. literalinclude:: ../../../examples/quickstart/async/redis_example.py
+           :language: python
 
 2.2) Sentinel
 -----------------------------
@@ -117,16 +126,19 @@ It is also easy to use :class:`RedisStore <throttled.store.RedisStore>` with Red
 * service_name: ``[Optional]`` Name of the master service monitored by Sentinel, default is ``mymaster``.
 
 
-.. tab:: Sync
+.. tab-set::
 
-    .. literalinclude:: ../../../examples/quickstart/redis_sentinel_example.py
-       :language: python
+    .. tab-item:: Sync
+        :sync: sync
 
+        .. literalinclude:: ../../../examples/quickstart/redis_sentinel_example.py
+           :language: python
 
-.. tab:: Async
+    .. tab-item:: Async
+        :sync: async
 
-    .. literalinclude:: ../../../examples/quickstart/async/redis_sentinel_example.py
-       :language: python
+        .. literalinclude:: ../../../examples/quickstart/async/redis_sentinel_example.py
+           :language: python
 
 
 3) References

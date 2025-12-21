@@ -20,13 +20,16 @@ which will also return a :class:`RateLimitState <throttled.RateLimitState>` obje
 
 The following example will guide you through the basic usage of :class:`Throttled <throttled.Throttled>`:
 
-.. tab:: Sync
+.. tab-set::
 
-    .. literalinclude:: ../../../examples/quickstart/function_call_example.py
-       :language: python
+    .. tab-item:: Sync
+        :sync: sync
 
+        .. literalinclude:: ../../../examples/quickstart/function_call_example.py
+           :language: python
 
-.. tab:: Async
+    .. tab-item:: Async
+        :sync: async
 
-    .. literalinclude:: ../../../examples/quickstart/async/function_call_example.py
-       :language: python
+        .. literalinclude:: ../../../examples/quickstart/async/function_call_example.py
+           :language: python

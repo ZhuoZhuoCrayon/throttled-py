@@ -20,16 +20,19 @@ Just replace ``from throttled import ...`` with ``from throttled.asyncio import 
 3) Example
 =================
 
-.. tab:: Sync
+.. tab-set::
 
-    .. literalinclude:: ../../../examples/quickstart/quickstart_example.py
-       :language: python
+    .. tab-item:: Sync
+        :sync: sync
 
+        .. literalinclude:: ../../../examples/quickstart/quickstart_example.py
+           :language: python
 
-.. tab:: Async
+    .. tab-item:: Async
+        :sync: async
 
-    .. literalinclude:: ../../../examples/quickstart/async/quickstart_example.py
-       :language: python
+        .. literalinclude:: ../../../examples/quickstart/async/quickstart_example.py
+           :language: python
 
 
 4) Contents
