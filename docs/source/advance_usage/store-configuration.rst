@@ -42,7 +42,7 @@ Arguments
      - Description
      - Default
    * - ``server``
-     - Standard Redis URL, you can use it to connect to Redis in any deployment mode，see :ref:`Store Backends <store-backend-redis-standalone>`.
+     - Standard Redis URL, you can use it to connect to Redis in any deployment mode, see :ref:`Store Backends <store-backend-redis-standalone>`.
      - ``"redis://localhost:6379/0"``
    * - ``options``
      - <Options>

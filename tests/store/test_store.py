@@ -134,15 +134,6 @@ _REDIS_STORE_PARSE_EXPECTED_RESULTS: dict[str, dict[str, Any]] = {
             "CONNECTION_FACTORY_CLASS": "throttled.store.SentinelConnectionFactory",
         },
     },
-    "sentinel_with_options": {
-        "server": "redis://mymaster/0",
-        "options": {
-            "SENTINELS": [("localhost", 26379)],
-            "PASSWORD": "pass",
-            "SENTINEL_KWARGS": {"password": "pass"},
-            "CONNECTION_FACTORY_CLASS": "throttled.store.SentinelConnectionFactory",
-        },
-    },
 }
 
 

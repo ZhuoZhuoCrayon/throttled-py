@@ -43,11 +43,9 @@ class RedisStoreBackend(BaseStoreBackend):
             cls._set_standalone_options(options)
             return server, options
 
-        options: dict[str, Any] = copy.deepcopy(options)
         if server.startswith("redis+sentinel://"):
-            parsed = urllib.parse.urlparse(server)
-
             auth_info: dict[str, str] = {}
+            parsed = urllib.parse.urlparse(server)
             if parsed.username:
                 auth_info["username"] = parsed.username
             if parsed.password:
@@ -67,7 +65,7 @@ class RedisStoreBackend(BaseStoreBackend):
                 sentinel_tuple: list[str] = sentinel.rsplit(":", 1)
                 host: str = sentinel_tuple[0]
                 port: int = 26379 if len(sentinel_tuple) == 1 else int(sentinel_tuple[1])
-                options.setdefault("SENTINELS", []).append((host, int(port)))
+                options.setdefault("SENTINELS", []).append((host, port))
 
             cls._set_sentinel_options(options)
 
@@ -113,7 +111,7 @@ class RedisStore(BaseStore):
         """Initialize RedisStore.
 
         :param server: Redis Standard Redis URL, you can use it
-            to connect to Redis in any deployment mode，
+            to connect to Redis in any deployment mode,
             see :ref:`Store Backends <store-backend-redis-standalone>`.
         :param options: Redis connection configuration, supports all
             configuration item of `redis-py <https://github.com/redis/redis-py>`_,
