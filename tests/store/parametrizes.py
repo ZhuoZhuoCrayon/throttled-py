@@ -145,6 +145,14 @@ REDIS_STORE_PARSE_INPUTS: dict[str, dict[str, Any]] = {
         "server": "redis+sentinel://user:pass@localhost:26379/mymaster",
         "options": None,
     },
+    "cluster": {
+        "server": "redis+cluster://c1:7000,c2:7000,c3:7000",
+        "options": None,
+    },
+    "cluster_with_auth": {
+        "server": "redis+cluster://user:pass@c1:7000",
+        "options": None,
+    },
 }
 
 

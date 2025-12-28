@@ -84,13 +84,18 @@ Options
 
        Standalone: ``"throttled.store.ConnectionFactory"``
        Sentinel: ``"throttled.store.SentinelConnectionFactory"``
+       Cluster: ``"throttled.store.ClusterConnectionFactory"``
    * - ``REDIS_CLIENT_CLASS``
      - RedisClient import path.
      - Automatically select sync/async mode by default.
 
-       Sync: ``"redis.client.Redis"``
+       Sync(Standalone/Sentinel): ``"redis.client.Redis"``
 
-       Async: ``"redis.asyncio.client.Redis"``
+       Async(Standalone/Sentinel): ``"redis.asyncio.client.Redis"``
+
+       Sync(Cluster): ``"redis.cluster.RedisCluster"``
+
+       Async(Cluster): ``"redis.asyncio.cluster.RedisCluster"``
    * - ``CONNECTION_POOL_CLASS``
      - ConnectionPool import path.
      - Automatically select via the ``server`` scheme and sync/async mode by default.
@@ -102,6 +107,9 @@ Options
        Sync(Sentinel): ``"redis.sentinel.SentinelConnectionPool"``
 
        Async(Sentinel): ``"redis.asyncio.sentinel.SentinelConnectionPool"``
+
+       Cluster: `"Disabled"`
+
    * - ``SENTINEL_CLASS``
      - Sentinel import path.
      - Automatically select sync/async mode by default.

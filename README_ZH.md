@@ -29,7 +29,7 @@
 ## ✨ 功能
 
 * 支持同步和[异步](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#3%E5%BC%82%E6%AD%A5)（`async / await`）。
-* 提供线程安全的存储后端：[Redis](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#redis)、[内存（支持 Key 过期淘汰）](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#memory)。
+* 提供线程安全的存储后端：[Redis（单例/哨兵/集群）](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#redis)、[内存（支持 Key 过期淘汰）](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#memory)。
 * 支持多种限流算法：[固定窗口](https://github.com/ZhuoZhuoCrayon/throttled-py/tree/main/docs/basic#21-%E5%9B%BA%E5%AE%9A%E7%AA%97%E5%8F%A3%E8%AE%A1%E6%95%B0%E5%99%A8)、[滑动窗口](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#22-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3)、[令牌桶](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#23-%E4%BB%A4%E7%89%8C%E6%A1%B6)、[漏桶](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#24-%E6%BC%8F%E6%A1%B6) & [通用信元速率算法（Generic Cell Rate Algorithm, GCRA）](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#25-gcra)。
 * 支持[配置限流算法](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#3%E6%8C%87%E5%AE%9A%E9%99%90%E6%B5%81%E7%AE%97%E6%B3%95)，提供灵活的[配额设置](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#4%E6%8C%87%E5%AE%9A%E5%AE%B9%E9%87%8F)。
 * 支持即刻返回及[等待重试](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#%E7%AD%89%E5%BE%85%E9%87%8D%E8%AF%95)，提供[函数调用](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A8)、[装饰器](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#%E4%BD%9C%E4%B8%BA%E8%A3%85%E9%A5%B0%E5%99%A8)、[上下文管理器](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%E5%99%A8)。
@@ -115,7 +115,6 @@ from throttled.asyncio import RateLimiterType, Throttled, rate_limiter, store, u
 throttle = Throttled(
     using=RateLimiterType.TOKEN_BUCKET.value,
     quota=rate_limiter.per_sec(1_000, burst=1_000),
-    store=store.MemoryStore(),
 )
 
 
@@ -234,6 +233,8 @@ if __name__ == "__main__":
 
 #### Redis
 
+仅需非常简单的配置，即可连接到 Redis 的单例模式、哨兵模式和集群模式。
+
 下方样例使用 Redis 作为存储后端，`options` 支持 Redis 的所有配置项，详见 [RedisStore Options](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#redisstore-options)。
 
 ```python
@@ -244,7 +245,15 @@ from throttled import RateLimiterType, Throttled, rate_limiter, store
     using=RateLimiterType.TOKEN_BUCKET.value,
     quota=rate_limiter.per_min(1),
     # 🌟 使用 Redis 作为存储后端
-    store=store.RedisStore(server="redis://127.0.0.1:6379/0"),
+    store=store.RedisStore(
+        # 单例模式
+        server="redis://127.0.0.1:6379/0",
+        # 哨兵模式
+        # server="redis+sentinel://:yourpassword@host1:26379,host2:26379/mymaster"
+        # 集群模式
+        # server="redis+cluster://:yourpassword@host1:6379,host2:6379",
+        options={}
+    ),
 )
 def products() -> list:
     return [{"name": "iPhone"}, {"name": "MacBook"}]
@@ -256,7 +265,9 @@ products()
 
 #### Memory
 
-如果你希望在程序的不同位置，对同一个 Key 进行限流，请确保 `Throttled` 接收到的是同一个 `MemoryStore`，并使用一致的 [`Quota`](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#3quota)。
+当没有指定存储后端时，会默认使用最大容量为 1024 的全局 `MemoryStore` 实例作为存储后端，因此**通常不需要手动创建** `MemoryStore` 实例。
+
+不同的 `MemoryStore` 实例意味着不同的存储空间，如果你希望在程序的不同位置，对同一个 Key 进行限流，请确保 `Throttled` 接收到的是同一个 `MemoryStore`，并使用一致的 [`Quota`](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#3quota)。
 
 下方样例使用内存作为存储后端，并在 `ping`、`pong` 上对同一个 Key 进行限流：
 
@@ -397,17 +408,17 @@ RedisStore 基于 [redis-py](https://github.com/redis/redis-py) 提供的 Redis 
 在 Redis 连接配置管理上，基本沿用 [django-redis](https://github.com/jazzband/django-redis) 的配置命名，减少学习成本。
 
 
-| 参数                         | 描述                                                                                                                                   | 默认值                                                                                                                                                                                                                                                                                                             |
-|----------------------------|--------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `SOCKET_TIMEOUT`           | ConnectionPool 参数。                                                                                                                   | `null`                                                                                                                                                                                                                                                                                                          |
-| `SOCKET_CONNECT_TIMEOUT`   | ConnectionPool 参数。                                                                                                                   |                                                                                                                                                                                                                                                                                                                 |
-| `CONNECTION_POOL_KWARGS`   | [ConnectionPool 构造参数](https://redis.readthedocs.io/en/stable/connections.html#connectionpool)。                                       | `{}`                                                                                                                                                                                                                                                                                                            |
-| `REDIS_CLIENT_KWARGS`      | [RedisClient 构造参数](https://redis.readthedocs.io/en/stable/connections.html#redis.Redis)。                                             | `{}`                                                                                                                                                                                                                                                                                                            |
-| `SENTINEL_KWARGS`          | [Sentinel 构造参数](https://redis.readthedocs.io/en/stable/connections.html#id1)。                                                        | `{}`                                                                                                                                                                                                                                                                                                            |
-| `CONNECTION_FACTORY_CLASS` | ConnectionFactory 用于创建和维护 [ConnectionPool](https://redis.readthedocs.io/en/stable/connections.html#redis.connection.ConnectionPool)。 | 默认通过 `server` scheme 自动选择。<br />Standalone: `"throttled.store.ConnectionFactory"` <br />Sentinel:`"throttled.store.SentinelConnectionFactory"`                                                                                                                                                                  |
-| `REDIS_CLIENT_CLASS`       | RedisClient 导入路径。                                                                                                                    | 默认通过 sync/async 模式自动选择。<br />Sync: `"redis.Redis"`<br />Async: `"redis.asyncio.Redis"`                          ｜                                                                                                                                                                                               |
-| `CONNECTION_POOL_CLASS`    | ConnectionPool 导入路径。                                                                                                                 | 默认通过 `server` scheme 和 sync/async 模式自动选择。<br />Sync(Standalone): `"redis.connection.ConnectionPool"`<br />Async(Standalone): `"redis.asyncio.connection.ConnectionPool"`<br />Sync(Sentinel): `"redis.sentinel.SentinelConnectionPool"`<br />Async(Sentinel): `"redis.asyncio.sentinel.SentinelConnectionPool"` |
-| `SENTINEL_CLASS`           | Sentinel 导入路径。                                                                                                                       | 默认通过 sync/async 模式自动选择。<br />Sync: `"redis.Sentinel"`<br />Async: `"redis.asyncio.Sentinel"`                                                                                                                                                                                                                    |
+| 参数                         | 描述                                                                                                                                   | 默认值                                                                                                                                                                                                                                                                                                                                        |
+|----------------------------|--------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `SOCKET_TIMEOUT`           | ConnectionPool 参数。                                                                                                                   | `null`                                                                                                                                                                                                                                                                                                                                     |
+| `SOCKET_CONNECT_TIMEOUT`   | ConnectionPool 参数。                                                                                                                   |                                                                                                                                                                                                                                                                                                                                            |
+| `CONNECTION_POOL_KWARGS`   | [ConnectionPool 构造参数](https://redis.readthedocs.io/en/stable/connections.html#connectionpool)。                                       | `{}`                                                                                                                                                                                                                                                                                                                                       |
+| `REDIS_CLIENT_KWARGS`      | [RedisClient 构造参数](https://redis.readthedocs.io/en/stable/connections.html#redis.Redis)。                                             | `{}`                                                                                                                                                                                                                                                                                                                                       |
+| `SENTINEL_KWARGS`          | [Sentinel 构造参数](https://redis.readthedocs.io/en/stable/connections.html#id1)。                                                        | `{}`                                                                                                                                                                                                                                                                                                                                       |
+| `CONNECTION_FACTORY_CLASS` | ConnectionFactory 用于创建和维护 [ConnectionPool](https://redis.readthedocs.io/en/stable/connections.html#redis.connection.ConnectionPool)。 | 默认通过 `server` scheme 自动选择。<br />Standalone: `"throttled.store.ConnectionFactory"` <br />Sentinel:`"throttled.store.SentinelConnectionFactory"`<br />Cluster: `"throttled.store.ClusterConnectionFactory"`                                                                                                                                  |
+| `REDIS_CLIENT_CLASS`       | RedisClient 导入路径。                                                                                                                    | 默认通过 sync/async 模式自动选择。<br />Sync(Standalone/Sentinel): `"redis.client.Redis"`<br />Async(Standalone/Sentinel): `"redis.asyncio.client.Redis"`<br />Sync(Cluster): ``"redis.cluster.RedisCluster"``<br />Async(Cluster): ``"redis.asyncio.cluster.RedisCluster"``                                                                          |
+| `CONNECTION_POOL_CLASS`    | ConnectionPool 导入路径。                                                                                                                 | 默认通过 `server` scheme 和 sync/async 模式自动选择。<br />Sync(Standalone): `"redis.connection.ConnectionPool"`<br />Async(Standalone): `"redis.asyncio.connection.ConnectionPool"`<br />Sync(Sentinel): `"redis.sentinel.SentinelConnectionPool"`<br />Async(Sentinel): `"redis.asyncio.sentinel.SentinelConnectionPool"`<br />Cluster: `"Disabled"` |
+| `SENTINEL_CLASS`           | Sentinel 导入路径。                                                                                                                       | 默认通过 sync/async 模式自动选择。<br />Sync: `"redis.Sentinel"`<br />Async: `"redis.asyncio.Sentinel"`                                                                                                                                                                                                                                               |
 
 
 #### MemoryStore Options

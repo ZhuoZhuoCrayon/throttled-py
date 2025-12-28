@@ -134,6 +134,22 @@ _REDIS_STORE_PARSE_EXPECTED_RESULTS: dict[str, dict[str, Any]] = {
             "CONNECTION_FACTORY_CLASS": "throttled.store.SentinelConnectionFactory",
         },
     },
+    "cluster": {
+        "server": "redis+cluster://c1:7000,c2:7000,c3:7000",
+        "options": {
+            "CLUSTER_NODES": [("c1", 7000), ("c2", 7000), ("c3", 7000)],
+            "CONNECTION_FACTORY_CLASS": "throttled.store.ClusterConnectionFactory",
+        },
+    },
+    "cluster_with_auth": {
+        "server": "redis+cluster://user:pass@c1:7000",
+        "options": {
+            "CLUSTER_NODES": [("c1", 7000)],
+            "USERNAME": "user",
+            "PASSWORD": "pass",
+            "CONNECTION_FACTORY_CLASS": "throttled.store.ClusterConnectionFactory",
+        },
+    },
 }
 
 

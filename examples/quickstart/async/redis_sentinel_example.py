@@ -9,8 +9,13 @@ from throttled.asyncio import RateLimiterType, Throttled, rate_limiter, store
     quota=rate_limiter.per_min(1),
     # 🌟 use RedisStore as storage
     store=store.RedisStore(
-        server="redis+sentinel://:pass@host1:26379,host2:26379/mymaster",
-        options={"SENTINEL_KWARGS": {}},
+        server="redis+sentinel://:yourpassword@host1:26379,host2:26379/mymaster",
+        # 🌟 Pass any extra kwargs for redis-py Sentinel client.
+        options={
+            "SENTINEL_KWARGS": {},
+            "REDIS_CLIENT_KWARGS": {},
+            "CONNECTION_POOL_KWARGS": {},
+        },
     ),
 )
 async def products() -> list:
