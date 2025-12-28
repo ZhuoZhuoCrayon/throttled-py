@@ -229,6 +229,8 @@ if __name__ == "__main__":
 
 #### Redis
 
+You only need very simple configuration, and it supports connecting to Redis standalone, sentinel, and cluster modes.
+
 The following example uses Redis as the storage backend, `options` supports all Redis configuration items, see [RedisStore Options](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#redisstore-options).
 
 ```python
@@ -238,7 +240,15 @@ from throttled import RateLimiterType, Throttled, rate_limiter, store
     key="/api/products",
     using=RateLimiterType.TOKEN_BUCKET.value,
     quota=rate_limiter.per_min(1),
-    store=store.RedisStore(server="redis://127.0.0.1:6379/0"),
+    store=store.RedisStore(
+        # Standalone mode
+        server="redis://127.0.0.1:6379/0",
+        # Sentinel mode
+        # server="redis+sentinel://:pass@host1:26379,host2:26379/mymaster"
+        # Cluster mode
+        # server="redis+cluster://:pass@host1:6379,host2:6379",
+        options={}
+    ),
 )
 def products() -> list:
     return [{"name": "iPhone"}, {"name": "MacBook"}]
@@ -249,7 +259,9 @@ products()  # Raises LimitedError
 
 #### In-Memory
 
-If you want to throttle the same Key at different locations in your program, make sure that Throttled receives the same MemoryStore and uses a consistent [`Quota`](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#3-quota).
+By default, a global `MemoryStore` instance with a maximum capacity of 1024 is used as the storage backend when no storage backend is specified. Therefore, **it is usually not necessary to manually create** a `MemoryStore` instance.
+
+Different instances mean different storage spaces, if you want to throttle the same Key at different locations in your program, make sure that Throttled receives the same MemoryStore and uses a consistent [`Quota`](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#3-quota).
 
 The following example uses memory as the storage backend and throttles the same Key on ping and pong:
 
@@ -385,17 +397,17 @@ RedisStore is developed based on the Redis API provided by [redis-py](https://gi
 
 In terms of Redis connection configuration management, the configuration naming of [django-redis](https://github.com/jazzband/django-redis) is basically used to reduce the learning cost.
 
-| Parameter                  | Description                                                  | Default                                                      |
-| -------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| `SOCKET_TIMEOUT`           | ConnectionPool parameters.                                   | `null`                                                       |
-| `SOCKET_CONNECT_TIMEOUT`   | ConnectionPool parameters.                                   | `null`                                                       |
-| `CONNECTION_POOL_KWARGS`   | [ConnectionPool construction parameters](https://redis.readthedocs.io/en/stable/connections.html#connectionpool). | `{}`                                                         |
-| `REDIS_CLIENT_KWARGS`      | [RedisClient construction parameters](https://redis.readthedocs.io/en/stable/connections.html#redis.Redis). | `{}`                                                         |
-| `SENTINEL_KWARGS`          | [Sentinel construction parameters](https://redis.readthedocs.io/en/stable/connections.html#id1). | `{}`                                                         |
-| `CONNECTION_FACTORY_CLASS` | ConnectionFactory is used to create and maintain [ConnectionPool](https://redis.readthedocs.io/en/stable/connections.html#redis.connection.ConnectionPool). | Automatically select via the `server` scheme by default. <br />Standalone: `"throttled.store.ConnectionFactory"` <br />Sentinel:`"throttled.store.SentinelConnectionFactory"` |
-| `REDIS_CLIENT_CLASS`       | RedisClient import path.                                     | Automatically select sync/async mode by default.<br />Sync: `"redis.client.Redis"`<br />Async: `"redis.asyncio.client.Redis"` |
-| `CONNECTION_POOL_CLASS`    | ConnectionPool import path.                                  | Automatically select via the `server` scheme and sync/async mode by default.<br />Sync(Standalone): `"redis.connection.ConnectionPool"`<br />Async(Standalone): `"redis.asyncio.connection.ConnectionPool"`<br />Sync(Sentinel): `"redis.sentinel.SentinelConnectionPool"`<br />Async(Sentinel): `"redis.asyncio.sentinel.SentinelConnectionPool"` |
-| `SENTINEL_CLASS`           | Sentinel import path.                                        | Automatically select sync/async mode by default.<br />Sync: `"redis.Sentinel"`<br />Async: `"redis.asyncio.Sentinel"` |
+| Parameter                  | Description                                                                                                                                                 | Default                                                                                                                                                                                                                                                                                                                                                                       |
+|----------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `SOCKET_TIMEOUT`           | ConnectionPool parameters.                                                                                                                                  | `null`                                                                                                                                                                                                                                                                                                                                                                        |
+| `SOCKET_CONNECT_TIMEOUT`   | ConnectionPool parameters.                                                                                                                                  | `null`                                                                                                                                                                                                                                                                                                                                                                        |
+| `CONNECTION_POOL_KWARGS`   | [ConnectionPool construction parameters](https://redis.readthedocs.io/en/stable/connections.html#connectionpool).                                           | `{}`                                                                                                                                                                                                                                                                                                                                                                          |
+| `REDIS_CLIENT_KWARGS`      | [RedisClient construction parameters](https://redis.readthedocs.io/en/stable/connections.html#redis.Redis).                                                 | `{}`                                                                                                                                                                                                                                                                                                                                                                          |
+| `SENTINEL_KWARGS`          | [Sentinel construction parameters](https://redis.readthedocs.io/en/stable/connections.html#id1).                                                            | `{}`                                                                                                                                                                                                                                                                                                                                                                          |
+| `CONNECTION_FACTORY_CLASS` | ConnectionFactory is used to create and maintain [ConnectionPool](https://redis.readthedocs.io/en/stable/connections.html#redis.connection.ConnectionPool). | Automatically select via the `server` scheme by default. <br />Standalone: `"throttled.store.ConnectionFactory"` <br />Sentinel:`"throttled.store.SentinelConnectionFactory"`<br />Cluster: `"throttled.store.ClusterConnectionFactory"`                                                                                                                                      |
+| `REDIS_CLIENT_CLASS`       | RedisClient import path.                                                                                                                                    | Automatically select sync/async mode by default.<br />Sync(Standalone/Sentinel): `"redis.client.Redis"`<br />Async(Standalone/Sentinel): `"redis.asyncio.client.Redis"`<br />Sync(Cluster): ``"redis.cluster.RedisCluster"``<br />Async(Cluster): ``"redis.asyncio.cluster.RedisCluster"``                                                                                    |
+| `CONNECTION_POOL_CLASS`    | ConnectionPool import path.                                                                                                                                 | Automatically select via the `server` scheme and sync/async mode by default.<br />Sync(Standalone): `"redis.connection.ConnectionPool"`<br />Async(Standalone): `"redis.asyncio.connection.ConnectionPool"`<br />Sync(Sentinel): `"redis.sentinel.SentinelConnectionPool"`<br />Async(Sentinel): `"redis.asyncio.sentinel.SentinelConnectionPool"`<br />Cluster: `"Disabled"` |
+| `SENTINEL_CLASS`           | Sentinel import path.                                                                                                                                       | Automatically select sync/async mode by default.<br />Sync: `"redis.Sentinel"`<br />Async: `"redis.asyncio.Sentinel"`                                                                                                                                                                                                                                                         |
 
 #### MemoryStore Options
 

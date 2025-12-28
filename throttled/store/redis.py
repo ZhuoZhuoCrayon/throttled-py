@@ -20,6 +20,28 @@ class RedisStoreBackend(BaseStoreBackend):
     """Backend for Redis store."""
 
     @classmethod
+    def _parse_auth(cls, parsed: urllib.parse.ParseResult) -> dict[str, str]:
+        auth_info: dict[str, str] = {}
+        if parsed.username:
+            auth_info["username"] = parsed.username
+        if parsed.password:
+            auth_info["password"] = parsed.password
+        return auth_info
+
+    @classmethod
+    def _parse_nodes(
+        cls, parsed: urllib.parse.ParseResult, default_port: int = 6379
+    ) -> list[tuple[str, int]]:
+        nodes: list[tuple[str, int]] = []
+        idx: int = parsed.netloc.find("@") + 1
+        for node in parsed.netloc[idx:].split(","):
+            node_tuple: list[str] = node.rsplit(":", 1)
+            host: str = node_tuple[0]
+            port: int = default_port if len(node_tuple) == 1 else int(node_tuple[1])
+            nodes.append((host, port))
+        return nodes
+
+    @classmethod
     def _set_options(cls, options: dict[str, Any]):
         pass
 
@@ -27,6 +49,13 @@ class RedisStoreBackend(BaseStoreBackend):
     def _set_sentinel_options(cls, options: dict[str, Any]):
         options.setdefault(
             "CONNECTION_FACTORY_CLASS", "throttled.store.SentinelConnectionFactory"
+        )
+
+    @classmethod
+    def _set_cluster_options(cls, options: dict[str, Any]):
+        options.setdefault(
+            "CONNECTION_FACTORY_CLASS",
+            "throttled.store.ClusterConnectionFactory",
         )
 
     @classmethod
@@ -44,33 +73,32 @@ class RedisStoreBackend(BaseStoreBackend):
             return server, options
 
         if server.startswith("redis+sentinel://"):
-            auth_info: dict[str, str] = {}
-            parsed = urllib.parse.urlparse(server)
-            if parsed.username:
-                auth_info["username"] = parsed.username
-            if parsed.password:
-                auth_info["password"] = parsed.password
+            parsed: urllib.parse.ParseResult = urllib.parse.urlparse(server)
 
             # If SENTINEL_KWARGS is not explicitly passed,
             # use the authentication information from the URL, SENTINEL_KWARGS
             # has a higher priority than the authentication information.
+            auth_info: dict[str, str] = cls._parse_auth(parsed)
             options["SENTINEL_KWARGS"] = {
                 **auth_info,
                 **(options.get("SENTINEL_KWARGS") or {}),
             }
             options.update({k.upper(): v for k, v in auth_info.items()})
 
-            idx: int = parsed.netloc.find("@") + 1
-            for sentinel in parsed.netloc[idx:].split(","):
-                sentinel_tuple: list[str] = sentinel.rsplit(":", 1)
-                host: str = sentinel_tuple[0]
-                port: int = 26379 if len(sentinel_tuple) == 1 else int(sentinel_tuple[1])
-                options.setdefault("SENTINELS", []).append((host, port))
-
+            options.setdefault("SENTINELS", []).extend(
+                cls._parse_nodes(parsed, default_port=26379)
+            )
             cls._set_sentinel_options(options)
 
             service_name: str = parsed.path.lstrip("/") if parsed.path else "mymaster"
             server = f"redis://{service_name}/0"
+
+        elif server.startswith("redis+cluster://"):
+            parsed: urllib.parse.ParseResult = urllib.parse.urlparse(server)
+            auth_info: dict[str, str] = cls._parse_auth(parsed)
+            options.update({k.upper(): v for k, v in auth_info.items()})
+            options.setdefault("CLUSTER_NODES", []).extend(cls._parse_nodes(parsed))
+            cls._set_cluster_options(options)
         else:
             cls._set_standalone_options(options)
 

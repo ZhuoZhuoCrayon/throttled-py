@@ -29,6 +29,17 @@ class RedisStoreBackend(store.RedisStoreBackend):
         super()._set_standalone_options(options)
         options.setdefault("CONNECTION_POOL_CLASS", "redis.asyncio.ConnectionPool")
 
+    @classmethod
+    def _set_cluster_options(cls, options: dict[str, Any]):
+        super()._set_cluster_options(options)
+        options.setdefault(
+            "REDIS_CLIENT_CLASS",
+            "redis.asyncio.cluster.RedisCluster",
+        )
+        options.setdefault(
+            "REDIS_CLUSTER_NODE_CLASS", "redis.asyncio.cluster.ClusterNode"
+        )
+
 
 class RedisStore(BaseStore):
     """Concrete implementation of BaseStore using Redis as backend."""

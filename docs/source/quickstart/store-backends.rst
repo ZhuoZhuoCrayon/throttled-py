@@ -125,7 +125,6 @@ It is also easy to use :class:`RedisStore <throttled.store.RedisStore>` with Red
 * port: ``[Optional]`` Sentinel node port, default is 26379.
 * service_name: ``[Optional]`` Name of the master service monitored by Sentinel, default is ``mymaster``.
 
-
 .. tab-set::
 
     .. tab-item:: Sync
@@ -138,6 +137,34 @@ It is also easy to use :class:`RedisStore <throttled.store.RedisStore>` with Red
         :sync: async
 
         .. literalinclude:: ../../../examples/quickstart/async/redis_sentinel_example.py
+           :language: python
+
+2.3) Cluster
+-----------------------------
+
+:class:`RedisStore <throttled.store.RedisStore>` also supports Redis Cluster.
+
+``server`` format for Redis Cluster is as follows:
+
+.. code-block::
+
+    redis+cluster://[[username]:[password]@]host1[:port1][,hostN][:portN]
+
+Additional options can be passed to the `RedisCluster <https://redis.readthedocs.io/en/stable/connections.html#redis.cluster.RedisCluster>`_
+via the ``options.REDIS_CLIENT_KWARGS`` parameter.
+
+.. tab-set::
+
+    .. tab-item:: Sync
+        :sync: sync
+
+        .. literalinclude:: ../../../examples/quickstart/redis_cluster_example.py
+           :language: python
+
+    .. tab-item:: Async
+        :sync: async
+
+        .. literalinclude:: ../../../examples/quickstart/async/redis_cluster_example.py
            :language: python
 
 

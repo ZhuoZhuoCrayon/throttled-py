@@ -137,7 +137,6 @@ _REDIS_STORE_PARSE_COMMON_OPTIONS: dict[str, Any] = {
     "REUSE_CONNECTION": False,
     "REDIS_CLIENT_CLASS": "redis.asyncio.Redis",
     "PARSER_CLASS": "redis.asyncio.connection.DefaultParser",
-    "CONNECTION_POOL_CLASS": "redis.asyncio.ConnectionPool",
 }
 
 _REDIS_STORE_PARSE_SENTINEL_OPTIONS: dict[str, Any] = {
@@ -146,10 +145,19 @@ _REDIS_STORE_PARSE_SENTINEL_OPTIONS: dict[str, Any] = {
     "CONNECTION_FACTORY_CLASS": "throttled.store.SentinelConnectionFactory",
 }
 
+_REDIS_STORE_PARSE_CLUSTER_OPTIONS: dict[str, Any] = {
+    "REDIS_CLIENT_CLASS": "redis.asyncio.cluster.RedisCluster",
+    "REDIS_CLUSTER_NODE_CLASS": "redis.asyncio.cluster.ClusterNode",
+    "CONNECTION_FACTORY_CLASS": "throttled.store.ClusterConnectionFactory",
+}
+
 _REDIS_STORE_PARSE_EXPECTED_RESULTS: dict[str, dict[str, Any]] = {
     "standalone": {
         "server": "redis://localhost:6379/0",
-        "options": {**_REDIS_STORE_PARSE_COMMON_OPTIONS},
+        "options": {
+            **_REDIS_STORE_PARSE_COMMON_OPTIONS,
+            "CONNECTION_POOL_CLASS": "redis.asyncio.ConnectionPool",
+        },
     },
     "sentinel": {
         "server": "redis://mymaster/0",
@@ -169,6 +177,28 @@ _REDIS_STORE_PARSE_EXPECTED_RESULTS: dict[str, dict[str, Any]] = {
             "PASSWORD": "pass",
             "SENTINELS": [("localhost", 26379)],
             "SENTINEL_KWARGS": {"username": "user", "password": "pass"},
+        },
+    },
+    "cluster": {
+        "server": "redis+cluster://c1:7000,c2:7000,c3:7000",
+        "options": {
+            **_REDIS_STORE_PARSE_COMMON_OPTIONS,
+            **_REDIS_STORE_PARSE_CLUSTER_OPTIONS,
+            "REDIS_CLIENT_CLASS": "redis.asyncio.cluster.RedisCluster",
+            "REDIS_CLUSTER_NODE_CLASS": "redis.asyncio.cluster.ClusterNode",
+            "CLUSTER_NODES": [("c1", 7000), ("c2", 7000), ("c3", 7000)],
+            "CONNECTION_FACTORY_CLASS": "throttled.store.ClusterConnectionFactory",
+        },
+    },
+    "cluster_with_auth": {
+        "server": "redis+cluster://user:pass@c1:7000",
+        "options": {
+            **_REDIS_STORE_PARSE_COMMON_OPTIONS,
+            **_REDIS_STORE_PARSE_CLUSTER_OPTIONS,
+            "CLUSTER_NODES": [("c1", 7000)],
+            "USERNAME": "user",
+            "PASSWORD": "pass",
+            "CONNECTION_FACTORY_CLASS": "throttled.store.ClusterConnectionFactory",
         },
     },
 }

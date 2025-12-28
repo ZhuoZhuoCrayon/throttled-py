@@ -35,12 +35,15 @@ from ..utils import import_string, to_bool
 if TYPE_CHECKING:
     import redis
     import redis.asyncio as aioredis
+    from redis.asyncio.cluster import ClusterNode as AsyncClusterNode
     from redis.asyncio.connection import DefaultParser as AsyncDefaultParser
+    from redis.cluster import ClusterNode as SyncClusterNode
     from redis.connection import DefaultParser as SyncDefaultParser
 
     ConnectionPool = redis.ConnectionPool | aioredis.ConnectionPool
     Redis = redis.Redis | aioredis.Redis
     Sentinel = redis.Sentinel | aioredis.Sentinel
+    ClusterNode = SyncClusterNode | AsyncClusterNode
     DefaultParser = SyncDefaultParser | AsyncDefaultParser
 
 
@@ -155,11 +158,15 @@ class ConnectionFactory(BaseConnectionFactory):
             connection_pool=pool, **self.redis_client_cls_kwargs
         )
 
-    def get_or_create_connection_pool(self, params: dict[str, Any]) -> "ConnectionPool":
-        """Return a new or cached connection pool for the given parameters."""
+    def _get_pool_key(self, params: dict[str, Any]) -> str:
+        """Generate a unique key for the connection pool based on parameters."""
         # Use redis client class path as part of the key, to avoid collisions
         # between different connection pool classes, e.g. Redis vs asyncio.Redis.
-        key: str = f"{self.redis_client_cls_path}:{params['url']}"
+        return f"{self.redis_client_cls_path}:{params['url']}"
+
+    def get_or_create_connection_pool(self, params: dict[str, Any]) -> "ConnectionPool":
+        """Return a new or cached connection pool for the given parameters."""
+        key: str = self._get_pool_key(params)
 
         # REUSE_CONNECTION: solve the problem of "redis attached to a different loop",
         # due to the fact that the connection pool is created in a different loop.
@@ -191,6 +198,8 @@ class SentinelConnectionFactory(ConnectionFactory):
         if not sentinels:
             raise SetUpError("SENTINELS must be provided as a list of (host, port).")
 
+        self._sentinels_str: str = ",".join(f"{host}:{port}" for host, port in sentinels)
+
         # provide the connection pool kwargs to the sentinel in case it
         # needs to use the socket options for the sentinels themselves
         connection_kwargs = self.make_connection_params(None)
@@ -204,6 +213,9 @@ class SentinelConnectionFactory(ConnectionFactory):
             sentinel_kwargs=options.get("SENTINEL_KWARGS"),
             **connection_kwargs,
         )
+
+    def _get_pool_key(self, params: dict[str, Any]) -> str:
+        return f"{self.redis_client_cls_path}:{self._sentinels_str}:{params['url']}"
 
     def get_connection_pool(self, params: dict[str, Any]) -> "ConnectionPool":
         """Return a new sentinel connection pool for the given parameters."""
@@ -222,6 +234,29 @@ class SentinelConnectionFactory(ConnectionFactory):
             pool.is_master = to_bool(is_master[0])
 
         return pool
+
+
+class ClusterConnectionFactory(ConnectionFactory):
+    """Connection factory for Redis Cluster."""
+
+    def __init__(self, options):
+        options.setdefault("REDIS_CLIENT_CLASS", "redis.cluster.RedisCluster")
+        options.setdefault("REDIS_CLUSTER_NODE_CLASS", "redis.cluster.ClusterNode")
+        super().__init__(options)
+
+        cluster_node_cls_path: str = options["REDIS_CLUSTER_NODE_CLASS"]
+        cluster_node_cls: type[ClusterNode] = import_string(cluster_node_cls_path)
+
+        self._startup_nodes: list[ClusterNode] = []
+        for node in options.get("CLUSTER_NODES", []):
+            self._startup_nodes.append(cluster_node_cls(*node))
+
+    def get_connection(self, params) -> "Redis":
+        params.pop("url", None)
+        params.pop("parser_class", None)
+        return self.redis_client_cls(
+            startup_nodes=self._startup_nodes, **params, **self.redis_client_cls_kwargs
+        )
 
 
 def get_connection_factory(
