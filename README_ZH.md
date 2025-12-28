@@ -233,7 +233,7 @@ if __name__ == "__main__":
 
 #### Redis
 
-仅需非常简单的配置，即可连接到 Redis 的独立模式、哨兵模式和集群模式。
+仅需非常简单的配置，即可连接到 Redis 的单例模式、哨兵模式和集群模式。
 
 下方样例使用 Redis 作为存储后端，`options` 支持 Redis 的所有配置项，详见 [RedisStore Options](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#redisstore-options)。
 
@@ -249,9 +249,9 @@ from throttled import RateLimiterType, Throttled, rate_limiter, store
         # 单例模式
         server="redis://127.0.0.1:6379/0",
         # 哨兵模式
-        # server="redis+sentinel://:pass@host1:26379,host2:26379/mymaster"
+        # server="redis+sentinel://:yourpassword@host1:26379,host2:26379/mymaster"
         # 集群模式
-        # server="redis+cluster://:pass@host1:6379,host2:6379",
+        # server="redis+cluster://:yourpassword@host1:6379,host2:6379",
         options={}
     ),
 )

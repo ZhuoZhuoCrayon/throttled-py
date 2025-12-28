@@ -247,11 +247,16 @@ class ClusterConnectionFactory(ConnectionFactory):
         cluster_node_cls_path: str = options["REDIS_CLUSTER_NODE_CLASS"]
         cluster_node_cls: type[ClusterNode] = import_string(cluster_node_cls_path)
 
+        cluster_nodes: list[tuple[str, str | int]] = options.get("CLUSTER_NODES")
+        if not cluster_nodes:
+            raise SetUpError("CLUSTER_NODES must be provided as a list of (host, port).")
+
         self._startup_nodes: list[ClusterNode] = []
-        for node in options.get("CLUSTER_NODES", []):
+        for node in cluster_nodes:
             self._startup_nodes.append(cluster_node_cls(*node))
 
     def get_connection(self, params) -> "Redis":
+        params: dict[str, Any] = dict(params)
         params.pop("url", None)
         params.pop("parser_class", None)
         return self.redis_client_cls(

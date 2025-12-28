@@ -244,9 +244,9 @@ from throttled import RateLimiterType, Throttled, rate_limiter, store
         # Standalone mode
         server="redis://127.0.0.1:6379/0",
         # Sentinel mode
-        # server="redis+sentinel://:pass@host1:26379,host2:26379/mymaster"
+        # server="redis+sentinel://:yourpassword@host1:26379,host2:26379/mymaster"
         # Cluster mode
-        # server="redis+cluster://:pass@host1:6379,host2:6379",
+        # server="redis+cluster://:yourpassword@host1:6379,host2:6379",
         options={}
     ),
 )

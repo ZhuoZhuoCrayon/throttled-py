@@ -7,7 +7,7 @@ from throttled import RateLimiterType, Throttled, rate_limiter, store
     quota=rate_limiter.per_min(1),
     # 🌟 use RedisStore as storage
     store=store.RedisStore(
-        server="redis+cluster://:crayon@host1:6379,host2:6379",
+        server="redis+cluster://:yourpassword@host1:6379,host2:6379",
         # 🌟 Pass any extra kwargs for redis-py Cluster client
         options={"REDIS_CLIENT_KWARGS": {}},
     ),

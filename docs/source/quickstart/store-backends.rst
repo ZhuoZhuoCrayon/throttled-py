@@ -167,6 +167,13 @@ via the ``options.REDIS_CLIENT_KWARGS`` parameter.
         .. literalinclude:: ../../../examples/quickstart/async/redis_cluster_example.py
            :language: python
 
+* username: ``[Optional]`` Redis ACL username used for authentication.
+* password: ``[Optional]`` Password used for authentication.
+* host1, ..., hostN: ``[Required]`` One or more Redis Cluster node hostnames
+  or IP addresses.
+* port1, ..., portN: ``[Optional]`` Port for each host; defaults to ``6379``
+  when omitted.
+
 
 3) References
 =================
