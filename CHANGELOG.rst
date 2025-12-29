@@ -1,6 +1,26 @@
 Version History
 =================
 
+v3.1.0 - 2025-12-30
+---------------------
+
+`English Documents Available (v3.1.0) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.rst#v310---2025-12-30>`_ | 简体中文
+
+**🚀 功能**
+
+- feat: 添加对 Redis 集群模式的支持 (resolved #92) @ZhuoZhuoCrayon (#117)
+
+**✨ 优化**
+
+- perf: 使用标准 Redis URL 简化 RedisStore 配置 @ZhuoZhuoCrayon (#115)
+
+**🍃 维护工作**
+
+- docs: 优化文档代码框样式 @ZhuoZhuoCrayon (#116)
+
+**完整更新日志**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v3.0.1...v3.1.0
+
+
 v3.0.1 - 2025-11-27
 ---------------------
 
