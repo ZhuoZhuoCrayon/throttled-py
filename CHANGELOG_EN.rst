@@ -1,6 +1,26 @@
 Version History
 ================
 
+v3.1.0 - 2025-12-30
+---------------------
+
+`简体中文 (v3.1.0) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.rst#v310---2025-12-30>`_ | English
+
+**🚀 New Features**
+
+- feat: add support for Redis cluster mode (resolved #92) @ZhuoZhuoCrayon (#117)
+
+**✨ Improvements**
+
+- perf: simplify RedisStore configuration using the standard Redis URL @ZhuoZhuoCrayon (#115)
+
+**🍃 Maintenance**
+
+- docs: optimize document code box style @ZhuoZhuoCrayon (#116)
+
+**Full Changelog**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v3.0.1...v3.1.0
+
+
 v3.0.1 - 2025-11-27
 ---------------------
 
