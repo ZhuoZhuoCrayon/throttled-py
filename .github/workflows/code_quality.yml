@@ -53,7 +53,7 @@ jobs:
               FROM_SHA="$(git rev-parse HEAD^)"
             else
               echo "No base commit detected (first commit). Running on all files."
-              uv run pre-commit run --show-diff-on-failure --color=always --verbose --all-files
+              uv run prek run --show-diff-on-failure --color=always --verbose --all-files
               exit 0
             fi
           fi
@@ -61,16 +61,16 @@ jobs:
           # Collect changed files between FROM_SHA..TO_SHA
           CHANGED_FILES="$(git diff --name-only --diff-filter=ACMR "${FROM_SHA}" "${TO_SHA}")"
           if [[ -z "${CHANGED_FILES}" ]]; then
-            echo "No changed files between ${FROM_SHA} and ${TO_SHA}; skipping pre-commit."
+            echo "No changed files between ${FROM_SHA} and ${TO_SHA}; skipping prek."
             exit 0
           fi
 
-          echo "Running pre-commit for range ${FROM_SHA}..${TO_SHA}"
+          echo "Running prek for range ${FROM_SHA}..${TO_SHA}"
           echo "Files to scan (one per line):"
           echo "${CHANGED_FILES}" | sed 's/^/  - /'
 
-          # Use ref range (lets pre-commit resolve hooks properly) and enable verbose output
-          uv run pre-commit run --show-diff-on-failure --color=always --verbose \
+          # Use ref range (lets prek resolve hooks properly) and enable verbose output
+          uv run prek run --show-diff-on-failure --color=always --verbose \
             --from-ref "${FROM_SHA}" --to-ref "${TO_SHA}"
 
       - name: Run tests
