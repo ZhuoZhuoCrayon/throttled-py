@@ -1,5 +1,6 @@
 import abc
 import asyncio
+from functools import wraps
 from types import TracebackType
 from typing import Callable, Coroutine, Optional, Type, Union
 
@@ -155,6 +156,7 @@ class Throttled(BaseThrottled):
             if not self.key:
                 raise DataError(f"Invalid key: {self.key}, must be a non-empty key.")
 
+            @wraps(f)
             async def _inner(*args, **kwargs):
                 result: RateLimitResult = await self.limit(cost=self._cost)
                 if result.limited:
