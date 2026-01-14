@@ -3,6 +3,7 @@ import platform
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
+from functools import wraps
 from importlib import import_module
 from typing import Any, Callable, Coroutine, Dict, List, Optional, Tuple, Union
 
@@ -86,6 +87,7 @@ class Timer:
             self._callback(elapsed, self._start, end)
 
     def __call__(self, func: Callable):
+        @wraps(func)
         def _inner(*args, **kwargs):
             with self._new_timer():
                 return func(*args, **kwargs)
@@ -158,6 +160,7 @@ class Benchmark:
         )
 
     def _timer(self, task: Callable[..., Any]) -> Callable[..., Any]:
+        @wraps(task)
         def inner(*args, **kwargs):
             start: int = time.perf_counter_ns()
             self.start_times.append(start)
@@ -181,6 +184,7 @@ class Benchmark:
                 )
 
     def _atimer(self, task: Callable[..., Coroutine]) -> Callable[..., Coroutine]:
+        @wraps(task)
         async def inner(*args, **kwargs):
             start: int = time.perf_counter_ns()
             self.start_times.append(start)

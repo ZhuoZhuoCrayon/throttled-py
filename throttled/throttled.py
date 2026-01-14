@@ -2,6 +2,7 @@ import abc
 import threading
 import time
 from collections.abc import Callable
+from functools import wraps
 from types import TracebackType
 
 from .asyncio.rate_limiter import BaseRateLimiter as AsyncBaseRateLimiter
@@ -296,6 +297,7 @@ class Throttled(BaseThrottled):
             if not self.key:
                 raise DataError(f"Invalid key: {self.key}, must be a non-empty key.")
 
+            @wraps(f)
             def _inner(*args, **kwargs):
                 # TODO Add options to ignore state.
                 result: RateLimitResult = self.limit(cost=self._cost)
