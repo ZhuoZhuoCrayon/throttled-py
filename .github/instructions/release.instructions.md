@@ -2,11 +2,13 @@
 
 This document guides AI assistants to automate release preparation for throttled-py.
 
+> `{GITHUB_REPOSITORY}` = `https://github.com/ZhuoZhuoCrayon/throttled-py`
+
 ## Quick Start
 
 ```
 # With release draft URL
-release v3.2.0 https://github.com/ZhuoZhuoCrayon/throttled-py/releases/tag/untagged-xxxxx
+release v3.2.0 {GITHUB_REPOSITORY}/releases/tag/untagged-xxxxx
 
 # With changelog content directly
 release v3.2.0
@@ -56,13 +58,13 @@ Insert new entry after the title section:
 vX.Y.Z - YYYY-MM-DD
 ---------------------
 
-`简体中文 (vX.Y.Z) <CHANGELOG.rst#vxyz---YYYY-MM-DD>`_ | English
+`简体中文 (vX.Y.Z) <{GITHUB_REPOSITORY}/blob/main/CHANGELOG.rst#vxyz---YYYY-MM-DD>`_ | English
 
 **{emoji} {category_title}**
 
 - {change_entries}
 
-**Full Changelog**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/vPREV...vX.Y.Z
+**Full Changelog**: {GITHUB_REPOSITORY}/compare/vPREV...vX.Y.Z
 ```
 
 **Reference**: Read `.github/release-drafter-config.yml` for:
@@ -77,13 +79,13 @@ Insert translated entry after the title section:
 vX.Y.Z - YYYY-MM-DD
 ---------------------
 
-`English Documents Available (vX.Y.Z) <CHANGELOG_EN.rst#vxyz---YYYY-MM-DD>`_ | 简体中文
+`English Documents Available (vX.Y.Z) <{GITHUB_REPOSITORY}/blob/main/CHANGELOG_EN.rst#vxyz---YYYY-MM-DD>`_ | 简体中文
 
 **{emoji} {category_title_zh}**
 
 - {translated_change_entries}
 
-**完整更新日志**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/vPREV...vX.Y.Z
+**完整更新日志**: {GITHUB_REPOSITORY}/compare/vPREV...vX.Y.Z
 ```
 
 ### Translation Reference
@@ -101,14 +103,14 @@ vX.Y.Z - YYYY-MM-DD
 
 ### Common Translations
 
-| English                     | Chinese        |
-|-----------------------------|----------------|
-| add / add support for       | 添加 / 添加对...的支持 |
-| fix / resolve               | 修复             |
-| update / improve / optimize | 更新 / 改进 / 优化   |
-| implement                   | 实现             |
-| remove                      | 移除             |
-| refactor                    | 重构             |
+| English                     | Chinese               |
+|-----------------------------|-----------------------|
+| add / add support for       | 添加 / 添加对 ... 的支持      |
+| fix / resolve               | 修复                    |
+| update / improve / optimize | 更新 / 改进 / 优化          |
+| implement                   | 实现                    |
+| remove                      | 移除                    |
+| refactor                    | 重构                    |
 
 **Note**: Preserve technical terms, @author mentions, and PR numbers.
 
