@@ -1,6 +1,24 @@
 Version History
 =================
 
+v3.1.1 - 2026-01-16
+---------------------
+
+`English Documents Available (v3.1.1) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.rst#v311---2026-01-16>`_ | 简体中文
+
+**🐛 Bug 修复**
+
+- fix: 添加 @wraps 装饰器到内部函数以更好地保留元数据 @MaksimZayats (#120)
+
+**🍃 维护工作**
+
+- ci: 添加 AI 驱动的自动化预发布准备 @ZhuoZhuoCrayon (#122)
+- ci: 移除 commitlint action 中的 token 配置 @ZhuoZhuoCrayon (#121)
+- ci: 使用 prek 作为 pre-commit 的替代 @ZhuoZhuoCrayon (#119)
+
+**完整更新日志**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v3.1.0...v3.1.1
+
+
 v3.1.0 - 2025-12-30
 ---------------------
 

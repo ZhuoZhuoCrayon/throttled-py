@@ -1,6 +1,24 @@
 Version History
 ================
 
+v3.1.1 - 2026-01-16
+---------------------
+
+`简体中文 (v3.1.1) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.rst#v311---2026-01-16>`_ | English
+
+**🐛 Bug Fixes**
+
+- fix: add @wraps decorator to inner functions for better metadata preservation @MaksimZayats (#120)
+
+**🍃 Maintenance**
+
+- ci: add AI-driven automated pre-release preparation @ZhuoZhuoCrayon (#122)
+- ci: remove token configuration from commitlint action @ZhuoZhuoCrayon (#121)
+- ci: use prek as an alternative to pre-commit @ZhuoZhuoCrayon (#119)
+
+**Full Changelog**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v3.1.0...v3.1.1
+
+
 v3.1.0 - 2025-12-30
 ---------------------
 
