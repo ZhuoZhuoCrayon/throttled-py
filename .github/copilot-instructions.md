@@ -31,6 +31,15 @@ As a Copilot agent reviewing this project, prioritize the following principles:
 
 ---
 
+## Agent Workflow & Skills (CRITICAL)
+
+Before executing ANY complex task (especially releases, refactoring, or testing), you **MUST** follow the workflow defined in:
+**`.github/instructions/use-skills.instructions.md`**
+
+This instruction file defines how to efficiently discover and apply project-specific skills by scanning `.claude/skills`.
+
+---
+
 ## Documentation Review Guidelines
 
 ### English Documentation
