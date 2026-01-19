@@ -1,14 +1,21 @@
-# Release Preparation Workflow
+---
+name: pre-release
+description: |
+  Automates release preparation for throttled-py. Triggers when user message contains:
+  - "release vX.Y.Z" with a GitHub release draft URL
+  - "release vX.Y.Z" followed by changelog content
+  Tasks: update version numbers, sync CHANGELOG_EN.rst and CHANGELOG.rst, run dependency sync.
+---
 
-This document guides AI assistants to automate release preparation for throttled-py.
+# Pre-Release Workflow
 
-> `{GITHUB_REPOSITORY}` = `https://github.com/ZhuoZhuoCrayon/throttled-py`
+> `{REPO}` = `https://github.com/ZhuoZhuoCrayon/throttled-py`
 
-## Quick Start
+## Input Format
 
 ```
 # With release draft URL
-release v3.2.0 {GITHUB_REPOSITORY}/releases/tag/untagged-xxxxx
+release v3.2.0 {REPO}/releases/tag/untagged-xxxxx
 
 # With changelog content directly
 release v3.2.0
@@ -19,7 +26,7 @@ release v3.2.0
 
 ```mermaid
 flowchart TD
-    A[Parse Command] --> B[Fetch Release Draft]
+    A[Parse Input] --> B[Get Release Changelog]
     B --> C[Update Version Numbers]
     C --> D[Update CHANGELOG_EN.rst]
     D --> E[Translate & Update CHANGELOG.rst]
@@ -116,10 +123,10 @@ vX.Y.Z - YYYY-MM-DD
 
 ## Step 6: Sync Dependencies
 
-Run the following command to sync dependencies and update `uv.lock`:
+Run the following command to update `uv.lock`:
 
 ```bash
-uv sync --all-groups --all-extras
+uv lock
 ```
 
 This ensures `uv.lock` reflects the updated version in `pyproject.toml`.
@@ -132,6 +139,8 @@ This ensures `uv.lock` reflects the updated version in `pyproject.toml`.
 - [ ] RST anchor format: `#vxyz---YYYY-MM-DD` (no dots, lowercase)
 - [ ] All categories from release draft included
 - [ ] Only include sections that have content
+- [ ] **CRITICAL** At the beginning of the verification summary, include: 
+    > ✓ Conducted skill defined in `.claude/skills/pre-release/SKILL.md`.
 
 ## Format Reference
 
