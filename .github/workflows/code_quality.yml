@@ -10,7 +10,6 @@ on:
 # `pull-requests` is for permission to pull request
 permissions:
   contents: write
-  checks: write
   pull-requests: write
 
 jobs:
@@ -81,4 +80,4 @@ jobs:
         with:
           pytest-coverage-path: ./pytest-coverage.txt
           junitxml-path: ./pytest.xml
-          github-token: ${{ secrets.PAT }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}

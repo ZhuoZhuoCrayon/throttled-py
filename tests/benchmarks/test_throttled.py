@@ -1,10 +1,10 @@
 import threading
-from typing import Any, Dict, Generator, List
+from collections.abc import Generator
+from typing import Any
 
 import pytest
 import redis
 from redis import Redis
-
 from throttled import (
     BaseStore,
     MemoryStore,
@@ -24,7 +24,7 @@ WORKERS: int = 8
 
 
 def clear_redis(client: redis.Redis) -> None:
-    keys: List[str] = client.keys("throttled*")
+    keys: list[str] = client.keys("throttled*")
     client.delete(*keys)
 
 
@@ -32,11 +32,11 @@ def redis_baseline(client: redis.Redis):
     client.incrby("throttled:v2", 1)
 
 
-def memory_baseline(dict_store: Dict[str, int]):
+def memory_baseline(dict_store: dict[str, int]):
     dict_store["throttled:v2"] = dict_store.get("throttled:v2", 0) + 1
 
 
-def memory_with_lock_baseline(lock: threading.RLock, dict_store: Dict[str, int]):
+def memory_with_lock_baseline(lock: threading.RLock, dict_store: dict[str, int]):
     with lock:
         memory_baseline(dict_store)
 
@@ -51,8 +51,7 @@ def store(request) -> Generator[BaseStore, Any, None]:
     def _create_store(store_type: str) -> BaseStore:
         if store_type == StoreType.MEMORY.value:
             return MemoryStore()
-        else:
-            return RedisStore(server=REDIS_URL)
+        return RedisStore(server=REDIS_URL)
 
     store: BaseStore = _create_store(request.param)
 
@@ -73,10 +72,12 @@ def redis_client() -> Generator[Redis, Any, None]:
 
 @pytest.mark.skip(reason="skip benchmarks")
 class TestBenchmarkThrottled:
-    def test_memory_baseline__serial(self, benchmark: Benchmark):
+    @classmethod
+    def test_memory_baseline__serial(cls, benchmark: Benchmark):
         benchmark.serial(memory_baseline, batch=500_000, dict_store={})
 
-    def test_memory_baseline__concurrent(self, benchmark: Benchmark):
+    @classmethod
+    def test_memory_baseline__concurrent(cls, benchmark: Benchmark):
         benchmark.concurrent(
             memory_with_lock_baseline,
             batch=100_000,
@@ -85,22 +86,25 @@ class TestBenchmarkThrottled:
             dict_store={},
         )
 
+    @classmethod
     def test_redis_baseline__serial(
-        self, benchmark: Benchmark, redis_client: redis.Redis
+        cls, benchmark: Benchmark, redis_client: redis.Redis
     ):
         benchmark.serial(redis_baseline, batch=100_000, client=redis_client)
 
+    @classmethod
     def test_redis_baseline__concurrent(
-        self, benchmark: Benchmark, redis_client: redis.Redis
+        cls, benchmark: Benchmark, redis_client: redis.Redis
     ):
         benchmark.concurrent(
             redis_baseline, batch=100_000, workers=WORKERS, client=redis_client
         )
 
+    @classmethod
     @pytest.mark.parametrize("using", RateLimiterType.choice())
     @pytest.mark.parametrize("quota", [per_sec(1_000)])
     def test_limit__serial(
-        self,
+        cls,
         benchmark: Benchmark,
         store: BaseStore,
         using: RateLimiterTypeT,
@@ -109,10 +113,11 @@ class TestBenchmarkThrottled:
         throttle = Throttled(using=using, quota=quota, store=store)
         benchmark.serial(call_api, batch=100_000, throttle=throttle)
 
+    @classmethod
     @pytest.mark.parametrize("using", RateLimiterType.choice())
     @pytest.mark.parametrize("quota", [per_sec(1_000)])
     def test_limit__concurrent(
-        self,
+        cls,
         benchmark: Benchmark,
         store: BaseStore,
         using: RateLimiterTypeT,
