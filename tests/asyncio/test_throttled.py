@@ -1,8 +1,8 @@
+from collections.abc import Callable, Coroutine
 from functools import partial
-from typing import Any, Callable, Coroutine, Dict
+from typing import Any
 
 import pytest
-
 from throttled.asyncio import (
     RateLimiterType,
     Throttled,
@@ -26,17 +26,22 @@ def decorated_demo() -> Callable[[int, int], Coroutine]:
     async def demo(left: int, right: int) -> int:
         return left + right
 
-    yield demo
+    return demo
+
+
+EXPECTED_RESULT = 3
 
 
 @pytest.mark.asyncio
 class TestThrottled:
-    async def test_demo(self, decorated_demo: Callable[[int, int], Coroutine]) -> None:
-        assert await decorated_demo(1, 2) == 3
+    @classmethod
+    async def test_demo(cls, decorated_demo: Callable[[int, int], Coroutine]) -> None:
+        assert await decorated_demo(1, 2) == EXPECTED_RESULT
         with pytest.raises(exceptions.LimitedError):
             await decorated_demo(2, 3)
 
-    async def test_limit__timeout(self):
+    @classmethod
+    async def test_limit__timeout(cls):
         throttle: Throttled = Throttled(timeout=1, quota=per_sec(1))
         assert (await throttle.limit("key")).limited is False
 
@@ -56,8 +61,9 @@ class TestThrottled:
         async with utils.Timer(callback=partial(_callback, 0, 0.1)):
             assert (await throttle.limit("key", timeout=0.5)).limited
 
-    async def test_enter(self):
-        construct_kwargs: Dict[str, Any] = {
+    @classmethod
+    async def test_enter(cls):
+        construct_kwargs: dict[str, Any] = {
             "key": "key",
             "quota": per_sec(1),
             "store": store.MemoryStore(),
@@ -66,14 +72,13 @@ class TestThrottled:
         async with throttle as rate_limit_result:
             assert rate_limit_result.limited is False
 
-        try:
+        with pytest.raises(exceptions.LimitedError) as exc_info:
             async with throttle:
                 pass
-        except exceptions.LimitedError as e:
-            assert e.rate_limit_result.limited
-            assert e.rate_limit_result.state.remaining == 0
-            assert e.rate_limit_result.state.reset_after == 1
-            assert e.rate_limit_result.state.retry_after == 1
+        assert exc_info.value.rate_limit_result.limited
+        assert exc_info.value.rate_limit_result.state.remaining == 0
+        assert exc_info.value.rate_limit_result.state.reset_after == 1
+        assert exc_info.value.rate_limit_result.state.retry_after == 1
 
         async with Throttled(**construct_kwargs, timeout=1) as rate_limit_result:
             assert not rate_limit_result.limited

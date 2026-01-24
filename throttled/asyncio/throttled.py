@@ -1,8 +1,8 @@
 import abc
 import asyncio
+from collections.abc import Callable, Coroutine
 from functools import wraps
 from types import TracebackType
-from typing import Callable, Coroutine, Optional, Type, Union
 
 from ..exceptions import DataError, LimitedError
 from ..throttled import BaseThrottledMixin
@@ -18,6 +18,7 @@ class BaseThrottled(BaseThrottledMixin, abc.ABC):
     @abc.abstractmethod
     async def __aenter__(self) -> RateLimitResult:
         """Context manager to apply rate limiting to a block of code.
+
         :return: RateLimitResult
         :raise: LimitedError if rate limit is exceeded.
         """
@@ -25,20 +26,19 @@ class BaseThrottled(BaseThrottledMixin, abc.ABC):
 
     async def __aexit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ):
         """Exit the context manager."""
-        pass
 
     @abc.abstractmethod
     def __call__(
-        self, func: Optional[Callable[..., Coroutine]] = None
-    ) -> Union[
-        Callable[..., Coroutine],
-        Callable[[Callable[..., Coroutine]], Callable[..., Coroutine]],
-    ]:
+        self, func: Callable[..., Coroutine] | None = None
+    ) -> (
+        Callable[..., Coroutine]
+        | Callable[[Callable[..., Coroutine]], Callable[..., Coroutine]]
+    ):
         """Decorator to apply rate limiting to an async function."""
         raise NotImplementedError
 
@@ -49,9 +49,10 @@ class BaseThrottled(BaseThrottledMixin, abc.ABC):
 
     @abc.abstractmethod
     async def limit(
-        self, key: Optional[KeyT] = None, cost: int = 1, timeout: Optional[float] = None
+        self, key: KeyT | None = None, cost: int = 1, timeout: float | None = None
     ) -> RateLimitResult:
         """Apply rate limiting logic to a given key with a specified cost.
+
         :param key: The unique identifier for the rate limit subject.
                     eg: user ID or IP address.
                     Overrides the instance key if provided.
@@ -70,8 +71,10 @@ class BaseThrottled(BaseThrottledMixin, abc.ABC):
 
     @abc.abstractmethod
     async def peek(self, key: KeyT) -> RateLimitState:
-        """Retrieve the current state of rate limiter for the given key
-           without actually modifying the state.
+        """Retrieve the current state of rate limiter for the given key.
+
+        This does not modify the rate limiter state.
+
         :param key: The unique identifier for the rate limit subject.
                     eg: user ID or IP address.
         :return: RateLimitState - Representing the current state of
@@ -81,7 +84,9 @@ class BaseThrottled(BaseThrottledMixin, abc.ABC):
 
 
 class Throttled(BaseThrottled):
-    _REGISTRY_CLASS: Type[RateLimiterRegistry] = RateLimiterRegistry
+    """Async rate limiter that provides throttling functionality."""
+
+    _REGISTRY_CLASS: type[RateLimiterRegistry] = RateLimiterRegistry
 
     _DEFAULT_GLOBAL_STORE: StoreP = MemoryStore()
 
@@ -105,7 +110,7 @@ class Throttled(BaseThrottled):
                 break
 
     async def limit(
-        self, key: Optional[KeyT] = None, cost: int = 1, timeout: Optional[float] = None
+        self, key: KeyT | None = None, cost: int = 1, timeout: float | None = None
     ) -> RateLimitResult:
         self._validate_cost(cost)
         key: KeyT = self._get_key(key)
@@ -135,12 +140,13 @@ class Throttled(BaseThrottled):
         return await self.limiter.peek(key)
 
     def __call__(
-        self, func: Optional[Callable[..., Coroutine]] = None
-    ) -> Union[
-        Callable[..., Coroutine],
-        Callable[[Callable[..., Coroutine]], Callable[..., Coroutine]],
-    ]:
+        self, func: Callable[..., Coroutine] | None = None
+    ) -> (
+        Callable[..., Coroutine]
+        | Callable[[Callable[..., Coroutine]], Callable[..., Coroutine]]
+    ):
         """Decorator to apply rate limiting to an async function.
+
         The cost value is taken from the Throttled instance's initialization.
 
         Usage:
