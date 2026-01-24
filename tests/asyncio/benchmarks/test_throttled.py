@@ -1,4 +1,6 @@
 import asyncio
+from collections.abc import AsyncGenerator
+from typing import Any
 
 import pytest
 import pytest_asyncio
@@ -44,7 +46,7 @@ async def call_api(throttle: Throttled) -> bool:
 
 
 @pytest_asyncio.fixture(params=constants.StoreType.choice())
-def store(request) -> BaseStore:
+async def store(request) -> AsyncGenerator[BaseStore, Any]:
     def _create_store(store_type: str) -> BaseStore:
         if store_type == constants.StoreType.MEMORY.value:
             return MemoryStore()
@@ -55,11 +57,11 @@ def store(request) -> BaseStore:
     yield store
 
     if request.param == constants.StoreType.REDIS.value:
-        clear_redis(store._backend.get_client())
+        await clear_redis(store._backend.get_client())
 
 
 @pytest_asyncio.fixture
-async def redis_client() -> Redis:
+async def redis_client() -> AsyncGenerator[Redis, Any]:
     client: Redis = Redis.from_url(REDIS_URL)
 
     yield client
