@@ -1,0 +1,1 @@
+"""OpenTelemetry hook tests."""

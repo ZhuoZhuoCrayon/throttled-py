@@ -50,6 +50,7 @@ Contents
    installation
    quickstart/index
    advance_usage/index
+   observability/index
    changelog
    benchmarks
    api
