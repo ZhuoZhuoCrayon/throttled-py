@@ -2,6 +2,7 @@
 
 from . import asyncio, constants, exceptions, rate_limiter, types, utils
 from .constants import RateLimiterType
+from .hooks import Hook, HookContext
 from .rate_limiter import (
     BaseRateLimiter,
     Quota,
@@ -66,6 +67,9 @@ __all__ = [
     "RedisStore",
     # throttled
     "Throttled",
+    # hooks
+    "Hook",
+    "HookContext",
     # constants
     "RateLimiterType",
 ]

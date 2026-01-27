@@ -39,6 +39,7 @@ Changes = "https://github.com/ZhuoZhuoCrayon/throttled-py/releases"
 [project.optional-dependencies]
 memory = []
 redis = ["redis>3,!=4.5.2,!=4.5.3,<8.0.0"]
+otel = ["opentelemetry-api>=1.30.0"]
 
 [dependency-groups]
 dev = [
@@ -53,6 +54,8 @@ dev = [
     "build>=1.2.1",
     "pytest-xdist>=3.8.0",
     "prek>=0.2.25",
+    "opentelemetry-api>=1.30.0",
+    "opentelemetry-sdk>=1.30.0",
 ]
 docs = [
     "sphinx",
@@ -131,7 +134,7 @@ known-third-party = ["throttled", "tests"]
 "throttled.py" = ["PLR0913", "PLR0917", "UP038"]
 # D- Ignore docstring related rules in examples.
 # PLR0913 / PLR0917 - Ignore too many arguments in tests.
-"tests/*.py" = ["D", "PLR0913", "PLR0917"]
+"tests/**/*.py" = ["D", "PLR0913", "PLR0917"]
 # D - Ignore docstring related rules in examples.
 # T201 - Ignore use of print statements in examples.
 "examples/*.py" = ["D", "T201"]
