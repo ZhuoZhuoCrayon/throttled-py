@@ -79,7 +79,8 @@ class BaseThrottledMixin:
         :type store: :class:`throttled.store.BaseStore`
         :param cost: The cost of each request in terms of how much of the rate limit
             quota it consumes, default: 1.
-        :param hooks: A list of hooks to be called after each rate limit check.
+        :param hooks: A list of hooks invoked by the middleware before and/or after
+            each ``limit()`` operation, including any internal retries.
         """
         # TODO Support key prefix.
         # TODO Support extract key from params.
