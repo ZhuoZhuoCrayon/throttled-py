@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 import pytest
 from throttled import RateLimiterType, Throttled, per_sec, rate_limiter, store
 from throttled.exceptions import BaseThrottledError, DataError, LimitedError
-from throttled.hooks import Hook, HookContext
+from throttled.hooks import Hook
 from throttled.rate_limiter import RateLimitResult
 from throttled.types import TimeLikeValueT
 from throttled.utils import Timer
@@ -151,11 +151,8 @@ class TestThrottled:
             def __init__(self, name: str):
                 self.name = name
 
-            def on_limit(
-                self,
-                call_next: Callable[[], RateLimitResult],
-                context: HookContext,  # noqa: ARG002
-            ) -> RateLimitResult:
+            def on_limit(self, *args, **kwargs) -> RateLimitResult:
+                call_next: Callable[[], RateLimitResult] = args[0]
                 order.append(f"{self.name}_before")
                 result: RateLimitResult = call_next()
                 order.append(f"{self.name}_after")
