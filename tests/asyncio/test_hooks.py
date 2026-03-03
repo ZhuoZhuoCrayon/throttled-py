@@ -1,5 +1,4 @@
-from collections.abc import Callable
-from dataclasses import FrozenInstanceError
+from collections.abc import Awaitable, Callable
 
 import pytest
 from throttled import (
@@ -7,8 +6,8 @@ from throttled import (
     RateLimiterType,
     RateLimitResult,
 )
+from throttled.asyncio.hooks import Hook, build_hook_chain
 from throttled.constants import StoreType
-from throttled.hooks import Hook, build_hook_chain
 
 
 @pytest.fixture
@@ -26,25 +25,6 @@ def hook_context() -> HookContext:
 def rate_limit_result() -> RateLimitResult:
     """Create a RateLimitResult for testing."""
     return RateLimitResult(limited=False, state_values=(100, 99, 60.0, 0.0))
-
-
-class TestHookContext:
-    @classmethod
-    def test_attributes(cls, hook_context: HookContext) -> None:
-        """HookContext should have correct attributes."""
-        assert hook_context.key == "test_key"
-        assert hook_context.cost == 1
-        assert hook_context.algorithm == RateLimiterType.TOKEN_BUCKET.value
-        assert hook_context.store_type == StoreType.MEMORY.value
-
-    @classmethod
-    def test_is_frozen(cls, hook_context: HookContext) -> None:
-        """HookContext should be immutable (i.e., frozen)."""
-        with pytest.raises(FrozenInstanceError):
-            hook_context.key = "new_key"
-
-        with pytest.raises(FrozenInstanceError):
-            hook_context.cost = 5
 
 
 class TestHook:
@@ -65,15 +45,16 @@ class TestHook:
             IncompleteHook()
 
     @classmethod
-    def test_on_limit__observe_result(cls) -> None:
+    @pytest.mark.asyncio
+    async def test_on_limit__observe_result(cls) -> None:
         """Hook should be able to observe and act on rate limit result."""
         alert_calls: list[str] = []
 
         class AlertHook(Hook):
-            def on_limit(self, *args, **kwargs) -> RateLimitResult:  # noqa: PLR6301
-                call_next: Callable[[], RateLimitResult] = args[0]
+            async def on_limit(self, *args, **kwargs) -> RateLimitResult:  # noqa: PLR6301
+                call_next: Callable[[], Awaitable[RateLimitResult]] = args[0]
                 context: HookContext = args[1]
-                result: RateLimitResult = call_next()
+                result: RateLimitResult = await call_next()
                 if result.limited:
                     alert_calls.append(context.key)
                 return result
@@ -90,60 +71,69 @@ class TestHook:
         allowed_result: RateLimitResult = RateLimitResult(
             limited=False, state_values=(100, 99, 60.0, 0.0)
         )
-        hook.on_limit(lambda: allowed_result, context)
+
+        async def return_allowed():
+            return allowed_result
+
+        await hook.on_limit(return_allowed, context)
         assert alert_calls == []
 
         # Test with denied result
         denied_result: RateLimitResult = RateLimitResult(
             limited=True, state_values=(100, 0, 60.0, 10.0)
         )
-        hook.on_limit(lambda: denied_result, context)
+
+        async def return_denied():
+            return denied_result
+
+        await hook.on_limit(return_denied, context)
         assert alert_calls == ["denied_key"]
 
 
+@pytest.mark.asyncio
 class TestBuildHookChain:
     @classmethod
-    def test_build_hook_chain__empty_hooks(
+    async def test_build_hook_chain__empty_hooks(
         cls, hook_context: HookContext, rate_limit_result: RateLimitResult
     ) -> None:
         """Empty hooks list should return do_limit directly."""
 
-        def do_limit() -> RateLimitResult:
+        async def do_limit() -> RateLimitResult:
             return rate_limit_result
 
-        chain: Callable[[], RateLimitResult] = build_hook_chain(
+        chain: Callable[[], Awaitable[RateLimitResult]] = build_hook_chain(
             [], do_limit, hook_context
         )
         assert chain is do_limit
 
     @classmethod
-    def test_on_limit__exception_skips_hook(
+    async def test_on_limit__exception_skips_hook(
         cls, hook_context: HookContext, rate_limit_result: RateLimitResult
     ) -> None:
         """Hook that raises exception should be skipped, chain continues."""
         call_order: list[str] = []
 
         class FailingHook(Hook):
-            def on_limit(self, *args, **kwargs) -> RateLimitResult:  # noqa: PLR6301
+            async def on_limit(self, *args, **kwargs) -> RateLimitResult:  # noqa: PLR6301
                 call_order.append("failing_before")
                 raise RuntimeError("Hook failed!")
 
         class WorkingHook(Hook):
-            def on_limit(self, *args, **kwargs) -> RateLimitResult:  # noqa: PLR6301
-                call_next: Callable[[], RateLimitResult] = args[0]
+            async def on_limit(self, *args, **kwargs) -> RateLimitResult:  # noqa: PLR6301
+                call_next: Callable[[], Awaitable[RateLimitResult]] = args[0]
                 call_order.append("working_before")
-                res: RateLimitResult = call_next()
+                res: RateLimitResult = await call_next()
                 call_order.append("working_after")
                 return res
 
-        def do_limit() -> RateLimitResult:
+        async def do_limit() -> RateLimitResult:
             call_order.append("do_limit")
             return rate_limit_result
 
-        chain: Callable[[], RateLimitResult] = build_hook_chain(
+        chain: Callable[[], Awaitable[RateLimitResult]] = build_hook_chain(
             [FailingHook(), WorkingHook()], do_limit, hook_context
         )
-        chain_result: RateLimitResult = chain()
+        chain_result: RateLimitResult = await chain()
 
         assert chain_result == rate_limit_result
         assert call_order == [
@@ -154,44 +144,44 @@ class TestBuildHookChain:
         ]
 
     @classmethod
-    def test_on_limit__multi_hooks(
+    async def test_on_limit__multi_hooks(
         cls, hook_context: HookContext, rate_limit_result: RateLimitResult
     ) -> None:
         """Multiple hooks should execute in correct order (middleware pattern)."""
         call_order: list[str] = []
 
         class HookA(Hook):
-            def on_limit(self, *args, **kwargs) -> RateLimitResult:  # noqa: PLR6301
-                call_next: Callable[[], RateLimitResult] = args[0]
+            async def on_limit(self, *args, **kwargs) -> RateLimitResult:  # noqa: PLR6301
+                call_next: Callable[[], Awaitable[RateLimitResult]] = args[0]
                 call_order.append("A_before")
-                res: RateLimitResult = call_next()
+                res: RateLimitResult = await call_next()
                 call_order.append("A_after")
                 return res
 
         class HookB(Hook):
-            def on_limit(self, *args, **kwargs) -> RateLimitResult:  # noqa: PLR6301
-                call_next: Callable[[], RateLimitResult] = args[0]
+            async def on_limit(self, *args, **kwargs) -> RateLimitResult:  # noqa: PLR6301
+                call_next: Callable[[], Awaitable[RateLimitResult]] = args[0]
                 call_order.append("B_before")
-                res: RateLimitResult = call_next()
+                res: RateLimitResult = await call_next()
                 call_order.append("B_after")
                 return res
 
-        def do_limit() -> RateLimitResult:
+        async def do_limit() -> RateLimitResult:
             call_order.append("do_limit")
             return rate_limit_result
 
-        chain: Callable[[], RateLimitResult] = build_hook_chain(
+        chain: Callable[[], Awaitable[RateLimitResult]] = build_hook_chain(
             [HookA(), HookB()], do_limit, hook_context
         )
-        chain()
+        await chain()
 
         assert call_order == ["A_before", "B_before", "do_limit", "B_after", "A_after"]
 
     @classmethod
-    def test_on_limit__exactly_once_invocation(
+    async def test_on_limit__exactly_once_invocation(
         cls, hook_context: HookContext, rate_limit_result: RateLimitResult
     ) -> None:
-        """Hook that raises AFTER call_next() should not cause double execution.
+        """Hook that raises AFTER await call_next() should not cause double execution.
 
         hook calls call_next() successfully, then raises during post-processing.
         The except block should return the cached result instead of calling next_fn() again.
@@ -199,61 +189,61 @@ class TestBuildHookChain:
         call_count: int = 0
 
         class PostProcessFailHook(Hook):
-            def on_limit(self, *args, **kwargs) -> RateLimitResult:  # noqa: PLR6301
-                call_next: Callable[[], RateLimitResult] = args[0]
-                call_next()
+            async def on_limit(self, *args, **kwargs) -> RateLimitResult:  # noqa: PLR6301
+                call_next: Callable[[], Awaitable[RateLimitResult]] = args[0]
+                await call_next()
                 raise RuntimeError("post-processing failed")
 
-        def do_limit() -> RateLimitResult:
+        async def do_limit() -> RateLimitResult:
             nonlocal call_count
             call_count += 1
             return rate_limit_result
 
-        chain: Callable[[], RateLimitResult] = build_hook_chain(
+        chain: Callable[[], Awaitable[RateLimitResult]] = build_hook_chain(
             [PostProcessFailHook()], do_limit, hook_context
         )
-        result: RateLimitResult = chain()
+        result: RateLimitResult = await chain()
 
         assert result == rate_limit_result
         assert call_count == 1, f"do_limit called {call_count} times, expected 1"
 
     @classmethod
-    def test_on_limit__next_fn_raises_before_except_fallback(
+    async def test_on_limit__next_fn_raises_before_except_fallback(
         cls, hook_context: HookContext
     ) -> None:
         """When next_fn() raises inside tracked_next (before except fallback),
         the exception should propagate."""
 
         class PassthroughHook(Hook):
-            def on_limit(self, *args, **kwargs) -> RateLimitResult:  # noqa: PLR6301
-                call_next: Callable[[], RateLimitResult] = args[0]
-                return call_next()
+            async def on_limit(self, *args, **kwargs) -> RateLimitResult:  # noqa: PLR6301
+                call_next: Callable[[], Awaitable[RateLimitResult]] = args[0]
+                return await call_next()
 
-        def do_limit() -> RateLimitResult:
+        async def do_limit() -> RateLimitResult:
             raise RuntimeError("store connection failed")
 
-        chain: Callable[[], RateLimitResult] = build_hook_chain(
+        chain: Callable[[], Awaitable[RateLimitResult]] = build_hook_chain(
             [PassthroughHook()], do_limit, hook_context
         )
         with pytest.raises(RuntimeError, match="store connection failed"):
-            chain()
+            await chain()
 
     @classmethod
-    def test_on_limit__next_fn_raises_after_except_fallback(
+    async def test_on_limit__next_fn_raises_after_except_fallback(
         cls, hook_context: HookContext
     ) -> None:
         """When hook raises BEFORE call_next() and the except fallback
         calls next_fn() which also raises, that exception should propagate."""
 
         class FailBeforeCallNextHook(Hook):
-            def on_limit(self, *args, **kwargs) -> RateLimitResult:  # noqa: PLR6301
+            async def on_limit(self, *args, **kwargs) -> RateLimitResult:  # noqa: PLR6301
                 raise RuntimeError("hook failed before call_next")
 
-        def do_limit() -> RateLimitResult:
+        async def do_limit() -> RateLimitResult:
             raise RuntimeError("store connection failed")
 
-        chain: Callable[[], RateLimitResult] = build_hook_chain(
+        chain: Callable[[], Awaitable[RateLimitResult]] = build_hook_chain(
             [FailBeforeCallNextHook()], do_limit, hook_context
         )
         with pytest.raises(RuntimeError, match="store connection failed"):
-            chain()
+            await chain()

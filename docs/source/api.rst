@@ -14,6 +14,34 @@ Main Interface
     :special-members: __init__, __call__, __enter__
     :exclude-members: limiter
 
+.. autoclass:: throttled.asyncio.Throttled
+    :inherited-members:
+    :members:
+    :special-members: __init__, __call__, __aenter__
+    :exclude-members: limiter
+
+
+Hooks
+=================
+
+.. autoclass:: throttled.hooks.Hook
+    :members:
+
+.. autoclass:: throttled.asyncio.hooks.Hook
+    :members:
+
+
+Observability
+=================
+
+.. autoclass:: throttled.contrib.otel.hook.OTelHook
+    :members:
+    :show-inheritance:
+
+.. autoclass:: throttled.asyncio.contrib.otel.hook.OTelHook
+    :members:
+    :show-inheritance:
+
 
 Store
 =================

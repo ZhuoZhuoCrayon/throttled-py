@@ -12,8 +12,8 @@ if TYPE_CHECKING:
     from opentelemetry.metrics import Counter, Histogram
 
 
-class OTelHook(Hook):
-    """OpenTelemetry metrics hook using middleware pattern.
+class OTelHookBase:
+    """Shared logic for sync/async OTel hooks.
 
     Collects the following metrics:
 
@@ -25,6 +25,47 @@ class OTelHook(Hook):
     - algorithm: The rate limiting algorithm
     - store_type: The storage backend type
     - result: "allowed" or "denied"
+    """
+
+    METRIC_REQUESTS = "throttled.requests"
+    METRIC_DURATION = "throttled.duration"
+
+    def __init__(self, meter: Meter):
+        """Initialize OTel hook.
+
+        :param meter: OpenTelemetry Meter instance.
+        """
+        self._meter = meter
+
+        self._requests: Counter = self._meter.create_counter(
+            name=self.METRIC_REQUESTS,
+            description="Number of rate limit checks",
+            unit="1",
+        )
+        self._duration: Histogram = self._meter.create_histogram(
+            name=self.METRIC_DURATION,
+            description="Duration of rate limit checks",
+            unit="s",
+        )
+
+    def _record_metrics(
+        self,
+        context: HookContext,
+        result: RateLimitResult,
+        duration: float,
+    ) -> None:
+        attributes = {
+            "key": context.key,
+            "algorithm": context.algorithm,
+            "store_type": context.store_type,
+            "result": "denied" if result.limited else "allowed",
+        }
+        self._requests.add(context.cost, attributes)
+        self._duration.record(duration, attributes)
+
+
+class OTelHook(OTelHookBase, Hook):
+    """OpenTelemetry metrics hook using middleware pattern.
 
     Usage::
 
@@ -37,27 +78,6 @@ class OTelHook(Hook):
     >>> throttle = Throttled(key="/api", hooks=[hook])
     """
 
-    METRIC_REQUESTS = "throttled.requests"
-    METRIC_DURATION = "throttled.duration"
-
-    def __init__(self, meter: Meter):
-        """Initialize OTelHook.
-
-        :param meter: OpenTelemetry Meter instance.
-        """
-        self._meter = meter
-
-        self._requests: Counter = self._meter.create_counter(
-            name=self.METRIC_REQUESTS,
-            description="Number of rate limit checks",
-            unit="1",
-        )
-        self._latency: Histogram = self._meter.create_histogram(
-            name=self.METRIC_DURATION,
-            description="Duration of rate limit checks",
-            unit="s",
-        )
-
     def on_limit(
         self,
         call_next: Callable[[], RateLimitResult],
@@ -65,19 +85,8 @@ class OTelHook(Hook):
     ) -> RateLimitResult:
         """Wrap rate limit check with timing and metrics recording."""
         start = time.perf_counter()
-
         result = call_next()
+        duration = time.perf_counter() - start
 
-        latency = time.perf_counter() - start
-
-        attributes = {
-            "key": context.key,
-            "algorithm": context.algorithm,
-            "store_type": context.store_type,
-            "result": "denied" if result.limited else "allowed",
-        }
-
-        self._requests.add(context.cost, attributes)
-        self._latency.record(latency, attributes)
-
+        self._record_metrics(context, result, duration=duration)
         return result

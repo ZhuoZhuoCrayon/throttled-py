@@ -19,26 +19,19 @@ This installs ``opentelemetry-api`` only. throttled-py emits metrics in OpenTele
 Quick Start
 ===========
 
-.. code-block:: python
+.. tab-set::
 
-   from opentelemetry import metrics
+    .. tab-item:: Sync
+        :sync: sync
 
-   from throttled import Throttled, per_sec
-   from throttled.contrib.otel import OTelHook
+        .. literalinclude:: ../../../examples/quickstart/otel_hook_example.py
+           :language: python
 
-   # Get meter from your application's OpenTelemetry setup
-   meter = metrics.get_meter("my-app")
+    .. tab-item:: Async
+        :sync: async
 
-   # Create hook and use with Throttled
-   hook = OTelHook(meter)
-   throttle = Throttled(
-       key="/api/users",
-       quota=per_sec(100),
-       hooks=[hook],
-   )
-
-   # Rate limiting - metrics are automatically recorded
-   result = throttle.limit()
+        .. literalinclude:: ../../../examples/quickstart/async/otel_hook_example.py
+           :language: python
 
 
 Metrics
@@ -81,7 +74,7 @@ All metrics include these attributes:
 Configuration
 =============
 
-``OTelHook`` requires a ``Meter`` instance:
+Both ``OTelHook`` (sync and async) require a ``Meter`` instance:
 
 .. code-block:: python
 
@@ -91,7 +84,15 @@ Configuration
    meter = metrics.get_meter("my-service", "1.0.0")
    hook = OTelHook(meter)
 
-This follows the dependency injection pattern - you control the meter configuration.
+The async ``OTelHook`` uses the same ``Meter`` instance and follows the same dependency injection pattern:
+
+.. code-block:: python
+
+   from opentelemetry import metrics
+   from throttled.asyncio.contrib.otel import OTelHook
+
+   meter = metrics.get_meter("my-service", "1.0.0")
+   hook = OTelHook(meter)
 
 
 Architecture

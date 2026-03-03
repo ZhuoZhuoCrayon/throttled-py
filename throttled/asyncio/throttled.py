@@ -5,9 +5,11 @@ from functools import wraps
 from types import TracebackType
 
 from ..exceptions import DataError, LimitedError
+from ..hooks import HookContext
 from ..throttled import BaseThrottledMixin
 from ..types import KeyT, StoreP
 from ..utils import now_mono_f
+from .hooks import build_hook_chain
 from .rate_limiter import RateLimiterRegistry, RateLimitResult, RateLimitState
 from .store import MemoryStore
 
@@ -109,16 +111,18 @@ class Throttled(BaseThrottled):
             if self._is_exit_waiting(start_time, retry_after, timeout):
                 break
 
-    async def limit(
-        self, key: KeyT | None = None, cost: int = 1, timeout: float | None = None
-    ) -> RateLimitResult:
-        self._validate_cost(cost)
-        key: KeyT = self._get_key(key)
-        timeout: float = self._get_timeout(timeout)
+    async def _do_limit(self, key: KeyT, cost: int, timeout: float) -> RateLimitResult:
+        """Execute rate limit check with retry logic.
+
+        This method contains the entire limit logic including
+        blocking/retry, so hooks can measure the total duration.
+        """
         result: RateLimitResult = await self.limiter.limit(key, cost)
+
         if timeout == self._NON_BLOCKING or not result.limited:
             return result
 
+        # TODO: When cost > limit, return early instead of waiting.
         start_time: float = now_mono_f()
         while True:
             if result.state.retry_after > timeout:
@@ -126,7 +130,8 @@ class Throttled(BaseThrottled):
 
             await self._wait(timeout, result.state.retry_after)
 
-            result: RateLimitResult = await self.limiter.limit(key, cost)
+            result = await self.limiter.limit(key, cost)
+
             if not result.limited:
                 break
 
@@ -135,6 +140,28 @@ class Throttled(BaseThrottled):
                 break
 
         return result
+
+    async def limit(
+        self, key: KeyT | None = None, cost: int = 1, timeout: float | None = None
+    ) -> RateLimitResult:
+        self._validate_cost(cost)
+        key: KeyT = self._get_key(key)
+        timeout: float = self._get_timeout(timeout)
+
+        if not self._hooks:
+            return await self._do_limit(key, cost, timeout)
+
+        async def do_limit() -> RateLimitResult:
+            return await self._do_limit(key, cost, timeout)
+
+        context = HookContext(
+            key=key,
+            cost=cost,
+            algorithm=self._limiter_cls.Meta.type,
+            store_type=self._store.TYPE,
+        )
+        chain = build_hook_chain(self._hooks, do_limit, context)
+        return await chain()
 
     async def peek(self, key: KeyT) -> RateLimitState:
         return await self.limiter.peek(key)
