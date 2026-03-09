@@ -1,7 +1,6 @@
 from collections.abc import Callable
 from functools import partial
 from typing import Any
-from unittest.mock import MagicMock
 
 import pytest
 from throttled import RateLimiterType, Throttled, per_sec, rate_limiter, store
@@ -176,14 +175,20 @@ class TestThrottled:
         the entire limit() operation (including retries), not each individual
         retry attempt.
         """
-        mock_hook: MagicMock = MagicMock(spec=Hook)
-        mock_hook.on_limit.side_effect = lambda call_next, ctx: call_next()
+        call_count: int = 0
+
+        class CountingHook(Hook):
+            def on_limit(self, *args, **kwargs) -> RateLimitResult:  # noqa: PLR6301
+                nonlocal call_count
+                call_count += 1
+                call_next: Callable[[], RateLimitResult] = args[0]
+                return call_next()
 
         throttle: Throttled = Throttled(
             key="test",
             quota=per_sec(1),
             timeout=2,  # Enable retry
-            hooks=[mock_hook],
+            hooks=[CountingHook()],
         )
 
         # First call: allowed immediately
@@ -193,4 +198,4 @@ class TestThrottled:
 
         # Hook should be called exactly 2 times (once per limit() call)
         # NOT more times due to internal retry attempts
-        assert mock_hook.on_limit.call_count == EXPECTED_HOOK_CALL_COUNT
+        assert call_count == EXPECTED_HOOK_CALL_COUNT

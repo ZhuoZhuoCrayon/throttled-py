@@ -14,41 +14,19 @@ Hooks can be used for:
 1) Basic Usage
 ==============
 
-.. code-block:: python
+.. tab-set::
 
-   from collections.abc import Callable
+    .. tab-item:: Sync
+        :sync: sync
 
-   from throttled import Throttled, per_sec, Hook, HookContext, RateLimitResult
+        .. literalinclude:: ../../../examples/quickstart/hook_example.py
+           :language: python
 
-   class LoggingHook(Hook):
-       def on_limit(
-           self,
-           call_next: Callable[[], RateLimitResult],
-           context: HookContext,
-       ) -> RateLimitResult:
-           # Before rate limit check
-           print(f"Checking rate limit for {context.key}")
+    .. tab-item:: Async
+        :sync: async
 
-           # Execute rate limit check
-           result = call_next()
-
-           # After rate limit check
-           status = "denied" if result.limited else "allowed"
-           print(f"[{context.key}] {status} - remaining: {result.state.remaining}")
-
-           return result
-
-   hook = LoggingHook()
-   throttle = Throttled(
-       key="/api/users",
-       quota=per_sec(10),
-       hooks=[hook],
-   )
-
-   result = throttle.limit()
-   # Output:
-   # Checking rate limit for /api/users
-   # [/api/users] allowed - remaining: 9
+        .. literalinclude:: ../../../examples/quickstart/async/hook_example.py
+           :language: python
 
 
 2) Middleware Pattern
@@ -107,25 +85,19 @@ The ``HookContext`` is an immutable dataclass containing information about the r
 
 To create a custom hook, inherit from ``Hook`` and implement the ``on_limit`` method:
 
-.. code-block:: python
+.. tab-set::
 
-   import time
-   from collections.abc import Callable
+    .. tab-item:: Sync
+        :sync: sync
 
-   from throttled import Hook, HookContext, RateLimitResult
+        .. literalinclude:: ../../../examples/quickstart/custom_hook_example.py
+           :language: python
 
-   class TimingHook(Hook):
-       def on_limit(
-           self,
-           call_next: Callable[[], RateLimitResult],
-           context: HookContext,
-       ) -> RateLimitResult:
-           start = time.perf_counter()
-           result = call_next()
-           duration = time.perf_counter() - start
+    .. tab-item:: Async
+        :sync: async
 
-           print(f"Rate limit check took {duration:.4f}s")
-           return result
+        .. literalinclude:: ../../../examples/quickstart/async/custom_hook_example.py
+           :language: python
 
 
 Best Practices
@@ -164,7 +136,7 @@ Best Practices
 
               return result
 
-3. **Keep hooks fast**: The ``on_limit`` method runs synchronously. For slow operations (HTTP calls, database writes), use a queue or background task.
+3. **Keep hooks fast**: The sync ``on_limit`` method runs synchronously. For slow operations (HTTP calls, database writes), use a queue or background task. Alternatively, use ``throttled.asyncio.Hook`` for native async support.
 
    .. code-block:: python
 
@@ -210,3 +182,5 @@ throttled-py provides the following built-in hooks:
      - Description
    * - :doc:`OTelHook </observability/opentelemetry>`
      - OpenTelemetry metrics integration for monitoring rate limiting events.
+   * - :doc:`OTelHook (async) </observability/opentelemetry>`
+     - Async version of ``OTelHook`` for use with ``throttled.asyncio.Hook``.
