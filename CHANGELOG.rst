@@ -1,6 +1,35 @@
 Version History
 =================
 
+v3.2.0 - 2026-04-03
+---------------------
+
+`English Documents Available (v3.2.0) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.rst#v320---2026-04-03>`_ | 简体中文
+
+**🚀 功能**
+
+- feat(hook): 新增支持 OpenTelemetry 的异步 Hook 系统 (#37) @s3ich4n (#133)
+- feat: 新增支持 OpenTelemetry 的 Hook 系统 (#37) @s3ich4n (#125)
+
+**📦 依赖项更新**
+
+- build(deps): 将 cryptography 从 46.0.5 升级到 46.0.6 @[dependabot[bot]](https://github.com/apps/dependabot) (#139)
+- build(deps): 将 pygments 从 2.19.2 升级到 2.20.0 @[dependabot[bot]](https://github.com/apps/dependabot) (#138)
+- build(deps): 将 requests 从 2.32.5 升级到 2.33.0 @[dependabot[bot]](https://github.com/apps/dependabot) (#137)
+- build(deps): 将 urllib3 从 2.5.0 升级到 2.6.3 @[dependabot[bot]](https://github.com/apps/dependabot) (#129)
+- build(deps): 将 cryptography 从 46.0.3 升级到 46.0.5 @[dependabot[bot]](https://github.com/apps/dependabot) (#132)
+
+**🍃 维护工作**
+
+- ci: 为 release-drafter 自动标签器支持带 scope 的 conventional commits @ZhuoZhuoCrayon (#131)
+- docs: 添加贡献指南与 PR 模板 (#127) @s3ich4n (#130)
+- ci: 在 Fork PR 中跳过 coverage 评论 @ZhuoZhuoCrayon (#128)
+- ci: 更新 GitHub token 引用并提升代码质量 @ZhuoZhuoCrayon (#126)
+- ci: 添加预发布自动化技能 @ZhuoZhuoCrayon (#124)
+
+**完整更新日志**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v3.1.1...v3.2.0
+
+
 v3.1.1 - 2026-01-16
 ---------------------
 

@@ -1,6 +1,35 @@
 Version History
 ================
 
+v3.2.0 - 2026-04-03
+---------------------
+
+`简体中文 (v3.2.0) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.rst#v320---2026-04-03>`_ | English
+
+**🚀 New Features**
+
+- feat(hook): add async hook system with OpenTelemetry support (#37) @s3ich4n (#133)
+- feat: add hook system with OpenTelemetry support (#37) @s3ich4n (#125)
+
+**📦 Dependencies**
+
+- build(deps): bump cryptography from 46.0.5 to 46.0.6 @[dependabot[bot]](https://github.com/apps/dependabot) (#139)
+- build(deps): bump pygments from 2.19.2 to 2.20.0 @[dependabot[bot]](https://github.com/apps/dependabot) (#138)
+- build(deps): bump requests from 2.32.5 to 2.33.0 @[dependabot[bot]](https://github.com/apps/dependabot) (#137)
+- build(deps): bump urllib3 from 2.5.0 to 2.6.3 @[dependabot[bot]](https://github.com/apps/dependabot) (#129)
+- build(deps): bump cryptography from 46.0.3 to 46.0.5 @[dependabot[bot]](https://github.com/apps/dependabot) (#132)
+
+**🍃 Maintenance**
+
+- ci: support scoped conventional commits in release-drafter autolabeler @ZhuoZhuoCrayon (#131)
+- docs: add contributing guide and PR template (#127) @s3ich4n (#130)
+- ci: skip coverage comment in forked PRs @ZhuoZhuoCrayon (#128)
+- ci: update GitHub token reference and improve code quality @ZhuoZhuoCrayon (#126)
+- ci: add pre-release automation skill @ZhuoZhuoCrayon (#124)
+
+**Full Changelog**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v3.1.1...v3.2.0
+
+
 v3.1.1 - 2026-01-16
 ---------------------
 

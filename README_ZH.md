@@ -13,6 +13,9 @@
      <a href="https://pypi.org/project/throttled-py/">
         <img src="https://img.shields.io/pypi/v/throttled-py.svg" alt="Pypi Package">
     </a>
+     <a href="https://pepy.tech/projects/throttled-py">
+        <img src="https://static.pepy.tech/personalized-badge/throttled-py?period=total&units=INTERNATIONAL_SYSTEM&left_color=GRAY&right_color=GREEN&left_text=downloads" alt="Coverage Status">
+    </a>
     <a href="https://github.com/ZhuoZhuoCrayon/throttled-py/issues">
         <img src="https://img.shields.io/badge/issue-welcome-blue.svg?logo=github" alt="Welcome Issue">
     </a>
