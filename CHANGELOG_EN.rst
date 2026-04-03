@@ -13,11 +13,11 @@ v3.2.0 - 2026-04-03
 
 **📦 Dependencies**
 
-- build(deps): bump cryptography from 46.0.5 to 46.0.6 @[dependabot[bot]](https://github.com/apps/dependabot) (#139)
-- build(deps): bump pygments from 2.19.2 to 2.20.0 @[dependabot[bot]](https://github.com/apps/dependabot) (#138)
-- build(deps): bump requests from 2.32.5 to 2.33.0 @[dependabot[bot]](https://github.com/apps/dependabot) (#137)
-- build(deps): bump urllib3 from 2.5.0 to 2.6.3 @[dependabot[bot]](https://github.com/apps/dependabot) (#129)
-- build(deps): bump cryptography from 46.0.3 to 46.0.5 @[dependabot[bot]](https://github.com/apps/dependabot) (#132)
+- build(deps): bump cryptography from 46.0.5 to 46.0.6 @dependabot[bot] (#139)
+- build(deps): bump pygments from 2.19.2 to 2.20.0 @dependabot[bot] (#138)
+- build(deps): bump requests from 2.32.5 to 2.33.0 @dependabot[bot] (#137)
+- build(deps): bump urllib3 from 2.5.0 to 2.6.3 @dependabot[bot] (#129)
+- build(deps): bump cryptography from 46.0.3 to 46.0.5 @dependabot[bot] (#132)
 
 **🍃 Maintenance**
 

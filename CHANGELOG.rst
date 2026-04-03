@@ -13,11 +13,11 @@ v3.2.0 - 2026-04-03
 
 **📦 依赖项更新**
 
-- build(deps): 将 cryptography 从 46.0.5 升级到 46.0.6 @[dependabot[bot]](https://github.com/apps/dependabot) (#139)
-- build(deps): 将 pygments 从 2.19.2 升级到 2.20.0 @[dependabot[bot]](https://github.com/apps/dependabot) (#138)
-- build(deps): 将 requests 从 2.32.5 升级到 2.33.0 @[dependabot[bot]](https://github.com/apps/dependabot) (#137)
-- build(deps): 将 urllib3 从 2.5.0 升级到 2.6.3 @[dependabot[bot]](https://github.com/apps/dependabot) (#129)
-- build(deps): 将 cryptography 从 46.0.3 升级到 46.0.5 @[dependabot[bot]](https://github.com/apps/dependabot) (#132)
+- build(deps): 将 cryptography 从 46.0.5 升级到 46.0.6 @dependabot[bot] (#139)
+- build(deps): 将 pygments 从 2.19.2 升级到 2.20.0 @dependabot[bot] (#138)
+- build(deps): 将 requests 从 2.32.5 升级到 2.33.0 @dependabot[bot] (#137)
+- build(deps): 将 urllib3 从 2.5.0 升级到 2.6.3 @dependabot[bot] (#129)
+- build(deps): 将 cryptography 从 46.0.3 升级到 46.0.5 @dependabot[bot] (#132)
 
 **🍃 维护工作**
 
