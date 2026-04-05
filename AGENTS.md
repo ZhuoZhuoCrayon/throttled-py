@@ -12,4 +12,5 @@ working in this repository.
 - Create branches from `main`.
 - Use the naming format documented in `CONTRIBUTING.md`:
   `<type>/<yymmdd>_<topic>`.
+- Follow the commit conventions in `CONTRIBUTING.md`.
 
