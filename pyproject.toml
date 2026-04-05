@@ -107,10 +107,11 @@ select = [
     "PYI062", # flake8-pyi
     "PYI063", # flake8-pyi
     "PYI066", # flake8-pyi
+    "ANN",    # flake8-annotations
+    "TCH",    # flake8-type-checking
     "PT",     # flake8-pytest-style
 ]
 ignore = [
-    "E501",
     "D102",     # disable missing docstring in public method
     "D105",     # disable missing docstring in magic method
     "D106",     # disable missing docstring in public nested class
