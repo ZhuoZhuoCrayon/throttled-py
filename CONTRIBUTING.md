@@ -11,6 +11,7 @@ This guide will help you get started and ensure a smooth review process. If anyt
 - [Code Style](#code-style)
 - [Testing Guidelines](#testing-guidelines)
 - [Documentation](#documentation)
+- [Public vs Internal APIs](#public-vs-internal-apis)
 - [Commit Conventions](#commit-conventions)
 - [Pull Request Process](#pull-request-process)
 - [PR Checklist](#pr-checklist)
@@ -208,6 +209,11 @@ def mock_meter() -> MagicMock:
 - **No empty files**: Please remove empty `conftest.py` files.
 - **Benchmarks**: Please add `@pytest.mark.skip(reason="skip benchmarks")` to benchmark test classes.
 
+### Test Placement (Unit vs Integration)
+
+- **Unit test mirroring**: tests for `throttled/<package>/<module>.py` should be placed at `tests/<package>/test_<module>.py`.
+- **Integration tests**: tests validating class behavior through public APIs should stay with that class's integration test file (for example, `tests/test_throttled.py`).
+
 ### Coverage Requirements
 
 CI checks test coverage via [Codecov](https://about.codecov.io/). Please make sure your changes meet the following thresholds:
@@ -247,6 +253,33 @@ python -m http.server 8000 --directory build/html
 ```
 
 The generated docs will be in `docs/build/html/`. Please use rst-style docstrings (`:param:`, `:return:`) so Sphinx can parse them correctly — see [Docstrings](#docstrings) for details.
+
+When you add or change a **public API**, update documentation in the same PR:
+
+- `README.md` and `README_ZH.md`
+- relevant `docs/source/` pages
+- runnable examples in `examples/` (sync + async when applicable)
+
+New API forms must be additive in docs. Keep existing API forms documented unless explicitly deprecated.
+
+## Public vs Internal APIs
+
+### Public API Changes
+
+When introducing a user-facing API:
+
+1. Export through the package `__init__.py` chain (keep sync/async symmetry when relevant).
+2. Re-export at `throttled/__init__.py` when it should be top-level user-facing.
+3. Prefer tests importing from public paths.
+4. Update docs and examples in the same PR (see [Documentation](#documentation)).
+
+### Internal Utilities
+
+For internal-only modules/utilities:
+
+- Do **not** export from `__init__.py` or `__all__`.
+- Unit tests may import internal modules directly.
+- Integration tests should still validate behavior through public APIs.
 
 ## Commit Conventions
 
@@ -335,7 +368,9 @@ Before submitting your pull request, please verify the following:
 - [ ] Docstrings use reStructuredText style (`:param:`, `:return:`)
 - [ ] Tests are class-based with `@classmethod`
 - [ ] Test names follow `test_{func}__{case}` format
+- [ ] Unit tests follow test mirroring path rules (`throttled/<package>/<module>.py` -> `tests/<package>/test_<module>.py`)
 - [ ] No empty files or unused code
 - [ ] No duplicate fixtures
+- [ ] Public API changes include README (EN + ZH), docs, and examples updates
 - [ ] Commit message follows Conventional Commits (`<type>: <description> (#issue)`)
 - [ ] Commits are squashed and rebased onto `main`
