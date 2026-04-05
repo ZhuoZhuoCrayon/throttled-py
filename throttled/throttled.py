@@ -19,8 +19,8 @@ from .rate_limiter import (
     RateLimitResult,
     RateLimitState,
     per_min,
-    quota_parser,
 )
+from .rate_limiter.quota_parser import parse as parse_quota
 from .store import MemoryStore
 from .types import KeyT, RateLimiterTypeT, StoreP
 from .utils import now_mono_f
@@ -82,7 +82,7 @@ class BaseThrottledMixin:
         :param quota: The quota for the rate limiter, default: 60 requests per minute.
             It accepts either:
             - :class:`throttled.rate_limiter.Quota`
-            - A quota DSL string, e.g. ``"100/s; burst=200"``
+            - A quota DSL string, e.g. ``"100/s burst 200"``
         :param store: The store to use for the rate limiter. By default, it uses
             the global shared :class:`throttled.store.MemoryStore` instance with
             maximum capacity of 1024, so you don't usually need to create it manually.
@@ -193,13 +193,13 @@ class BaseThrottledMixin:
         if isinstance(quota, Quota):
             return quota
 
-        parsed_quota = quota_parser.parse(quota)
-        if isinstance(parsed_quota, list):
+        parsed_quotas = parse_quota(quota)
+        if len(parsed_quotas) > 1:
             raise DataError(
                 "Invalid quota: multiple quota rules are not supported in "
                 "Throttled(quota=...) yet."
             )
-        return parsed_quota
+        return parsed_quotas[0]
 
     def _get_key(self, key: KeyT | None = None) -> KeyT:
         # Use the provided key if available.

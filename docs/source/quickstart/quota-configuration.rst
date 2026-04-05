@@ -40,7 +40,45 @@ Quota Configuration
             rate_limiter.per_week(60)   # 60 req/week
 
 
-2) Custom Quota
+2) Quota DSL
+===================
+
+You can also configure quota directly with a readable DSL string when creating
+:class:`Throttled <throttled.Throttled>`.
+
+.. tab-set::
+
+    .. tab-item:: Sync
+        :sync: sync
+
+        .. code-block:: python
+
+            from throttled import Throttled
+
+            # limit only
+            Throttled(quota="100/s")
+            # limit + burst
+            Throttled(quota="100 per second burst 200")
+
+
+    .. tab-item:: Async
+        :sync: async
+
+        .. code-block:: python
+
+            from throttled.asyncio import Throttled
+
+            # limit only
+            Throttled(quota="100/s")
+            # limit + burst
+            Throttled(quota="100 per second burst 200")
+
+The object-based :class:`Quota <throttled.rate_limiter.Quota>` API remains
+fully supported and is still the recommended option for complex programmatic
+construction.
+
+
+3) Custom Quota
 ===================
 
 If the quick configuration does not meet your needs, you can customize the :class:`Quota <throttled.rate_limiter.Quota>`
@@ -72,7 +110,7 @@ through the :py:meth:`per_duration <throttled.rate_limiter.per_duration>` method
             rate_limiter.per_duration(timedelta(minutes=2), limit=120, burst=150)
 
 
-3) Burst Capacity
+4) Burst Capacity
 ===================
 
 The :py:attr:`burst <throttled.rate_limiter.Quota.burst>` argument can be used to adjust the ability of

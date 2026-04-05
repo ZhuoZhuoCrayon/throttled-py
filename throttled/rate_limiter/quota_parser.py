@@ -6,8 +6,6 @@ from datetime import timedelta
 from ..exceptions import DataError
 from .base import Quota, per_duration
 
-ParsedQuotaT = Quota | list[Quota]
-
 _UNIT_ALIAS_TO_CANONICAL: dict[str, str] = {
     "s": "second",
     "sec": "second",
@@ -52,11 +50,11 @@ _RATE_PATTERN = re.compile(
         |
         per\s+(?P<per_unit>[a-zA-Z]+)
     )
+    (?:\s+burst\s+(?P<burst>\d+))?
     \s*$
     """,
     re.IGNORECASE | re.VERBOSE,
 )
-_BURST_PATTERN = re.compile(r"^\s*burst\s*=\s*(?P<burst>\d+)\s*$", re.IGNORECASE)
 _RULE_SPLITTER = re.compile(r"[;,|]")
 
 
@@ -71,11 +69,12 @@ def _parse_unit(raw_unit: str, token: str) -> str:
     )
 
 
-def _parse_rate_token(token: str) -> tuple[int, timedelta]:
+def _parse_rate_token(token: str) -> tuple[int, timedelta, int | None]:
     matched = _RATE_PATTERN.match(token)
     if not matched:
         raise DataError(
-            f"Invalid quota token: '{token}', expected '<n>/<unit>' or '<n> per <unit>'."
+            f"Invalid quota token: '{token}', expected '<n>/<unit>' or "
+            "'<n> per <unit>', optionally followed by 'burst <n>'."
         )
 
     limit: int = int(matched.group("limit"))
@@ -84,16 +83,18 @@ def _parse_rate_token(token: str) -> tuple[int, timedelta]:
 
     raw_unit: str = matched.group("slash_unit") or matched.group("per_unit")
     canonical_unit = _parse_unit(raw_unit, token)
-    return limit, _CANONICAL_UNIT_TO_DURATION[canonical_unit]
+    burst_expr: str | None = matched.group("burst")
+    burst: int | None = int(burst_expr) if burst_expr else None
+    return limit, _CANONICAL_UNIT_TO_DURATION[canonical_unit], burst
 
 
-def parse_many(quota_expr: str) -> list[Quota]:
+def parse(quota_expr: str) -> list[Quota]:
     """Parse quota DSL string and return one or multiple quota rules.
 
     Supported forms:
     - ``n/unit`` (e.g. ``100/s``)
     - ``n per unit`` (e.g. ``100 per second``)
-    - Optional ``burst=<n>`` attached to the previous rule
+    - Optional ``burst <n>`` attached to the same rule
     - Multi-rule separators: ``,`` ``;`` ``|``
     """
     if not isinstance(quota_expr, str):
@@ -109,57 +110,14 @@ def parse_many(quota_expr: str) -> list[Quota]:
         raise DataError("Invalid quota: must be a non-empty string.")
 
     quotas: list[Quota] = []
-    pending_limit: int | None = None
-    pending_duration: timedelta | None = None
-    pending_burst: int | None = None
-
-    def finalize_pending_rule() -> None:
-        nonlocal pending_limit
-        nonlocal pending_duration
-        nonlocal pending_burst
-
-        if pending_limit is None or pending_duration is None:
-            return
-
-        quotas.append(
-            per_duration(
-                pending_duration,
-                pending_limit,
-                pending_limit if pending_burst is None else pending_burst,
-            )
-        )
-        pending_limit = None
-        pending_duration = None
-        pending_burst = None
 
     for token in tokens:
-        burst_match = _BURST_PATTERN.match(token)
-        if burst_match:
-            if pending_limit is None:
-                raise DataError(
-                    f"Invalid quota token: '{token}', "
-                    "'burst=<n>' must follow a rate rule."
-                )
-            if pending_burst is not None:
-                raise DataError(
-                    f"Invalid quota token: '{token}', duplicate burst in the same rule."
-                )
-            pending_burst = int(burst_match.group("burst"))
-            continue
-
-        finalize_pending_rule()
-        pending_limit, pending_duration = _parse_rate_token(token)
-
-    finalize_pending_rule()
+        limit, duration, burst = _parse_rate_token(token)
+        quotas.append(
+            per_duration(
+                duration,
+                limit,
+                limit if burst is None else burst,
+            )
+        )
     return quotas
-
-
-def parse(quota_expr: str) -> ParsedQuotaT:
-    """Parse quota DSL string.
-
-    Returns:
-    - :class:`Quota` when the expression contains one rule.
-    - ``list[Quota]`` when the expression contains multiple rules.
-    """
-    quotas = parse_many(quota_expr)
-    return quotas[0] if len(quotas) == 1 else quotas

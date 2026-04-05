@@ -90,6 +90,7 @@ throttle = Throttled(
     using=RateLimiterType.TOKEN_BUCKET.value,
     # 🪣 设置配额：每秒填充 1,000 个 Token（limit），桶大小为 1,000（burst）。
     quota=rate_limiter.per_sec(1_000, burst=1_000),
+    # 🧩 DSL 写法：quota="1000/s burst 1000"
     # 📁默认使用全局 MemoryStore 作为存储后端。
 )
 
@@ -122,6 +123,7 @@ from throttled.asyncio import RateLimiterType, Throttled, rate_limiter, store, u
 throttle = Throttled(
     using=RateLimiterType.TOKEN_BUCKET.value,
     quota=rate_limiter.per_sec(1_000, burst=1_000),
+    # quota="1000/s burst 1000"
 )
 
 
@@ -347,6 +349,19 @@ from throttled import rate_limiter
 # 未指定 burst 时，默认设置为 limit 传入值。
 rate_limiter.per_min(60, burst=120)
 ```
+
+#### Quota DSL 字符串
+
+对于简单配置，你可以直接向 `Throttled(quota=...)` 传入可读字符串。
+
+```python
+from throttled import Throttled
+
+Throttled(quota="100/s")
+Throttled(quota="100 per second burst 200")
+```
+
+对象方式的 `Quota` API 仍然完全可用，复杂场景推荐继续使用对象配置。
 
 #### 自定义配额
 

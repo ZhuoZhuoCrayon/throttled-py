@@ -1,6 +1,5 @@
 """Rate limiter implementations and shared quota utilities."""
 
-from . import quota_parser
 from .base import (
     BaseRateLimiter,
     BaseRateLimiterMixin,
@@ -45,5 +44,4 @@ __all__ = [
     "TokenBucketRateLimiter",
     "LeakingBucketRateLimiter",
     "GCRARateLimiter",
-    "quota_parser",
 ]

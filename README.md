@@ -88,6 +88,7 @@ throttle = Throttled(
     using=RateLimiterType.TOKEN_BUCKET.value,
     # 🪣 Set quota: 1,000 tokens per second (limit), bucket size 1,000 (burst)
     quota=rate_limiter.per_sec(1_000, burst=1_000),
+    # 🧩 DSL alternative: quota="1000/s burst 1000"
     # 📁 By default, global MemoryStore is used as the storage backend.
 )
 
@@ -118,6 +119,7 @@ from throttled.asyncio import RateLimiterType, Throttled, rate_limiter, utils
 throttle = Throttled(
     using=RateLimiterType.TOKEN_BUCKET.value,
     quota=rate_limiter.per_sec(1_000, burst=1_000)
+    # quota="1000/s burst 1000"
 )
 
 
@@ -337,6 +339,21 @@ from throttled import rate_limiter
 # When burst is not specified, the default setting is the limit passed in.
 rate_limiter.per_min(60, burst=120)
 ```
+
+#### Quota DSL String
+
+For simple configurations, you can pass a readable quota DSL string directly
+to `Throttled(quota=...)`.
+
+```python
+from throttled import Throttled
+
+Throttled(quota="100/s")
+Throttled(quota="100 per second burst 200")
+```
+
+The object-based `Quota` API remains fully supported and is recommended for
+complex programmatic construction.
 
 #### Custom Quota
 

@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from functools import partial
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from throttled import RateLimiterType, Throttled, per_sec, rate_limiter, store
@@ -21,7 +21,7 @@ EXPECTED_RETRY_AFTER = 1
 
 
 @pytest.fixture
-def decorated_demo() -> Callable:
+def decorated_demo() -> Callable[[int, int], int]:
     @Throttled(
         key="/api/product",
         using=RateLimiterType.FIXED_WINDOW.value,
@@ -31,12 +31,12 @@ def decorated_demo() -> Callable:
     def demo(left: int, right: int) -> int:
         return left + right
 
-    return demo
+    return cast(Callable[[int, int], int], demo)
 
 
 class TestThrottled:
     @classmethod
-    def test_demo(cls, decorated_demo: Callable) -> None:
+    def test_demo(cls, decorated_demo: Callable[[int, int], int]) -> None:
         assert decorated_demo(1, 2) == EXPECTED_SUM
         with pytest.raises(LimitedError):
             decorated_demo(2, 3)
@@ -130,13 +130,44 @@ class TestThrottled:
 
         with pytest.raises(LimitedError) as exc_info, throttle:
             pass
-        assert exc_info.value.rate_limit_result.limited
-        assert exc_info.value.rate_limit_result.state.remaining == EXPECTED_REMAINING
-        assert exc_info.value.rate_limit_result.state.reset_after == EXPECTED_RESET_AFTER
-        assert exc_info.value.rate_limit_result.state.retry_after == EXPECTED_RETRY_AFTER
+        raised_result = exc_info.value.rate_limit_result
+        assert raised_result is not None
+        assert raised_result.limited
+        assert raised_result.state.remaining == EXPECTED_REMAINING
+        assert raised_result.state.reset_after == EXPECTED_RESET_AFTER
+        assert raised_result.state.retry_after == EXPECTED_RETRY_AFTER
 
         with Throttled(**construct_kwargs, timeout=1) as rate_limit_result:
             assert not rate_limit_result.limited
+
+    @classmethod
+    def test_constructor__string_quota_keep_backward_compatible(cls) -> None:
+        mem_store: store.MemoryStore = store.MemoryStore()
+
+        # New DSL path.
+        throttle_with_str: Throttled = Throttled(
+            key="quota-str",
+            quota="1/s burst 2",
+            store=mem_store,
+        )
+        assert not throttle_with_str.limit().limited
+
+        # Existing Quota path stays compatible.
+        throttle_with_quota: Throttled = Throttled(
+            key="quota-object",
+            quota=per_sec(1),
+            store=mem_store,
+        )
+        assert not throttle_with_quota.limit().limited
+
+    @classmethod
+    def test_constructor__reject_multi_rules_string(cls) -> None:
+        with pytest.raises(DataError, match="multiple quota rules"):
+            Throttled(
+                key="quota-multi",
+                quota="1/s burst 2; 10/m",
+                store=store.MemoryStore(),
+            )
 
     @classmethod
     def test_hook__execution_order(cls) -> None:
@@ -147,11 +178,11 @@ class TestThrottled:
         order: list[str] = []
 
         class OrderHook(Hook):
-            def __init__(self, name: str):
+            def __init__(self, name: str) -> None:
                 self.name = name
 
-            def on_limit(self, *args, **kwargs) -> RateLimitResult:
-                call_next: Callable[[], RateLimitResult] = args[0]
+            def on_limit(self, *args: object, **kwargs: object) -> RateLimitResult:
+                call_next = cast(Callable[[], RateLimitResult], args[0])
                 order.append(f"{self.name}_before")
                 result: RateLimitResult = call_next()
                 order.append(f"{self.name}_after")
@@ -178,10 +209,10 @@ class TestThrottled:
         call_count: int = 0
 
         class CountingHook(Hook):
-            def on_limit(self, *args, **kwargs) -> RateLimitResult:  # noqa: PLR6301
+            def on_limit(self, *args: object, **kwargs: object) -> RateLimitResult:  # noqa: PLR6301
                 nonlocal call_count
                 call_count += 1
-                call_next: Callable[[], RateLimitResult] = args[0]
+                call_next = cast(Callable[[], RateLimitResult], args[0])
                 return call_next()
 
         throttle: Throttled = Throttled(
