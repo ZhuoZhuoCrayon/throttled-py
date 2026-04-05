@@ -56,6 +56,7 @@ dev = [
     "prek>=0.2.25",
     "opentelemetry-api>=1.30.0",
     "opentelemetry-sdk>=1.30.0",
+    "mypy>=1.15",
 ]
 docs = [
     "sphinx",
@@ -135,7 +136,7 @@ known-third-party = ["throttled", "tests"]
 "throttled.py" = ["PLR0913", "PLR0917", "UP038"]
 # D- Ignore docstring related rules in examples.
 # PLR0913 / PLR0917 - Ignore too many arguments in tests.
-"tests/**/*.py" = ["D", "PLR0913", "PLR0917"]
+"tests/**/*.py" = ["D", "PLR0913", "PLR0917", "ANN"]
 # D - Ignore docstring related rules in examples.
 # T201 - Ignore use of print statements in examples.
 "examples/*.py" = ["D", "T201"]

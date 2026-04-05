@@ -16,6 +16,6 @@ repos:
     hooks:
       - id: mypy-strict
         name: mypy-strict
-        entry: uv run --with mypy mypy --strict
+        entry: uv run mypy --strict
         language: system
         types: [python]
