@@ -1,6 +1,6 @@
 from collections.abc import Awaitable, Callable, Coroutine
 from functools import partial
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from throttled.asyncio import (
@@ -18,7 +18,7 @@ from throttled.rate_limiter import RateLimitResult
 
 
 @pytest.fixture
-def decorated_demo() -> Callable[[int, int], Coroutine]:
+def decorated_demo() -> Callable[[int, int], Coroutine[Any, Any, int]]:
     @Throttled(
         key="/api/product",
         using=RateLimiterType.FIXED_WINDOW.value,
@@ -28,7 +28,7 @@ def decorated_demo() -> Callable[[int, int], Coroutine]:
     async def demo(left: int, right: int) -> int:
         return left + right
 
-    return demo
+    return cast(Callable[[int, int], Coroutine[Any, Any, int]], demo)
 
 
 EXPECTED_RESULT = 3
@@ -38,19 +38,25 @@ EXPECTED_HOOK_CALL_COUNT = 2
 @pytest.mark.asyncio
 class TestThrottled:
     @classmethod
-    async def test_demo(cls, decorated_demo: Callable[[int, int], Coroutine]) -> None:
+    async def test_demo(
+        cls, decorated_demo: Callable[[int, int], Coroutine[Any, Any, int]]
+    ) -> None:
         assert await decorated_demo(1, 2) == EXPECTED_RESULT
         with pytest.raises(exceptions.LimitedError):
             await decorated_demo(2, 3)
 
     @classmethod
-    async def test_limit__timeout(cls):
+    async def test_limit__timeout(cls) -> None:
         throttle: Throttled = Throttled(timeout=1, quota=per_sec(1))
         assert (await throttle.limit("key")).limited is False
 
         def _callback(
-            left: float, right: float, elapsed: types.TimeLikeValueT, *args, **kwargs
-        ):
+            left: float,
+            right: float,
+            elapsed: types.TimeLikeValueT,
+            *args: object,
+            **kwargs: object,
+        ) -> None:
             assert left <= elapsed < right
 
         async with utils.Timer(callback=partial(_callback, 1, 2)):
@@ -65,7 +71,7 @@ class TestThrottled:
             assert (await throttle.limit("key", timeout=0.5)).limited
 
     @classmethod
-    async def test_enter(cls):
+    async def test_enter(cls) -> None:
         construct_kwargs: dict[str, Any] = {
             "key": "key",
             "quota": per_sec(1),
@@ -78,13 +84,33 @@ class TestThrottled:
         with pytest.raises(exceptions.LimitedError) as exc_info:
             async with throttle:
                 pass
-        assert exc_info.value.rate_limit_result.limited
-        assert exc_info.value.rate_limit_result.state.remaining == 0
-        assert exc_info.value.rate_limit_result.state.reset_after == 1
-        assert exc_info.value.rate_limit_result.state.retry_after == 1
+        raised_result = exc_info.value.rate_limit_result
+        assert raised_result is not None
+        assert raised_result.limited
+        assert raised_result.state.remaining == 0
+        assert raised_result.state.reset_after == 1
+        assert raised_result.state.retry_after == 1
 
         async with Throttled(**construct_kwargs, timeout=1) as rate_limit_result:
             assert not rate_limit_result.limited
+
+    @classmethod
+    async def test_constructor__string_quota(cls) -> None:
+        throttle: Throttled = Throttled(
+            key="quota-str",
+            quota="1/s",
+            store=store.MemoryStore(),
+        )
+        assert not (await throttle.limit()).limited
+
+    @classmethod
+    async def test_constructor__reject_multi_rules_string(cls) -> None:
+        with pytest.raises(exceptions.DataError, match="multiple quota rules"):
+            Throttled(
+                key="quota-multi",
+                quota="1/s; 10/m",
+                store=store.MemoryStore(),
+            )
 
     @classmethod
     async def test_hook__execution_order(cls) -> None:
@@ -95,11 +121,11 @@ class TestThrottled:
         order: list[str] = []
 
         class OrderHook(Hook):
-            def __init__(self, name: str):
+            def __init__(self, name: str) -> None:
                 self.name = name
 
-            async def on_limit(self, *args, **kwargs) -> RateLimitResult:
-                call_next: Callable[[], Awaitable[RateLimitResult]] = args[0]
+            async def on_limit(self, *args: object, **kwargs: object) -> RateLimitResult:
+                call_next = cast(Callable[[], Awaitable[RateLimitResult]], args[0])
                 order.append(f"{self.name}_before")
                 result: RateLimitResult = await call_next()
                 order.append(f"{self.name}_after")
@@ -126,10 +152,10 @@ class TestThrottled:
         call_count: int = 0
 
         class CountingHook(Hook):
-            async def on_limit(self, *args, **kwargs) -> RateLimitResult:  # noqa: PLR6301
+            async def on_limit(self, *args: object, **kwargs: object) -> RateLimitResult:  # noqa: PLR6301
                 nonlocal call_count
                 call_count += 1
-                call_next: Callable[[], Awaitable[RateLimitResult]] = args[0]
+                call_next = cast(Callable[[], Awaitable[RateLimitResult]], args[0])
                 return await call_next()
 
         throttle: Throttled = Throttled(
