@@ -7,6 +7,7 @@ This guide will help you get started and ensure a smooth review process. If anyt
 
 - [Getting Started](#getting-started)
 - [Development Setup](#development-setup)
+- [Branch Naming](#branch-naming)
 - [Code Style](#code-style)
 - [Testing Guidelines](#testing-guidelines)
 - [Documentation](#documentation)
@@ -17,10 +18,11 @@ This guide will help you get started and ensure a smooth review process. If anyt
 ## Getting Started
 
 1. Fork the repository and clone your fork.
-2. Create a branch from `main` for your changes.
-3. Follow the [Development Setup](#development-setup) to configure your environment.
-4. Make your changes, following the guidelines below.
-5. Submit a pull request.
+2. Read `AGENTS.md`, then read this `CONTRIBUTING.md`.
+3. Create a branch from `main` for your changes.
+4. Follow the [Development Setup](#development-setup) to configure your environment.
+5. Make your changes, following the guidelines below.
+6. Submit a pull request.
 
 ## Development Setup
 
@@ -62,6 +64,30 @@ uv run prek run --all-files
 ```
 
 > **Important**: Please run prek locally before pushing. CI will block merging if the Code Quality check fails.
+
+## Branch Naming
+
+Create branches from `main` and use the format below:
+
+```text
+<type>/<yymmdd>_<topic>
+```
+
+Where:
+
+- `type`: one of `feat`, `fix`, `docs`, `ci`, `refactor`, `test`, `chore`,
+  `perf`, `build`
+- `yymmdd`: date in two-digit year format (for example: `260405`)
+- `topic`: short, lowercase identifier using letters, numbers, and `_`
+
+Examples:
+
+```bash
+git checkout main
+git pull --ff-only upstream main
+git checkout -b feat/260405_quota_parser_dsl
+git checkout -b docs/260405_contributing_branch_rules
+```
 
 ## Code Style
 
