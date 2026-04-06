@@ -5,7 +5,7 @@
 
 <p align="center">
     <a href="https://github.com/ZhuoZhuoCrayon/throttled-py">
-        <img src="https://img.shields.io/badge/python-%3E%3D3.8-green?logo=python" alt="Python">
+        <img src="https://img.shields.io/badge/python-%3E%3D3.10-green?logo=python" alt="Python">
     </a>
      <a href="https://github.com/ZhuoZhuoCrayon/throttled-py">
         <img src="https://codecov.io/gh/ZhuoZhuoCrayon/throttled-py/graph/badge.svg" alt="Coverage Status">
@@ -57,16 +57,18 @@ $ pip install throttled-py
 ```shell
 $ pip install "throttled-py[redis]"
 
-$ pip install "throttled-py[redis,in-memory]"
+$ pip install "throttled-py[memory]"
+
+$ pip install "throttled-py[redis,otel]"
 ```
 
 可选依赖项说明：
 
 | 附加依赖项       | 描述               |
 |-------------|------------------|
-| `all`       | 安装所有扩展依赖。        | 
-| `in-memory` | 使用内存作为存储后端。      |
+| `memory`    | 使用内存作为存储后端。      |
 | `redis`     | 使用 Redis 作为存储后端。 |
+| `otel`      | 启用 OpenTelemetry Hook 支持。 |
 
 
 ## 🎨 快速开始
