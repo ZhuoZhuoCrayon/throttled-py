@@ -324,9 +324,16 @@ git commit -m "feat : add hooks"        # space before colon
 Rebase onto the latest `main` before submitting:
 
 ```bash
-git fetch upstream
+# Option A: if you have an upstream remote
+git fetch upstream main
 git rebase upstream/main
+
+# Option B: if you only have origin
+git fetch origin main
+git rebase origin/main
 ```
+
+Do not use merge commits to sync with `main` (for example, `git merge main`).
 
 ### 2. Squash and Push
 
@@ -339,6 +346,9 @@ git rebase -i HEAD~N
 # Verify the message format before pushing
 git log --oneline -1
 # Should show: <type>: <description> (#<issue-number>)
+
+# Rebase branch update requires force push
+git push --force-with-lease origin <your-branch>
 ```
 
 ### 3. Respond to Reviews
