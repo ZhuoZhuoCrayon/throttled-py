@@ -347,6 +347,9 @@ if __name__ == "__main__":
 
 * *[3]* `burst` 表示突发流量容量，对 `TOKEN_BUCKET` / `LEAKING_BUCKET` / `GCRA` 算法生效。
 
+* *[4]* 在字符串模式下，如果未显式填写 `burst`，默认取同一规则中的 `n`。
+  例如，`1/s` 等价于 `1/s burst 1`。
+
 
 ## ⚙️ 数据模型与配置
 

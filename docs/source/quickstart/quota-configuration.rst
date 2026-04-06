@@ -35,6 +35,9 @@ Where ``burst`` means extra bucket capacity for short spikes. It is effective fo
 - ``LEAKING_BUCKET``
 - ``GCRA``
 
+If ``burst`` is omitted in quota string mode, it defaults to ``n`` in the same
+rule. For example, ``1/s`` is equivalent to ``1/s burst 1``.
+
 Supported units and compatibility forms:
 
 .. list-table::

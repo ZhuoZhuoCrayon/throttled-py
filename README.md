@@ -337,6 +337,9 @@ if __name__ == "__main__":
 
 * *[3]* `burst` means extra bucket capacity for traffic spikes, and takes effect for: `TOKEN_BUCKET` / `LEAKING_BUCKET` / `GCRA`.
 
+* *[4]* If `burst` is omitted in string mode, it defaults to `n` in the same rule.
+  For example, `1/s` is equivalent to `1/s burst 1`.
+
 
 ## ⚙️ Data Models & Configuration
 
