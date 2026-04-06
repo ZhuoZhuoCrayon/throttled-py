@@ -12,9 +12,7 @@ from ..types import KeyT, StoreP
 from ..utils import now_mono_f
 from .hooks import Hook, build_hook_chain
 from .rate_limiter import (
-    BaseRateLimiter as AsyncBaseRateLimiter,
-)
-from .rate_limiter import (
+    BaseRateLimiter,
     RateLimiterRegistry,
     RateLimitResult,
     RateLimitState,
@@ -29,7 +27,7 @@ CoroFunc = Callable[..., Coroutine[Any, Any, Any]]
 DecoratorP = Callable[[CoroFunc], CoroFunc]
 
 
-class BaseThrottled(BaseThrottledMixin[AsyncBaseRateLimiter, Hook], abc.ABC):
+class BaseThrottled(BaseThrottledMixin[BaseRateLimiter, Hook], abc.ABC):
     """Abstract class for all throttled classes."""
 
     _ALLOWED_HOOK_TYPES = (Hook,)
