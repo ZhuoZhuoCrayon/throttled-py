@@ -48,7 +48,7 @@
 $ pip install throttled-py
 ```
 
-> 说明：`v3.x` 要求 Python `>=3.10`。如果你使用的是 Python `3.8/3.9`，请安装 `<3.0.0` 版本。
+> 说明：`v3.x` 要求 Python `>=3.10`。如果你使用的是 Python `3.8/3.9`，请安装 `throttled-py<3.0.0`。
 
 ### 1）额外依赖
 
