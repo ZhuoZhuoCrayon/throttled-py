@@ -220,17 +220,17 @@ CI checks test coverage via [Codecov](https://about.codecov.io/). Please make su
 You can check coverage locally:
 
 ```bash
-uv run pytest --cov=throttled --cov-report=term-missing tests/
+uv run pytest -n auto --cov=throttled --cov-report=term-missing tests/
 ```
 
 ### Running Tests
 
 ```bash
 # Run all tests
-uv run pytest tests/ -x
+uv run pytest -n auto tests/ -x
 
 # Run a specific test file
-uv run pytest tests/test_hooks.py -v
+uv run pytest -n auto tests/test_hooks.py -v
 ```
 
 ## Documentation
@@ -330,7 +330,7 @@ All of the following must pass before merging:
 Before submitting your pull request, please verify the following:
 
 - [ ] `uv run prek run --all-files` passes locally
-- [ ] `uv run pytest tests/ -x` passes locally
+- [ ] `uv run pytest -n auto tests/ -x` passes locally
 - [ ] Type annotations added to all variables
 - [ ] Docstrings use reStructuredText style (`:param:`, `:return:`)
 - [ ] Tests are class-based with `@classmethod`

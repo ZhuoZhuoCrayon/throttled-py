@@ -5,7 +5,7 @@
 
 <p align="center">
     <a href="https://github.com/ZhuoZhuoCrayon/throttled-py">
-        <img src="https://img.shields.io/badge/python-%3E%3D3.10-green?logo=python" alt="Python">
+        <img src="https://img.shields.io/badge/python-%3E%3D3.8-green?logo=python" alt="Python">
     </a>
      <a href="https://github.com/ZhuoZhuoCrayon/throttled-py">
         <img src="https://codecov.io/gh/ZhuoZhuoCrayon/throttled-py/graph/badge.svg" alt="Coverage Status">
@@ -48,6 +48,8 @@
 $ pip install throttled-py
 ```
 
+> Note: `v3.x` requires Python `>=3.10`. If you are using Python `3.8/3.9`, install `<3.0.0`.
+
 ### 1) Optional Dependencies
 
 Starting from [v2.0.0](https://github.com/ZhuoZhuoCrayon/throttled-py/releases/tag/v2.0.0), only core dependencies are installed by default.
@@ -57,14 +59,14 @@ To enable additional features, install optional dependencies as follows (multipl
 ```shell
 $ pip install "throttled-py[redis]"
 
-$ pip install "throttled-py[memory]"
+$ pip install "throttled-py[otel]"
 
 $ pip install "throttled-py[redis,otel]"
 ```
 
 | Extra       | Description                       |
 |-------------|-----------------------------------|
-| `memory`    | Use In-Memory as storage backend. |
+| `memory`    | In-Memory backend is available by default (`memory` extra installs no additional dependencies). |
 | `redis`     | Use Redis as storage backend.     |
 | `otel`      | Enable OpenTelemetry hook support. |
 

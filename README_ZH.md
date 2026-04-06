@@ -5,7 +5,7 @@
 
 <p align="center">
     <a href="https://github.com/ZhuoZhuoCrayon/throttled-py">
-        <img src="https://img.shields.io/badge/python-%3E%3D3.10-green?logo=python" alt="Python">
+        <img src="https://img.shields.io/badge/python-%3E%3D3.8-green?logo=python" alt="Python">
     </a>
      <a href="https://github.com/ZhuoZhuoCrayon/throttled-py">
         <img src="https://codecov.io/gh/ZhuoZhuoCrayon/throttled-py/graph/badge.svg" alt="Coverage Status">
@@ -48,6 +48,8 @@
 $ pip install throttled-py
 ```
 
+> 说明：`v3.x` 要求 Python `>=3.10`。如果你使用的是 Python `3.8/3.9`，请安装 `<3.0.0` 版本。
+
 ### 1）额外依赖
 
 自 [v2.0.0](https://github.com/ZhuoZhuoCrayon/throttled-py/releases/tag/v2.0.0) 版本起，默认安装仅包含核心功能依赖。
@@ -57,7 +59,7 @@ $ pip install throttled-py
 ```shell
 $ pip install "throttled-py[redis]"
 
-$ pip install "throttled-py[memory]"
+$ pip install "throttled-py[otel]"
 
 $ pip install "throttled-py[redis,otel]"
 ```
@@ -66,7 +68,7 @@ $ pip install "throttled-py[redis,otel]"
 
 | 附加依赖项       | 描述               |
 |-------------|------------------|
-| `memory`    | 使用内存作为存储后端。      |
+| `memory`    | 内存后端默认可用（`memory` extra 不会额外安装依赖）。 |
 | `redis`     | 使用 Redis 作为存储后端。 |
 | `otel`      | 启用 OpenTelemetry Hook 支持。 |
 
