@@ -1,8 +1,8 @@
 import asyncio
 
-from throttled.asyncio import Throttled, exceptions, rate_limiter
+from throttled.asyncio import Throttled, exceptions
 
-quota = rate_limiter.per_min(2)
+quota = "2/m"
 
 
 # Create a rate limiter that allows 2 request per minute.
@@ -17,15 +17,15 @@ async def heavy_ping() -> str:
     return "heavy_pong"
 
 
-async def main():
+async def main() -> None:
     # The first call should succeed.
     # >> pong
-    print(await ping())
+    print(await ping())  # type: ignore[call-arg,misc]
 
     try:
         # The second call will be rate limited, because heavy_ping consumes 2 Tokens
         # and 1 Token has been consumed by the first call.
-        await heavy_ping()
+        await heavy_ping()  # type: ignore[call-arg,misc]
     except exceptions.LimitedError as exc:
         # >> Rate limit exceeded: remaining=1, reset_after=30, retry_after=60.
         print(exc)

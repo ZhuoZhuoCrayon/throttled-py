@@ -1,12 +1,12 @@
 import asyncio
 import time
 
-from throttled.asyncio import Throttled, per_sec, utils
+from throttled.asyncio import Throttled, utils
 
 
-async def main():
+async def main() -> None:
     # Allow 1 burst request, producing 1 token per second.
-    throttle = Throttled(key="key", quota=per_sec(1, burst=1))
+    throttle = Throttled(key="key", quota="1/s burst 1")
 
     # Consume burst request quota.
     assert not (await throttle.limit()).limited

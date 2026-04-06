@@ -83,14 +83,13 @@ $ pip install "throttled-py[redis,otel]"
 ### 2）样例
 
 ```python
-from throttled import RateLimiterType, Throttled, rate_limiter, utils
+from throttled import RateLimiterType, Throttled, utils
 
 throttle = Throttled(
     # 📈 使用令牌桶作为限流算法。
     using=RateLimiterType.TOKEN_BUCKET.value,
     # 🪣 设置配额：每秒填充 1,000 个 Token（limit），桶大小为 1,000（burst）。
-    quota=rate_limiter.per_sec(1_000, burst=1_000),
-    # 🧩 DSL 写法：quota="1000/s burst 1000"
+    quota="1000/s burst 1000",
     # 📁默认使用全局 MemoryStore 作为存储后端。
 )
 
@@ -118,12 +117,11 @@ if __name__ == "__main__":
 
 ```python
 import asyncio
-from throttled.asyncio import RateLimiterType, Throttled, rate_limiter, store, utils
+from throttled.asyncio import RateLimiterType, Throttled, utils
 
 throttle = Throttled(
     using=RateLimiterType.TOKEN_BUCKET.value,
-    quota=rate_limiter.per_sec(1_000, burst=1_000),
-    # quota="1000/s burst 1000"
+    quota="1000/s burst 1000",
 )
 
 
@@ -167,10 +165,10 @@ print(throttle.limit("key", 60))
 #### 作为装饰器
 
 ```python
-from throttled import Throttled, exceptions, rate_limiter
+from throttled import Throttled, exceptions
 
 # 创建一个每分钟允许通过 1 次的限流器。
-@Throttled(key="/ping", quota=rate_limiter.per_min(1))
+@Throttled(key="/ping", quota="1/m")
 def ping() -> str:
     return "ping"
 
@@ -188,12 +186,12 @@ except exceptions.LimitedError as exc:
 触发限流或重试超时，抛出 [**LimitedError**](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#limitederror)。
 
 ```python
-from throttled import Throttled, exceptions, rate_limiter
+from throttled import Throttled, exceptions
 
 def call_api():
     print("doing something...")
 
-throttle: Throttled = Throttled(key="/api/v1/users/", quota=rate_limiter.per_min(1))
+throttle: Throttled = Throttled(key="/api/v1/users/", quota="1/m")
 with throttle as rate_limit_result:
     print(f"limited: {rate_limit_result.limited}")
     call_api()
@@ -214,11 +212,11 @@ except exceptions.LimitedError as exc:
 一旦请求通过或超时，返回最后一次的  [**RateLimitResult**](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#1ratelimitresult)。
 
 ```python
-from throttled import RateLimiterType, Throttled, rate_limiter, utils
+from throttled import RateLimiterType, Throttled, utils
 
 throttle = Throttled(
     using=RateLimiterType.GCRA.value,
-    quota=rate_limiter.per_sec(100, burst=100),
+    quota="100/s burst 100",
     # ⏳ 设置超时时间为 1 秒，表示允许等待重试，等待时间超过 1 秒返回最后一次限流结果。
     timeout=1,
 )
@@ -247,12 +245,12 @@ if __name__ == "__main__":
 下方样例使用 Redis 作为存储后端，`options` 支持 Redis 的所有配置项，详见 [RedisStore Options](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#redisstore-options)。
 
 ```python
-from throttled import RateLimiterType, Throttled, rate_limiter, store
+from throttled import RateLimiterType, Throttled, store
 
 @Throttled(
     key="/api/products",
     using=RateLimiterType.TOKEN_BUCKET.value,
-    quota=rate_limiter.per_min(1),
+    quota="1/m",
     # 🌟 使用 Redis 作为存储后端
     store=store.RedisStore(
         # 单例模式
@@ -281,16 +279,16 @@ products()
 下方样例使用内存作为存储后端，并在 `ping`、`pong` 上对同一个 Key 进行限流：
 
 ```python
-from throttled import Throttled, rate_limiter, store
+from throttled import Throttled, store
 
 # 🌟 使用 Memory 作为存储后端
 mem_store = store.MemoryStore()
 
-@Throttled(key="ping-pong", quota=rate_limiter.per_min(1), store=mem_store)
+@Throttled(key="ping-pong", quota="1/m", store=mem_store)
 def ping() -> str:
     return "ping"
 
-@Throttled(key="ping-pong", quota=rate_limiter.per_min(1), store=mem_store)
+@Throttled(key="ping-pong", quota="1/m", store=mem_store)
 def pong() -> str:
     return "pong"
   
@@ -310,68 +308,44 @@ pong()
 * [通用信元速率算法（Generic Cell Rate Algorithm, GCRA）](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#25-gcra)：`RateLimiterType.GCRA.value`
 
 ```python
-from throttled import RateLimiterType, Throttled, rate_limiter
+from throttled import RateLimiterType, Throttled
 
 throttle = Throttled(
     # 🌟指定限流算法
     using=RateLimiterType.FIXED_WINDOW.value,
-    quota=rate_limiter.per_min(1)
+    quota="1/m"
 )
 assert throttle.limit("key", 2).limited is True
 ```
 
 ### 4）指定容量
 
-#### 快捷创建方式
-
-```python
-from throttled import rate_limiter
-
-rate_limiter.per_sec(60)    # 60 req/sec
-rate_limiter.per_min(60)    # 60 req/min
-rate_limiter.per_hour(60)   # 60 req/hour
-rate_limiter.per_day(60)    # 60 req/day
-rate_limiter.per_week(60)   # 60 req/week
-```
-
-#### 调整突发限制
-
-通过 **`burst`** 参数，可以调节限流对象处理突发流量的能力 ，对以下算法有效：
-
-* `TOKEN_BUCKET`
-* `LEAKING_BUCKET`
-* `GCRA`
-
-```python
-from throttled import rate_limiter
-
-# 允许突发处理 120 个请求。
-# 未指定 burst 时，默认设置为 limit 传入值。
-rate_limiter.per_min(60, burst=120)
-```
-
-#### Quota DSL 字符串
-
-对于简单配置，你可以直接向 `Throttled(quota=...)` 传入可读字符串。
-
 ```python
 from throttled import Throttled
 
-Throttled(quota="100/s")
-Throttled(quota="100 per second burst 200")
+throttle = Throttled(
+    key="/api/ping",
+    quota="100/s",
+    # quota="100/s burst 200",
+    # quota="100 per second",
+    # quota="100 per second burst 200",
+)
+
+
+if __name__ == "__main__":
+    print(throttle.limit())
 ```
 
-对象方式的 `Quota` API 仍然完全可用，复杂场景推荐继续使用对象配置。
+* *[1]* `quota` 支持以下字符串模式：
 
-#### 自定义配额
+  * `n / unit`
+  * `n / unit burst <burst>`
+  * `n per unit`
+  * `n per unit burst <burst>`
 
-```python
-from datetime import timedelta
-from throttled import rate_limiter
+* *[2]* `unit` 支持 `s / m / h / d / w`。
 
-# 两分钟一共允许 120 个请求，允许突发处理 150 个请求。
-rate_limiter.per_duration(timedelta(minutes=2), limit=120, burst=150)
-```
+* *[3]* `burst` 表示突发流量容量，对 `TOKEN_BUCKET` / `LEAKING_BUCKET` / `GCRA` 算法生效。
 
 
 ## ⚙️ 数据模型与配置
@@ -402,7 +376,7 @@ Quota 表示限流配额（基础速率 + 突发容量）。
 
 | 字段      | 类型   | 描述                                                                                  |
 |---------|------|-------------------------------------------------------------------------------------|
-| `burst` | int  | 突发容量配置（可临时突破基础速率限制），仅对以下算法生效：<br />`TOEKN_BUCKET`<br />`LEAKING_BUCKET`<br />`GCRA` |
+| `burst` | int  | 突发容量配置（可临时突破基础速率限制），仅对以下算法生效：<br />`TOKEN_BUCKET`<br />`LEAKING_BUCKET`<br />`GCRA` |
 | `rate`  | Rate | 基础速率配置。                                                                             |
 
 ### 4）Rate

@@ -3,7 +3,7 @@ import asyncio
 from throttled.asyncio import Throttled
 
 
-async def main():
+async def main() -> None:
     # By Default, it initializes a rate limiter with In-Memory,
     # allowing 60 requests per minute, using the token bucket algorithm.
     # Default: In-Memory storage, Token Bucket algorithm, 60 reqs / min.

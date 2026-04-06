@@ -2,7 +2,7 @@ import asyncio
 import time
 from collections.abc import Awaitable, Callable
 
-from throttled.asyncio import Hook, HookContext, RateLimitResult, Throttled, per_sec
+from throttled.asyncio import Hook, HookContext, RateLimitResult, Throttled
 
 
 class TimingHook(Hook):
@@ -21,12 +21,12 @@ class TimingHook(Hook):
 
 throttle = Throttled(
     key="/api/users",
-    quota=per_sec(10),
+    quota="10/s",
     hooks=[TimingHook()],
 )
 
 
-async def main():
+async def main() -> None:
     result = await throttle.limit()
     print(f"limited={result.limited}")
 

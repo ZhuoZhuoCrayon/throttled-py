@@ -1,7 +1,7 @@
 import asyncio
 from collections.abc import Awaitable, Callable
 
-from throttled.asyncio import Hook, HookContext, RateLimitResult, Throttled, per_sec
+from throttled.asyncio import Hook, HookContext, RateLimitResult, Throttled
 
 
 class LoggingHook(Hook):
@@ -26,12 +26,12 @@ class LoggingHook(Hook):
 hook = LoggingHook()
 throttle = Throttled(
     key="/api/users",
-    quota=per_sec(10),
+    quota="10/s",
     hooks=[hook],
 )
 
 
-async def main():
+async def main() -> None:
     result = await throttle.limit()
     # Output:
     # Checking rate limit for /api/users

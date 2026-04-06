@@ -1,7 +1,7 @@
 from throttled import Throttled
 
 
-def main():
+def main() -> None:
     # By Default, it initializes a rate limiter with In-Memory,
     # allowing 60 requests per minute, using the token bucket algorithm.
     # Default: In-Memory storage, Token Bucket algorithm, 60 reqs / min.

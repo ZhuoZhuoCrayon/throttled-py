@@ -1,11 +1,11 @@
 import time
 
-from throttled import Throttled, per_sec, utils
+from throttled import Throttled, utils
 
 
-def main():
+def main() -> None:
     # Allow 1 burst request, producing 1 token per second.
-    throttle = Throttled(key="key", quota=per_sec(1, burst=1))
+    throttle = Throttled(key="key", quota="1/s burst 1")
 
     # Consume burst request quota.
     assert not throttle.limit().limited

@@ -1,5 +1,5 @@
 from opentelemetry.metrics import get_meter
-from throttled import Throttled, rate_limiter
+from throttled import Throttled
 from throttled.contrib.otel import OTelHook
 
 # Create OTelHook with a meter from the OTel API.
@@ -11,12 +11,12 @@ hook = OTelHook(meter)
 # Create a rate limiter with OTelHook attached.
 throttle = Throttled(
     key="/api/ping",
-    quota=rate_limiter.per_min(5),
+    quota="5/m",
     hooks=[hook],
 )
 
 
-def main():
+def main() -> None:
     # First 5 requests are allowed.
     for i in range(5):
         result = throttle.limit("/api/ping")

@@ -1,12 +1,12 @@
 import asyncio
 
-from throttled.asyncio import RateLimiterType, Throttled, rate_limiter, store
+from throttled.asyncio import RateLimiterType, Throttled, store
 
 
 @Throttled(
     key="/api/products",
     using=RateLimiterType.TOKEN_BUCKET.value,
-    quota=rate_limiter.per_min(1),
+    quota="1/m",
     # 🌟 use RedisStore as storage
     store=store.RedisStore(
         server="redis+sentinel://:yourpassword@host1:26379,host2:26379/mymaster",
@@ -18,15 +18,15 @@ from throttled.asyncio import RateLimiterType, Throttled, rate_limiter, store
         },
     ),
 )
-async def products() -> list:
+async def products() -> list[dict[str, str]]:
     return [{"name": "iPhone"}, {"name": "MacBook"}]
 
 
-async def demo():
-    await products()
+async def demo() -> None:
+    await products()  # type: ignore[call-arg,misc]
     # >> throttled.exceptions.LimitedError:
     # Rate limit exceeded: remaining=0, reset_after=60, retry_after=60.
-    await products()
+    await products()  # type: ignore[call-arg,misc]
 
 
 if __name__ == "__main__":

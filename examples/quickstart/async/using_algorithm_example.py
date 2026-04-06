@@ -1,9 +1,9 @@
 import asyncio
 
-from throttled.asyncio import RateLimiterType, Throttled, rate_limiter
+from throttled.asyncio import RateLimiterType, Throttled
 
 
-async def main():
+async def main() -> None:
     throttle = Throttled(
         # 🌟Specifying a current limiting algorithm
         using=RateLimiterType.FIXED_WINDOW.value,
@@ -11,7 +11,7 @@ async def main():
         # using=RateLimiterType.LEAKING_BUCKET.value,
         # using=RateLimiterType.TOKEN_BUCKET.value,
         # using=RateLimiterType.GCRA.value,
-        quota=rate_limiter.per_min(1),
+        quota="1/m",
     )
     assert (await throttle.limit("key", 2)).limited
 

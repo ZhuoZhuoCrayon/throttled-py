@@ -1,7 +1,7 @@
-from throttled import RateLimiterType, Throttled, rate_limiter
+from throttled import RateLimiterType, Throttled
 
 
-def main():
+def main() -> None:
     throttle = Throttled(
         # 🌟Specifying a current limiting algorithm
         using=RateLimiterType.FIXED_WINDOW.value,
@@ -9,7 +9,7 @@ def main():
         # using=RateLimiterType.LEAKING_BUCKET.value,
         # using=RateLimiterType.TOKEN_BUCKET.value,
         # using=RateLimiterType.GCRA.value,
-        quota=rate_limiter.per_min(1),
+        quota="1/m",
     )
     assert throttle.limit("key", 2).limited
 

@@ -81,14 +81,13 @@ $ pip install "throttled-py[redis,otel]"
 ### 2) Example
 
 ```python
-from throttled import RateLimiterType, Throttled, rate_limiter, utils
+from throttled import RateLimiterType, Throttled, utils
 
 throttle = Throttled(
     # 📈 Use Token Bucket algorithm
     using=RateLimiterType.TOKEN_BUCKET.value,
     # 🪣 Set quota: 1,000 tokens per second (limit), bucket size 1,000 (burst)
-    quota=rate_limiter.per_sec(1_000, burst=1_000),
-    # 🧩 DSL alternative: quota="1000/s burst 1000"
+    quota="1000/s burst 1000",
     # 📁 By default, global MemoryStore is used as the storage backend.
 )
 
@@ -114,12 +113,11 @@ For example, rewrite `2) Example` to asynchronous:
 
 ```python
 import asyncio
-from throttled.asyncio import RateLimiterType, Throttled, rate_limiter, utils
+from throttled.asyncio import RateLimiterType, Throttled, utils
 
 throttle = Throttled(
     using=RateLimiterType.TOKEN_BUCKET.value,
-    quota=rate_limiter.per_sec(1_000, burst=1_000)
-    # quota="1000/s burst 1000"
+    quota="1000/s burst 1000",
 )
 
 
@@ -164,9 +162,9 @@ print(throttle.limit("key", 60))
 #### Decorator
 
 ```python
-from throttled import Throttled, rate_limiter, exceptions
+from throttled import Throttled, exceptions
 
-@Throttled(key="/ping", quota=rate_limiter.per_min(1))
+@Throttled(key="/ping", quota="1/m")
 def ping() -> str:
     return "ping"
 
@@ -185,12 +183,12 @@ You can use the context manager to limit the code block. When access is allowed,
 If the limit is exceeded or the retry timeout is exceeded, it will raise [**LimitedError**](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#limitederror).
 
 ```python
-from throttled import Throttled, exceptions, rate_limiter
+from throttled import Throttled, exceptions
 
 def call_api():
     print("doing something...")
 
-throttle: Throttled = Throttled(key="/api/v1/users/", quota=rate_limiter.per_min(1))
+throttle: Throttled = Throttled(key="/api/v1/users/", quota="1/m")
 with throttle as rate_limit_result:
     print(f"limited: {rate_limit_result.limited}")
     call_api()
@@ -211,11 +209,11 @@ You can specify a **`timeout`** to enable wait-and-retry behavior. The rate limi
 Returns the final [**RateLimitResult**](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#1-ratelimitresult) when the request is allowed or timeout reached.
 
 ```python
-from throttled import RateLimiterType, Throttled, rate_limiter, utils
+from throttled import RateLimiterType, Throttled, utils
 
 throttle = Throttled(
     using=RateLimiterType.GCRA.value,
-    quota=rate_limiter.per_sec(100, burst=100),
+    quota="100/s burst 100",
     # ⏳ Set timeout=1 to enable wait-and-retry (max wait 1 second)
     timeout=1,
 )
@@ -243,12 +241,12 @@ You only need very simple configuration, and it supports connecting to Redis sta
 The following example uses Redis as the storage backend, `options` supports all Redis configuration items, see [RedisStore Options](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#redisstore-options).
 
 ```python
-from throttled import RateLimiterType, Throttled, rate_limiter, store
+from throttled import RateLimiterType, Throttled, store
 
 @Throttled(
     key="/api/products",
     using=RateLimiterType.TOKEN_BUCKET.value,
-    quota=rate_limiter.per_min(1),
+    quota="1/m",
     store=store.RedisStore(
         # Standalone mode
         server="redis://127.0.0.1:6379/0",
@@ -275,14 +273,14 @@ Different instances mean different storage spaces, if you want to throttle the s
 The following example uses memory as the storage backend and throttles the same Key on ping and pong:
 
 ```python
-from throttled import Throttled, rate_limiter, store
+from throttled import Throttled, store
 
 mem_store = store.MemoryStore()
 
-@Throttled(key="ping-pong", quota=rate_limiter.per_min(1), store=mem_store)
+@Throttled(key="ping-pong", quota="1/m", store=mem_store)
 def ping() -> str: return "ping"
 
-@Throttled(key="ping-pong", quota=rate_limiter.per_min(1), store=mem_store)
+@Throttled(key="ping-pong", quota="1/m", store=mem_store)
 def pong() -> str: return "pong"
 
 ping()  # Success
@@ -300,70 +298,44 @@ The rate limiting algorithm is specified by the **`using`** parameter. The suppo
 * [Generic Cell Rate Algorithm, GCRA](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#25-gcra): `RateLimiterType.GCRA.value`
 
 ```python
-from throttled import RateLimiterType, Throttled, rate_limiter
+from throttled import RateLimiterType, Throttled
 
 throttle = Throttled(
     # 🌟Specifying a current limiting algorithm
     using=RateLimiterType.FIXED_WINDOW.value, 
-    quota=rate_limiter.per_min(1)
+    quota="1/m"
 )
 assert throttle.limit("key", 2).limited is True
 ```
 
 ### 4) Quota Configuration
 
-#### Quick Setup
-
-```python
-from throttled import rate_limiter
-
-rate_limiter.per_sec(60)    # 60 req/sec
-rate_limiter.per_min(60)    # 60 req/min
-rate_limiter.per_hour(60)   # 60 req/hour
-rate_limiter.per_day(60)    # 60 req/day
-rate_limiter.per_week(60)   # 60 req/week
-```
-
-#### Burst Capacity
-
-The **`burst`** parameter can be used to adjust the ability of the throttling object to handle burst traffic. This is valid for the following algorithms:
-
-* `TOKEN_BUCKET`
-* `LEAKING_BUCKET`
-* `GCRA`
-
-```python
-from throttled import rate_limiter
-
-# Allow 120 burst requests.
-# When burst is not specified, the default setting is the limit passed in.
-rate_limiter.per_min(60, burst=120)
-```
-
-#### Quota DSL String
-
-For simple configurations, you can pass a readable quota DSL string directly
-to `Throttled(quota=...)`.
-
 ```python
 from throttled import Throttled
 
-Throttled(quota="100/s")
-Throttled(quota="100 per second burst 200")
+throttle = Throttled(
+    key="/api/ping",
+    quota="100/s",
+    # quota="100/s burst 200",
+    # quota="100 per second",
+    # quota="100 per second burst 200",
+)
+
+
+if __name__ == "__main__":
+    print(throttle.limit())
 ```
 
-The object-based `Quota` API remains fully supported and is recommended for
-complex programmatic construction.
+* *[1]* `quota` accepts a readable string with these patterns:
 
-#### Custom Quota
+  * `n / unit`
+  * `n / unit burst <burst>`
+  * `n per unit`
+  * `n per unit burst <burst>`
 
-```python
-from datetime import timedelta
-from throttled import rate_limiter
+* *[2]* `unit` supports `s / m / h / d / w`.
 
-# A total of 120 requests are allowed in two minutes, and a burst of 150 requests is allowed.
-rate_limiter.per_duration(timedelta(minutes=2), limit=120, burst=150)
-```
+* *[3]* `burst` means extra bucket capacity for traffic spikes, and takes effect for: `TOKEN_BUCKET` / `LEAKING_BUCKET` / `GCRA`.
 
 
 ## ⚙️ Data Models & Configuration

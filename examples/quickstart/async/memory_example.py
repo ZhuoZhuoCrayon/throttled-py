@@ -1,27 +1,27 @@
 import asyncio
 
-from throttled.asyncio import Throttled, rate_limiter, store
+from throttled.asyncio import Throttled, store
 
 # 🌟 Use MemoryStore as the storage backend.
 mem_store = store.MemoryStore()
 
 
-@Throttled(key="ping-pong", quota=rate_limiter.per_min(1), store=mem_store)
+@Throttled(key="ping-pong", quota="1/m", store=mem_store)
 async def ping() -> str:
     return "ping"
 
 
-@Throttled(key="ping-pong", quota=rate_limiter.per_min(1), store=mem_store)
+@Throttled(key="ping-pong", quota="1/m", store=mem_store)
 async def pong() -> str:
     return "pong"
 
 
-async def demo():
+async def demo() -> None:
     # >> ping
-    await ping()
+    await ping()  # type: ignore[call-arg,misc]
     # >> throttled.exceptions.LimitedError:
     # Rate limit exceeded: remaining=0, reset_after=60, retry_after=60.
-    await pong()
+    await pong()  # type: ignore[call-arg,misc]
 
 
 if __name__ == "__main__":
