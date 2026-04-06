@@ -24,6 +24,7 @@ class TestQuotaParser:
             ("100/s", 100, 1, 100),
             ("100 per second", 100, 1, 100),
             ("100 per seconds", 100, 1, 100),
+            ("100 per second burst 120", 100, 1, 120),
             ("60/min", 60, 60, 60),
             ("60 per minute", 60, 60, 60),
             ("5 per hours", 5, 3600, 5),
