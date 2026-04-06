@@ -1,5 +1,4 @@
 import abc
-from typing import Type
 
 from ... import rate_limiter
 
@@ -13,7 +12,7 @@ class RateLimiterRegistry(rate_limiter.RateLimiterRegistry):
 class RateLimiterMeta(rate_limiter.RateLimiterMeta):
     """Metaclass for Async RateLimiter classes."""
 
-    _REGISTRY_CLASS: Type[RateLimiterRegistry] = RateLimiterRegistry
+    _REGISTRY_CLASS: type[RateLimiterRegistry] = RateLimiterRegistry
 
 
 class BaseRateLimiter(rate_limiter.BaseRateLimiterMixin, metaclass=RateLimiterMeta):

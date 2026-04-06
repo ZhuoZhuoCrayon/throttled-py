@@ -5,7 +5,7 @@ from _thread import LockType
 from collections.abc import Callable, Sequence
 from functools import wraps
 from types import TracebackType
-from typing import cast
+from typing import Generic, TypeVar, cast
 
 from .asyncio.hooks import Hook as AsyncHook
 from .asyncio.rate_limiter import BaseRateLimiter as AsyncBaseRateLimiter
@@ -29,8 +29,11 @@ RateLimiterP = BaseRateLimiter | AsyncBaseRateLimiter
 HookP = Hook | AsyncHook
 DecoratorP = Callable[[Callable[..., object]], Callable[..., object]]
 
+_LimiterT = TypeVar("_LimiterT", bound=RateLimiterP)
+_HookT = TypeVar("_HookT", bound=HookP)
 
-class BaseThrottledMixin:
+
+class BaseThrottledMixin(Generic[_LimiterT, _HookT]):
     """Mixin class for async / sync BaseThrottled."""
 
     __slots__ = (
@@ -67,7 +70,7 @@ class BaseThrottledMixin:
         quota: Quota | str | None = None,
         store: StoreP | None = None,
         cost: int = 1,
-        hooks: Sequence[HookP] | None = None,
+        hooks: Sequence[_HookT] | None = None,
     ) -> None:
         """Initializes the Throttled class.
 
@@ -110,13 +113,14 @@ class BaseThrottledMixin:
             raise DataError(
                 "Invalid throttler setup: rate limiter registry is not configured."
             )
-        self._limiter_cls: type[RateLimiterP] = self._REGISTRY_CLASS.get(
-            using or RateLimiterType.TOKEN_BUCKET.value
+        self._limiter_cls: type[_LimiterT] = cast(
+            "type[_LimiterT]",
+            self._REGISTRY_CLASS.get(using or RateLimiterType.TOKEN_BUCKET.value),
         )
 
         self._lock: LockType = self._get_lock()
-        self._limiter: RateLimiterP | None = None
-        self._hooks: tuple[HookP, ...] = self._validate_hooks(hooks)
+        self._limiter: _LimiterT | None = None
+        self._hooks: tuple[_HookT, ...] = self._validate_hooks(hooks)
 
         self._validate_cost(cost)
         self._cost: int = cost
@@ -126,20 +130,23 @@ class BaseThrottledMixin:
         return threading.Lock()
 
     @property
-    def limiter(self) -> RateLimiterP:
+    def limiter(self) -> _LimiterT:
         """Lazily initializes and returns the rate limiter instance."""
-        if self._limiter:
-            return self._limiter
+        limiter = self._limiter
+        if limiter is not None:
+            return limiter
 
         with self._lock:
             # Double-check locking to ensure thread safety.
-            if self._limiter:
-                return self._limiter
+            limiter = self._limiter
+            if limiter is not None:
+                return limiter
 
-            self._limiter = self._limiter_cls(self._quota, self._store)
-            return self._limiter
+            limiter = cast("_LimiterT", self._limiter_cls(self._quota, self._store))
+            self._limiter = limiter
+            return limiter
 
-    def _validate_hooks(self, hooks: Sequence[HookP] | None) -> tuple[HookP, ...]:
+    def _validate_hooks(self, hooks: Sequence[_HookT] | None) -> tuple[_HookT, ...]:
         """Validate that all hooks are of the expected type and return as tuple."""
         if not hooks:
             return ()
@@ -237,7 +244,7 @@ class BaseThrottledMixin:
         return elapsed >= retry_after or elapsed >= timeout
 
 
-class BaseThrottled(BaseThrottledMixin, abc.ABC):
+class BaseThrottled(BaseThrottledMixin[BaseRateLimiter, Hook], abc.ABC):
     """Abstract class for all throttled classes."""
 
     _ALLOWED_HOOK_TYPES = (Hook,)
@@ -383,7 +390,7 @@ class Throttled(BaseThrottled):
         This method contains the entire limit logic including
         blocking/retry, so hooks can measure the total duration.
         """
-        result: RateLimitResult = cast(RateLimitResult, self.limiter.limit(key, cost))
+        result: RateLimitResult = self.limiter.limit(key, cost)
 
         if timeout == self._NON_BLOCKING or not result.limited:
             return result
@@ -396,7 +403,7 @@ class Throttled(BaseThrottled):
 
             self._wait(timeout, result.state.retry_after)
 
-            result = cast(RateLimitResult, self.limiter.limit(key, cost))
+            result = self.limiter.limit(key, cost)
 
             if not result.limited:
                 break
@@ -427,8 +434,8 @@ class Throttled(BaseThrottled):
             algorithm=self._limiter_cls.Meta.type,
             store_type=self._store.TYPE,
         )
-        chain = build_hook_chain(cast(list[Hook], self._hooks), do_limit, context)
+        chain = build_hook_chain(self._hooks, do_limit, context)
         return chain()
 
     def peek(self, key: KeyT) -> RateLimitState:
-        return cast(RateLimitState, self.limiter.peek(key))
+        return self.limiter.peek(key)

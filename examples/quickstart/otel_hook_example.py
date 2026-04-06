@@ -6,14 +6,9 @@ from throttled.contrib.otel import OTelHook
 # The actual metrics backend (e.g., Prometheus, OTLP) is configured separately
 # via opentelemetry-sdk or your framework's setup.
 meter = get_meter("throttled-example")
-hook = OTelHook(meter)
 
 # Create a rate limiter with OTelHook attached.
-throttle = Throttled(
-    key="/api/ping",
-    quota="5/m",
-    hooks=[hook],
-)
+throttle = Throttled(key="/api/ping", quota="5/m", hooks=[OTelHook(meter)])
 
 
 def main() -> None:

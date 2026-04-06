@@ -18,10 +18,10 @@ async def pong() -> str:
 
 async def demo() -> None:
     # >> ping
-    await ping()  # type: ignore[call-arg,misc]
+    await ping()
     # >> throttled.exceptions.LimitedError:
     # Rate limit exceeded: remaining=0, reset_after=60, retry_after=60.
-    await pong()  # type: ignore[call-arg,misc]
+    await pong()
 
 
 if __name__ == "__main__":

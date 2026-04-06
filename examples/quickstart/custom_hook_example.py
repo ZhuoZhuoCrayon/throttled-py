@@ -18,11 +18,7 @@ class TimingHook(Hook):
         return result
 
 
-throttle = Throttled(
-    key="/api/users",
-    quota="10/s",
-    hooks=[TimingHook()],
-)
+throttle = Throttled(key="/api/users", quota="10/s", hooks=[TimingHook()])
 
 
 def main() -> None:

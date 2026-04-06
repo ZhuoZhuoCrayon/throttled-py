@@ -23,12 +23,7 @@ class LoggingHook(Hook):
         return result
 
 
-hook = LoggingHook()
-throttle = Throttled(
-    key="/api/users",
-    quota="10/s",
-    hooks=[hook],
-)
+throttle = Throttled(key="/api/users", quota="10/s", hooks=[LoggingHook()])
 
 
 async def main() -> None:

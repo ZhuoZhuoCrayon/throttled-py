@@ -3,6 +3,7 @@ import asyncio
 from collections.abc import Callable, Coroutine
 from functools import wraps
 from types import TracebackType
+from typing import Any, ParamSpec, TypeVar, cast, overload
 
 from ..exceptions import DataError, LimitedError
 from ..hooks import HookContext
@@ -10,11 +11,25 @@ from ..throttled import BaseThrottledMixin
 from ..types import KeyT, StoreP
 from ..utils import now_mono_f
 from .hooks import Hook, build_hook_chain
-from .rate_limiter import RateLimiterRegistry, RateLimitResult, RateLimitState
+from .rate_limiter import (
+    BaseRateLimiter as AsyncBaseRateLimiter,
+)
+from .rate_limiter import (
+    RateLimiterRegistry,
+    RateLimitResult,
+    RateLimitState,
+)
 from .store import MemoryStore
 
+P = ParamSpec("P")
+R = TypeVar("R")
+AsyncFunc = Callable[P, Coroutine[Any, Any, R]]
 
-class BaseThrottled(BaseThrottledMixin, abc.ABC):
+CoroFunc = Callable[..., Coroutine[Any, Any, Any]]
+DecoratorP = Callable[[CoroFunc], CoroFunc]
+
+
+class BaseThrottled(BaseThrottledMixin[AsyncBaseRateLimiter, Hook], abc.ABC):
     """Abstract class for all throttled classes."""
 
     _ALLOWED_HOOK_TYPES = (Hook,)
@@ -33,18 +48,8 @@ class BaseThrottled(BaseThrottledMixin, abc.ABC):
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
-    ):
+    ) -> None:
         """Exit the context manager."""
-
-    @abc.abstractmethod
-    def __call__(
-        self, func: Callable[..., Coroutine] | None = None
-    ) -> (
-        Callable[..., Coroutine]
-        | Callable[[Callable[..., Coroutine]], Callable[..., Coroutine]]
-    ):
-        """Decorator to apply rate limiting to an async function."""
-        raise NotImplementedError
 
     @abc.abstractmethod
     async def _wait(self, timeout: float, retry_after: float) -> None:
@@ -147,17 +152,17 @@ class Throttled(BaseThrottled):
         self, key: KeyT | None = None, cost: int = 1, timeout: float | None = None
     ) -> RateLimitResult:
         self._validate_cost(cost)
-        key: KeyT = self._get_key(key)
-        timeout: float = self._get_timeout(timeout)
+        current_key = self._get_key(key)
+        current_timeout = self._get_timeout(timeout)
 
         if not self._hooks:
-            return await self._do_limit(key, cost, timeout)
+            return await self._do_limit(current_key, cost, current_timeout)
 
         async def do_limit() -> RateLimitResult:
-            return await self._do_limit(key, cost, timeout)
+            return await self._do_limit(current_key, cost, current_timeout)
 
         context = HookContext(
-            key=key,
+            key=current_key,
             cost=cost,
             algorithm=self._limiter_cls.Meta.type,
             store_type=self._store.TYPE,
@@ -168,12 +173,15 @@ class Throttled(BaseThrottled):
     async def peek(self, key: KeyT) -> RateLimitState:
         return await self.limiter.peek(key)
 
+    @overload
+    def __call__(self, func: AsyncFunc[P, R]) -> AsyncFunc[P, R]: ...
+
+    @overload
     def __call__(
-        self, func: Callable[..., Coroutine] | None = None
-    ) -> (
-        Callable[..., Coroutine]
-        | Callable[[Callable[..., Coroutine]], Callable[..., Coroutine]]
-    ):
+        self, func: None = None
+    ) -> Callable[[AsyncFunc[P, R]], AsyncFunc[P, R]]: ...
+
+    def __call__(self, func: CoroFunc | None = None) -> CoroFunc | DecoratorP:
         """Decorator to apply rate limiting to an async function.
 
         The cost value is taken from the Throttled instance's initialization.
@@ -187,16 +195,16 @@ class Throttled(BaseThrottled):
         async def func(): pass
         """
 
-        def decorator(f: Callable[..., Coroutine]) -> Callable[..., Coroutine]:
+        def decorator(f: CoroFunc) -> CoroFunc:
             if not self.key:
                 raise DataError(f"Invalid key: {self.key}, must be a non-empty key.")
 
             @wraps(f)
-            async def _inner(*args, **kwargs):
+            async def _inner(*args: object, **kwargs: object) -> object:
                 result: RateLimitResult = await self.limit(cost=self._cost)
                 if result.limited:
                     raise LimitedError(rate_limit_result=result)
-                return await f(*args, **kwargs)
+                return cast("object", await f(*args, **kwargs))
 
             return _inner
 

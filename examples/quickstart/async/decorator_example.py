@@ -20,12 +20,12 @@ async def heavy_ping() -> str:
 async def main() -> None:
     # The first call should succeed.
     # >> pong
-    print(await ping())  # type: ignore[call-arg,misc]
+    print(await ping())
 
     try:
         # The second call will be rate limited, because heavy_ping consumes 2 Tokens
         # and 1 Token has been consumed by the first call.
-        await heavy_ping()  # type: ignore[call-arg,misc]
+        await heavy_ping()
     except exceptions.LimitedError as exc:
         # >> Rate limit exceeded: remaining=1, reset_after=30, retry_after=60.
         print(exc)

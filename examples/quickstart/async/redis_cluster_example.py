@@ -19,10 +19,10 @@ async def products() -> list[dict[str, str]]:
 
 
 async def demo() -> None:
-    await products()  # type: ignore[call-arg,misc]
+    await products()
     # >> throttled.exceptions.LimitedError:
     # Rate limit exceeded: remaining=0, reset_after=60, retry_after=60.
-    await products()  # type: ignore[call-arg,misc]
+    await products()
 
 
 if __name__ == "__main__":

@@ -20,7 +20,7 @@ async def main() -> None:
     # Make 5 sequential requests.
     start_time = time.time()
     for i in range(5):
-        await ping()  # type: ignore[call-arg,misc]
+        await ping()
         print(f"Request {i + 1} completed at {time.time() - start_time:.2f}s")
 
     print(f"\nTotal time for 5 requests at 2/sec: {time.time() - start_time:.2f}s")
