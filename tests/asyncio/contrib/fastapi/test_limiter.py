@@ -297,6 +297,53 @@ class TestSuccessHeaders:
 
 
 @pytest.mark.asyncio
+class TestStoreInjection:
+    @classmethod
+    async def test_store__user_provided_store_is_used(
+        cls,
+    ) -> None:
+        """A user-provided store is forwarded to the underlying
+        Throttled, not replaced by a fresh MemoryStore."""
+        user_store = MemoryStore()
+        limiter = Limiter("100/m", store=user_store)
+
+        app = FastAPI()
+        setup_app(app)
+
+        @app.get("/x")
+        @limiter.limit()
+        async def x(request: Request) -> dict[str, bool]:
+            return {"ok": True}
+
+        # The Throttled instance captured in the wrapper closure must
+        # reference the same store the user provided.
+        captured_throttled = x.__closure__[  # type: ignore[index]
+            x.__code__.co_freevars.index("throttled")
+        ].cell_contents
+        assert captured_throttled._store is user_store
+
+        async with asgi_client(app) as client:
+            r = await client.get("/x")
+        assert r.headers["RateLimit-Remaining"] == "99"
+
+    @classmethod
+    async def test_store__shared_across_multiple_limiters(
+        cls,
+    ) -> None:
+        """Multiple Limiter instances can share one store reference,
+        which is the foundation for sub-app-local policies that share
+        a single Redis backend in production."""
+        shared = MemoryStore()
+        limiter_a = Limiter("100/m", store=shared)
+        limiter_b = Limiter("10/m", store=shared)
+
+        # Both Limiters' Throttled instances reference the same store.
+        assert limiter_a._store is shared
+        assert limiter_b._store is shared
+        assert limiter_a._store is limiter_b._store
+
+
+@pytest.mark.asyncio
 class TestLimiterAlgorithm:
     @classmethod
     @pytest.mark.parametrize("algorithm", ALGORITHMS)
