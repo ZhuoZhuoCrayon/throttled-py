@@ -11,15 +11,10 @@ from fastapi import (
     Request,  # noqa: TCH002 (runtime use: FastAPI signature inspection)
 )
 from starlette.staticfiles import StaticFiles
-from throttled.asyncio.contrib.fastapi import (
-    Limiter,
-    RateLimitExceededError,
-    RateLimitMiddleware,
-    rate_limit_exceeded_handler,
-)
+from throttled.asyncio.contrib.fastapi import Limiter
 from throttled.asyncio.store import MemoryStore
 
-from .conftest import ALGORITHMS, asgi_client
+from .conftest import ALGORITHMS, asgi_client, setup_app
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -30,12 +25,6 @@ def _register_items_endpoint(app: FastAPI, limiter: Limiter) -> None:
     @limiter.limit()
     async def list_items(request: Request) -> dict[str, str]:
         return {"ok": "yes"}
-
-
-def _setup_app(app: FastAPI) -> None:
-    """Register middleware and exception handler on a FastAPI app."""
-    app.add_middleware(RateLimitMiddleware)
-    app.add_exception_handler(RateLimitExceededError, rate_limit_exceeded_handler)
 
 
 class TestLimiterInit:
@@ -57,7 +46,7 @@ class TestLimiterLimit:
         app, limiter = build_app(quota="2/s")
         _register_items_endpoint(app, limiter)
 
-        async for client in asgi_client(app):
+        async with asgi_client(app) as client:
             assert (await client.get("/items")).status_code == HTTPStatus.OK
             assert (await client.get("/items")).status_code == HTTPStatus.OK
 
@@ -70,7 +59,7 @@ class TestLimiterLimit:
         app, limiter = build_app(quota="1/s")
         _register_items_endpoint(app, limiter)
 
-        async for client in asgi_client(app):
+        async with asgi_client(app) as client:
             assert (await client.get("/items")).status_code == HTTPStatus.OK
             assert (
                 await client.get("/items")
@@ -85,7 +74,7 @@ class TestLimiterLimit:
         app, limiter = build_app(quota="1/s")
         _register_items_endpoint(app, limiter)
 
-        async for client in asgi_client(app):
+        async with asgi_client(app) as client:
             await client.get("/items")
             response = await client.get("/items")
         assert response.status_code == HTTPStatus.TOO_MANY_REQUESTS
@@ -124,7 +113,7 @@ class TestLimiterLimit:
         async def get_user(request: Request, user_id: int) -> dict[str, int]:
             return {"id": user_id}
 
-        async for client in asgi_client(app):
+        async with asgi_client(app) as client:
             assert (await client.get("/users/1")).status_code == HTTPStatus.OK
             assert (
                 await client.get("/users/2")
@@ -143,7 +132,7 @@ class TestLimiterLimit:
         async def handler(req: Request) -> dict[str, bool]:
             return {"ok": True}
 
-        async for client in asgi_client(app):
+        async with asgi_client(app) as client:
             assert (await client.get("/x")).status_code == HTTPStatus.OK
 
     @classmethod
@@ -159,7 +148,7 @@ class TestLimiterLimit:
         async def tight(request: Request) -> dict[str, bool]:
             return {"ok": True}
 
-        async for client in asgi_client(app):
+        async with asgi_client(app) as client:
             assert (await client.get("/tight")).status_code == HTTPStatus.OK
             assert (
                 await client.get("/tight")
@@ -188,7 +177,7 @@ class TestLimiterLimit:
         ) -> dict[str, bool]:
             return {"ok": True}
 
-        async for client in asgi_client(app):
+        async with asgi_client(app) as client:
             assert (
                 await client.get("/per-user", headers={"x-user": "alice"})
             ).status_code == HTTPStatus.OK
@@ -216,8 +205,8 @@ class TestLimiterLimit:
         api = FastAPI()
         admin = FastAPI()
 
-        _setup_app(api)
-        _setup_app(admin)
+        setup_app(api)
+        setup_app(admin)
 
         @api.get("/users/{user_id}")
         @limiter.limit()
@@ -233,7 +222,7 @@ class TestLimiterLimit:
         root.mount("/api", api)
         root.mount("/admin", admin)
 
-        async for client in asgi_client(root):
+        async with asgi_client(root) as client:
             assert (await client.get("/api/users/1")).status_code == HTTPStatus.OK
             assert (await client.get("/admin/users/1")).status_code == HTTPStatus.OK
             assert (
@@ -251,7 +240,7 @@ class TestLimiterLimit:
         limiter = Limiter("1/s", store=MemoryStore())
 
         root = FastAPI()
-        _setup_app(root)
+        setup_app(root)
 
         @root.get("/items")
         @limiter.limit()
@@ -260,7 +249,7 @@ class TestLimiterLimit:
 
         root.mount("/static", StaticFiles(directory="."))
 
-        async for client in asgi_client(root):
+        async with asgi_client(root) as client:
             assert (await client.get("/items")).status_code == HTTPStatus.OK
 
 
@@ -280,7 +269,7 @@ class TestSuccessHeaders:
         async def x(request: Request) -> dict[str, bool]:
             return {"ok": True}
 
-        async for client in asgi_client(app):
+        async with asgi_client(app) as client:
             resp = await client.get("/x")
         assert resp.status_code == HTTPStatus.OK
         assert resp.headers["RateLimit-Limit"] == "10"
@@ -300,7 +289,7 @@ class TestSuccessHeaders:
         async def x(request: Request) -> dict[str, bool]:
             return {"ok": True}
 
-        async for client in asgi_client(app):
+        async with asgi_client(app) as client:
             r1 = await client.get("/x")
             r2 = await client.get("/x")
         assert r1.headers["RateLimit-Remaining"] == "4"
@@ -324,7 +313,7 @@ class TestLimiterAlgorithm:
         async def x(request: Request) -> dict[str, bool]:
             return {"ok": True}
 
-        async for client in asgi_client(app):
+        async with asgi_client(app) as client:
             assert (await client.get("/x")).status_code == HTTPStatus.OK
             await client.get("/x")
             assert (await client.get("/x")).status_code == HTTPStatus.TOO_MANY_REQUESTS
