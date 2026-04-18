@@ -1,28 +1,37 @@
 import asyncio
-from typing import Any, Dict, Optional, Type
+from typing import Any
 
 from ... import constants, store
-from ...types import AtomicActionP, KeyT, LockP, StoreDictValueT, StoreValueT
+from ...types import (
+    AsyncLockP,
+    KeyT,
+    StoreDictValueT,
+    StoreValueT,
+)
 from . import BaseStore
 
 
-class MemoryStoreBackend(store.MemoryStoreBackend):
+class MemoryStoreBackend(store.BaseMemoryStoreBackend[AsyncLockP]):
     """Backend for Async MemoryStore."""
 
-    def _get_lock(self) -> LockP:
-        return asyncio.Lock()
+    def __init__(
+        self, server: str | None = None, options: dict[str, Any] | None = None
+    ) -> None:
+        super().__init__(server, options)
+        # ``asyncio.Lock()`` structurally matches ``AsyncLockP``.
+        self.lock = asyncio.Lock()
 
 
-class MemoryStore(BaseStore):
+class MemoryStore(BaseStore[MemoryStoreBackend]):
     """Concrete implementation of BaseStore using Memory as backend."""
 
     TYPE: str = constants.StoreType.MEMORY.value
 
-    _BACKEND_CLASS: Type[MemoryStoreBackend] = MemoryStoreBackend
+    _BACKEND_CLASS: type[MemoryStoreBackend] = MemoryStoreBackend
 
     def __init__(
-        self, server: Optional[str] = None, options: Optional[Dict[str, Any]] = None
-    ):
+        self, server: str | None = None, options: dict[str, Any] | None = None
+    ) -> None:
         super().__init__(server, options)
         self._backend: MemoryStoreBackend = self._BACKEND_CLASS(server, options)
 
@@ -41,16 +50,16 @@ class MemoryStore(BaseStore):
         async with self._backend.lock:
             self._backend.set(key, value, timeout)
 
-    async def get(self, key: KeyT) -> Optional[StoreValueT]:
+    async def get(self, key: KeyT) -> StoreValueT | None:
         async with self._backend.lock:
             return self._backend.get(key)
 
     async def hset(
         self,
         name: KeyT,
-        key: Optional[KeyT] = None,
-        value: Optional[StoreValueT] = None,
-        mapping: Optional[StoreDictValueT] = None,
+        key: KeyT | None = None,
+        value: StoreValueT | None = None,
+        mapping: StoreDictValueT | None = None,
     ) -> None:
         async with self._backend.lock:
             self._backend.hset(name, key, value, mapping)
@@ -58,6 +67,3 @@ class MemoryStore(BaseStore):
     async def hgetall(self, name: KeyT) -> StoreDictValueT:
         async with self._backend.lock:
             return self._backend.hgetall(name)
-
-    def make_atomic(self, action_cls: Type[AtomicActionP]) -> AtomicActionP:
-        return action_cls(backend=self._backend)

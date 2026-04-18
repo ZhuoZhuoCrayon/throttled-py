@@ -1,10 +1,13 @@
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import pytest
 from throttled import Throttled, per_sec
 from throttled.constants import RateLimiterType
 from throttled.contrib.otel import OTelHook
-from throttled.rate_limiter import RateLimitResult
+
+if TYPE_CHECKING:
+    from throttled.rate_limiter import RateLimitResult
 
 # Test constants
 EXPECTED_CALL_COUNT = 2

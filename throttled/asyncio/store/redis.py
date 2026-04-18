@@ -2,22 +2,27 @@ from typing import Any
 
 from ... import constants, store, utils
 from ...exceptions import DataError
-from ...types import AtomicActionP, KeyT, StoreDictValueT, StoreValueT
+from ...types import (
+    AsyncRedisClientP,
+    KeyT,
+    StoreDictValueT,
+    StoreValueT,
+)
 from . import BaseStore
 
 
-class RedisStoreBackend(store.RedisStoreBackend):
+class RedisStoreBackend(store.BaseRedisStoreBackend[AsyncRedisClientP]):
     """Backend for Async RedisStore."""
 
     @classmethod
-    def _set_options(cls, options: dict[str, Any]):
+    def _set_options(cls, options: dict[str, Any]) -> None:
         super()._set_options(options)
         options.setdefault("REUSE_CONNECTION", False)
         options.setdefault("REDIS_CLIENT_CLASS", "redis.asyncio.Redis")
         options.setdefault("PARSER_CLASS", "redis.asyncio.connection.DefaultParser")
 
     @classmethod
-    def _set_sentinel_options(cls, options: dict[str, Any]):
+    def _set_sentinel_options(cls, options: dict[str, Any]) -> None:
         super()._set_sentinel_options(options)
         options.setdefault("SENTINEL_CLASS", "redis.asyncio.Sentinel")
         options.setdefault(
@@ -25,12 +30,12 @@ class RedisStoreBackend(store.RedisStoreBackend):
         )
 
     @classmethod
-    def _set_standalone_options(cls, options: dict[str, Any]):
+    def _set_standalone_options(cls, options: dict[str, Any]) -> None:
         super()._set_standalone_options(options)
         options.setdefault("CONNECTION_POOL_CLASS", "redis.asyncio.ConnectionPool")
 
     @classmethod
-    def _set_cluster_options(cls, options: dict[str, Any]):
+    def _set_cluster_options(cls, options: dict[str, Any]) -> None:
         super()._set_cluster_options(options)
         options.setdefault(
             "REDIS_CLIENT_CLASS",
@@ -41,14 +46,16 @@ class RedisStoreBackend(store.RedisStoreBackend):
         )
 
 
-class RedisStore(BaseStore):
+class RedisStore(BaseStore[RedisStoreBackend]):
     """Concrete implementation of BaseStore using Redis as backend."""
 
     TYPE: str = constants.StoreType.REDIS.value
 
     _BACKEND_CLASS: type[RedisStoreBackend] = RedisStoreBackend
 
-    def __init__(self, server: str | None = None, options: dict[str, Any] | None = None):
+    def __init__(
+        self, server: str | None = None, options: dict[str, Any] | None = None
+    ) -> None:
         super().__init__(server, options)
         self._backend: RedisStoreBackend = self._BACKEND_CLASS(server, options)
 
@@ -86,6 +93,3 @@ class RedisStore(BaseStore):
 
     async def hgetall(self, name: KeyT) -> StoreDictValueT:
         return utils.format_kv(await self._backend.get_client().hgetall(name))
-
-    def make_atomic(self, action_cls: type[AtomicActionP]) -> AtomicActionP:
-        return action_cls(backend=self._backend)

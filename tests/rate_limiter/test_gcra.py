@@ -1,8 +1,7 @@
 import time
-from typing import Callable, List
+from collections.abc import Callable
 
 import pytest
-
 from throttled import (
     BaseRateLimiter,
     BaseStore,
@@ -69,7 +68,7 @@ class TestGCRARateLimiter:
 
         with Timer(callback=_callback):
             rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
-            results: List[bool] = benchmark.concurrent(
+            results: list[bool] = benchmark.concurrent(
                 task=lambda: rate_limiter.limit("key").limited, batch=requests_num
             )
 

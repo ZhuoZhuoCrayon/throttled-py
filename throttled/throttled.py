@@ -22,7 +22,7 @@ from .rate_limiter import (
 )
 from .rate_limiter.quota_parser import parse as parse_quota
 from .store import MemoryStore
-from .types import KeyT, RateLimiterTypeT, StoreP
+from .types import KeyT, RateLimiterTypeT, StoreP, SyncStoreP
 from .utils import now_mono_f
 
 RateLimiterP = BaseRateLimiter | AsyncBaseRateLimiter
@@ -31,9 +31,10 @@ DecoratorP = Callable[[Callable[..., object]], Callable[..., object]]
 
 _LimiterT = TypeVar("_LimiterT", bound=RateLimiterP)
 _HookT = TypeVar("_HookT", bound=HookP)
+_StoreT = TypeVar("_StoreT", bound=StoreP)
 
 
-class BaseThrottledMixin(Generic[_LimiterT, _HookT]):
+class BaseThrottledMixin(Generic[_LimiterT, _HookT, _StoreT]):
     """Mixin class for async / sync BaseThrottled."""
 
     __slots__ = (
@@ -68,7 +69,7 @@ class BaseThrottledMixin(Generic[_LimiterT, _HookT]):
         timeout: float | None = None,
         using: RateLimiterTypeT | None = None,
         quota: Quota | str | None = None,
-        store: StoreP | None = None,
+        store: _StoreT | None = None,
         cost: int = 1,
         hooks: Sequence[_HookT] | None = None,
     ) -> None:
@@ -104,10 +105,12 @@ class BaseThrottledMixin(Generic[_LimiterT, _HookT]):
         self._validate_timeout(self.timeout)
 
         self._quota: Quota = self._parse_quota(quota)
-        default_store: StoreP | None = store or self._DEFAULT_GLOBAL_STORE
+        default_store: _StoreT | None = store or cast(
+            "_StoreT | None", self._DEFAULT_GLOBAL_STORE
+        )
         if default_store is None:
             raise DataError("Invalid store: store is required for current throttler.")
-        self._store: StoreP = default_store
+        self._store: _StoreT = default_store
 
         if self._REGISTRY_CLASS is None:
             raise DataError(
@@ -142,7 +145,10 @@ class BaseThrottledMixin(Generic[_LimiterT, _HookT]):
             if limiter is not None:
                 return limiter
 
-            limiter = cast("_LimiterT", self._limiter_cls(self._quota, self._store))
+            limiter_factory = cast(
+                "Callable[[Quota, _StoreT], _LimiterT]", self._limiter_cls
+            )
+            limiter = limiter_factory(self._quota, self._store)
             self._limiter = limiter
             return limiter
 
@@ -244,7 +250,7 @@ class BaseThrottledMixin(Generic[_LimiterT, _HookT]):
         return elapsed >= retry_after or elapsed >= timeout
 
 
-class BaseThrottled(BaseThrottledMixin[BaseRateLimiter, Hook], abc.ABC):
+class BaseThrottled(BaseThrottledMixin[BaseRateLimiter, Hook, SyncStoreP], abc.ABC):
     """Abstract class for all throttled classes."""
 
     _ALLOWED_HOOK_TYPES = (Hook,)
@@ -322,7 +328,7 @@ class Throttled(BaseThrottled):
 
     _REGISTRY_CLASS: type[RateLimiterRegistry] = RateLimiterRegistry
 
-    _DEFAULT_GLOBAL_STORE: StoreP = MemoryStore()
+    _DEFAULT_GLOBAL_STORE: SyncStoreP = MemoryStore()
 
     def __enter__(self) -> RateLimitResult:
         result: RateLimitResult = self.limit()

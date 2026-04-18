@@ -1,8 +1,8 @@
 import time
-from typing import Any, Callable, Dict, List
+from collections.abc import Callable
+from typing import Any
 
 import pytest
-
 from throttled import (
     BaseRateLimiter,
     BaseStore,
@@ -30,7 +30,7 @@ def rate_limiter_constructor(store: BaseStore) -> Callable[[Quota], BaseRateLimi
 
 
 def assert_rate_limit_result(
-    case: Dict[str, Any], quota: Quota, result: RateLimitResult
+    case: dict[str, Any], quota: Quota, result: RateLimitResult
 ):
     assert result.limited == case["limited"]
     assert result.state.limit == quota.burst
@@ -67,7 +67,7 @@ class TestLeakingBucketRateLimiter:
 
         with Timer(callback=_callback):
             rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
-            results: List[bool] = benchmark.concurrent(
+            results: list[bool] = benchmark.concurrent(
                 task=lambda: rate_limiter.limit("key").limited, batch=requests_num
             )
 

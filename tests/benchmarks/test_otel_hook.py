@@ -1,4 +1,3 @@
-from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 import pytest
@@ -6,6 +5,8 @@ from throttled import Hook, Throttled, per_sec
 from throttled.utils import Benchmark
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from opentelemetry.sdk.metrics.export import InMemoryMetricReader
     from throttled import RateLimitResult
 

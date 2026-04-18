@@ -1,5 +1,3 @@
-from typing import Any
-
 from throttled import RateLimiterType, Throttled, utils
 
 throttle = Throttled(
@@ -21,6 +19,6 @@ if __name__ == "__main__":
     # 👇 The actual QPS is close to the preset quota (100 req/s):
     # ✅ Total: 1000, 🕒 Latency: 35.8103 ms/op, 🚀 Throughput: 111 req/s (--)
     # ❌ Denied: 8 requests
-    benchmark: Any = utils.Benchmark()  # type: ignore[no-untyped-call]
+    benchmark: utils.Benchmark = utils.Benchmark()
     denied_num: int = sum(benchmark.concurrent(call_api, 1_000, workers=4))
     print(f"❌ Denied: {denied_num} requests")

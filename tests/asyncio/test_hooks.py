@@ -215,7 +215,8 @@ class TestBuildHookChain:
         """Hook that raises AFTER await call_next() should not cause double execution.
 
         hook calls call_next() successfully, then raises during post-processing.
-        The except block should return the cached result instead of calling next_fn() again.
+        The except block should return the cached result instead of calling next_fn()
+        again.
         """
         call_count: int = 0
 

@@ -1,8 +1,8 @@
 import time
-from typing import Any, Callable, Dict, Generator
+from collections.abc import Callable
+from typing import Any
 
 import pytest
-
 from throttled import (
     BaseRateLimiter,
     BaseStore,
@@ -22,15 +22,15 @@ from . import parametrizes
 @pytest.fixture
 def rate_limiter_constructor(
     store: BaseStore,
-) -> Generator[Callable[[Quota], BaseRateLimiter], Any, None]:
+) -> Callable[[Quota], BaseRateLimiter]:
     def _create_rate_limiter(quota: Quota) -> BaseRateLimiter:
         return RateLimiterRegistry.get(RateLimiterType.TOKEN_BUCKET.value)(quota, store)
 
-    yield _create_rate_limiter
+    return _create_rate_limiter
 
 
 def assert_rate_limit_result(
-    case: Dict[str, Any], quota: Quota, result: RateLimitResult
+    case: dict[str, Any], quota: Quota, result: RateLimitResult
 ):
     assert result.limited == case["limited"]
     assert result.state.limit == quota.burst

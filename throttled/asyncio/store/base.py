@@ -1,31 +1,41 @@
 import abc
-from typing import Any, Optional, Sequence, Type
+from collections.abc import Callable, Sequence
+from typing import Any, Generic, TypeVar
 
-from ...store.base import BaseAtomicActionMixin, BaseStoreMixin
-from ...types import AtomicActionP, KeyT, StoreDictValueT, StoreValueT
+from ...store.base import BaseAtomicActionMixin, BaseStoreBackend, BaseStoreMixin
+from ...types import KeyT, StoreDictValueT, StoreValueT
+
+__all__ = ["BaseAtomicAction", "BaseStore"]
+
+_BackendT = TypeVar("_BackendT", bound=BaseStoreBackend[Any])
+_ActionT = TypeVar("_ActionT")
 
 
-class BaseAtomicAction(BaseAtomicActionMixin, abc.ABC):
+class BaseAtomicAction(BaseAtomicActionMixin[_BackendT], abc.ABC, Generic[_BackendT]):
     """Abstract class for all async atomic actions performed by a store backend."""
 
     @abc.abstractmethod
     async def do(
-        self, keys: Sequence[KeyT], args: Optional[Sequence[StoreValueT]]
-    ) -> Any:
+        self, keys: Sequence[KeyT], args: Sequence[StoreValueT] | None
+    ) -> tuple[int | float, ...]:
         """Execute the AtomicAction on the specified keys with optional arguments.
+
         :param keys: A sequence of keys.
         :param args: Optional sequence of arguments.
-        :return: Any: The result of the AtomicAction.
+        :return: The result of the AtomicAction.
         """
         raise NotImplementedError
 
 
-class BaseStore(BaseStoreMixin, abc.ABC):
+class BaseStore(BaseStoreMixin, abc.ABC, Generic[_BackendT]):
     """Abstract class for all async stores."""
+
+    _backend: _BackendT
 
     @abc.abstractmethod
     async def exists(self, key: KeyT) -> bool:
         """Check if the specified key exists.
+
         :param key: The key to check.
         :return: True if the specified key exists, False otherwise.
         """
@@ -34,8 +44,9 @@ class BaseStore(BaseStoreMixin, abc.ABC):
     @abc.abstractmethod
     async def ttl(self, key: KeyT) -> int:
         """Returns the number of seconds until the specified key will expire.
+
         :param key: The key to check.
-        :raise: DataError
+        :raise: DataError.
         """
         raise NotImplementedError
 
@@ -46,6 +57,7 @@ class BaseStore(BaseStoreMixin, abc.ABC):
     @abc.abstractmethod
     async def set(self, key: KeyT, value: StoreValueT, timeout: int) -> None:
         """Set a value for the specified key with specified timeout.
+
         :param key: The key to set.
         :param value: The value to set.
         :param timeout: The timeout in seconds.
@@ -53,8 +65,9 @@ class BaseStore(BaseStoreMixin, abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    async def get(self, key: KeyT) -> Optional[StoreValueT]:
+    async def get(self, key: KeyT) -> StoreValueT | None:
         """Get a value for the specified key.
+
         :param key: The key for which to get a value.
         :return: The value for the specified key, or None if it does not exist.
         """
@@ -64,11 +77,12 @@ class BaseStore(BaseStoreMixin, abc.ABC):
     async def hset(
         self,
         name: KeyT,
-        key: Optional[KeyT] = None,
-        value: Optional[StoreValueT] = None,
-        mapping: Optional[StoreDictValueT] = None,
+        key: KeyT | None = None,
+        value: StoreValueT | None = None,
+        mapping: StoreDictValueT | None = None,
     ) -> None:
         """Set a value for the specified key in the specified hash.
+
         :param name: The name of the hash.
         :param key: The key in the hash.
         :param value: The value to set.
@@ -80,10 +94,7 @@ class BaseStore(BaseStoreMixin, abc.ABC):
     async def hgetall(self, name: KeyT) -> StoreDictValueT:
         raise NotImplementedError
 
-    @abc.abstractmethod
-    def make_atomic(self, action_cls: Type[AtomicActionP]) -> AtomicActionP:
-        """Create an instance of an AtomicAction for this store.
-        :param action_cls: The class of the AtomicAction.
-        :return: The AtomicAction instance.
-        """
-        raise NotImplementedError
+    def make_atomic(self, action_cls: type[_ActionT]) -> _ActionT:
+        """Create an instance of an async AtomicAction bound to the backend."""
+        factory: Callable[..., _ActionT] = action_cls
+        return factory(backend=self._backend)

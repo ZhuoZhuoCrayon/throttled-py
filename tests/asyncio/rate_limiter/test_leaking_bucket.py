@@ -1,8 +1,7 @@
 import asyncio
-from typing import Callable, List
+from collections.abc import Callable
 
 import pytest
-
 from throttled.asyncio import (
     BaseRateLimiter,
     BaseStore,
@@ -65,7 +64,7 @@ class TestLeakingBucketRateLimiter:
 
         with utils.Timer(callback=_callback):
             rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
-            results: List[bool] = await benchmark.async_concurrent(
+            results: list[bool] = await benchmark.async_concurrent(
                 task=_task, batch=requests_num
             )
 

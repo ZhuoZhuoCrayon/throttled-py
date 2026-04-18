@@ -1,5 +1,4 @@
 import pytest
-
 from throttled.asyncio import MemoryStore, constants
 
 

@@ -1,15 +1,16 @@
 from enum import Enum
-from typing import List
 
 from .types import AtomicActionTypeT, RateLimiterTypeT
 
 
 class StoreType(Enum):
+    """Enumeration for supported store backends."""
+
     REDIS = "redis"
     MEMORY = "memory"
 
     @classmethod
-    def choice(cls) -> List[str]:
+    def choice(cls) -> list[str]:
         return [cls.REDIS.value, cls.MEMORY.value]
 
 
@@ -31,7 +32,7 @@ class RateLimiterType(Enum):
     GCRA = "gcra"
 
     @classmethod
-    def choice(cls) -> List[RateLimiterTypeT]:
+    def choice(cls) -> list[RateLimiterTypeT]:
         return [
             cls.FIXED_WINDOW.value,
             cls.SLIDING_WINDOW.value,

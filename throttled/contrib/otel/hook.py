@@ -30,7 +30,7 @@ class OTelHookBase:
     METRIC_REQUESTS = "throttled.requests"
     METRIC_DURATION = "throttled.duration"
 
-    def __init__(self, meter: Meter):
+    def __init__(self, meter: Meter) -> None:
         """Initialize OTel hook.
 
         :param meter: OpenTelemetry Meter instance.

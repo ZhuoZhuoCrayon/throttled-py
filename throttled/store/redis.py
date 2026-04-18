@@ -1,31 +1,31 @@
 import copy
 import urllib.parse
-from typing import TYPE_CHECKING, Any
+from typing import Any, Generic, cast
 
 from ..constants import StoreType
 from ..exceptions import DataError
-from ..types import AtomicActionP, KeyT, StoreDictValueT, StoreValueT
+from ..types import (
+    KeyT,
+    RedisClientT,
+    StoreDictValueT,
+    StoreValueT,
+    SyncRedisClientP,
+)
 from ..utils import format_kv, format_value
 from .base import BaseStore, BaseStoreBackend
 from .redis_pool import BaseConnectionFactory, get_connection_factory
 
-if TYPE_CHECKING:
-    import redis
-    import redis.asyncio as aioredis
 
-    Redis = redis.Redis | aioredis.Redis
-
-
-class RedisStoreBackend(BaseStoreBackend):
-    """Backend for Redis store."""
+class BaseRedisStoreBackend(BaseStoreBackend[RedisClientT], Generic[RedisClientT]):
+    """Base backend for Redis store."""
 
     @classmethod
     def _parse_auth(cls, parsed: urllib.parse.ParseResult) -> dict[str, str]:
         auth_info: dict[str, str] = {}
         if parsed.username:
-            auth_info["username"] = parsed.username
+            auth_info["username"] = str(parsed.username)
         if parsed.password:
-            auth_info["password"] = parsed.password
+            auth_info["password"] = str(parsed.password)
         return auth_info
 
     @classmethod
@@ -42,73 +42,83 @@ class RedisStoreBackend(BaseStoreBackend):
         return nodes
 
     @classmethod
-    def _set_options(cls, options: dict[str, Any]):
+    def _set_options(cls, options: dict[str, Any]) -> None:
         pass
 
     @classmethod
-    def _set_sentinel_options(cls, options: dict[str, Any]):
+    def _set_sentinel_options(cls, options: dict[str, Any]) -> None:
         options.setdefault(
             "CONNECTION_FACTORY_CLASS", "throttled.store.SentinelConnectionFactory"
         )
 
     @classmethod
-    def _set_cluster_options(cls, options: dict[str, Any]):
+    def _set_cluster_options(cls, options: dict[str, Any]) -> None:
         options.setdefault(
             "CONNECTION_FACTORY_CLASS",
             "throttled.store.ClusterConnectionFactory",
         )
 
     @classmethod
-    def _set_standalone_options(cls, options: dict[str, Any]):
+    def _set_standalone_options(cls, options: dict[str, Any]) -> None:
         pass
 
     @classmethod
     def _parse(
         cls, server: str | None = None, options: dict[str, Any] | None = None
-    ) -> tuple[str, dict[str, Any]]:
-        options: dict[str, Any] = copy.deepcopy(options or {})
+    ) -> tuple[str | None, dict[str, Any]]:
+        parsed_options: dict[str, Any] = copy.deepcopy(options or {})
+        parsed_server: str | None = server
         if not server:
-            cls._set_options(options)
-            cls._set_standalone_options(options)
-            return server, options
+            cls._set_options(parsed_options)
+            cls._set_standalone_options(parsed_options)
+            return parsed_server, parsed_options
 
         if server.startswith("redis+sentinel://"):
-            parsed: urllib.parse.ParseResult = urllib.parse.urlparse(server)
+            sentinel_parsed: urllib.parse.ParseResult = urllib.parse.urlparse(server)
 
             # If SENTINEL_KWARGS is not explicitly passed,
             # use the authentication information from the URL, SENTINEL_KWARGS
             # has a higher priority than the authentication information.
-            auth_info: dict[str, str] = cls._parse_auth(parsed)
-            options["SENTINEL_KWARGS"] = {
-                **auth_info,
-                **(options.get("SENTINEL_KWARGS") or {}),
+            sentinel_auth: dict[str, str] = cls._parse_auth(sentinel_parsed)
+            parsed_options["SENTINEL_KWARGS"] = {
+                **sentinel_auth,
+                **(parsed_options.get("SENTINEL_KWARGS") or {}),
             }
-            options.update({k.upper(): v for k, v in auth_info.items()})
+            parsed_options.update({k.upper(): v for k, v in sentinel_auth.items()})
 
-            options.setdefault("SENTINELS", []).extend(
-                cls._parse_nodes(parsed, default_port=26379)
+            parsed_options.setdefault("SENTINELS", []).extend(
+                cls._parse_nodes(sentinel_parsed, default_port=26379)
             )
-            cls._set_sentinel_options(options)
+            cls._set_sentinel_options(parsed_options)
 
-            service_name: str = parsed.path.lstrip("/") if parsed.path else "mymaster"
-            server = f"redis://{service_name}/0"
+            service_name: str = (
+                sentinel_parsed.path.lstrip("/") if sentinel_parsed.path else "mymaster"
+            )
+            parsed_server = f"redis://{service_name}/0"
 
         elif server.startswith("redis+cluster://"):
-            parsed: urllib.parse.ParseResult = urllib.parse.urlparse(server)
-            auth_info: dict[str, str] = cls._parse_auth(parsed)
-            options.update({k.upper(): v for k, v in auth_info.items()})
-            options.setdefault("CLUSTER_NODES", []).extend(cls._parse_nodes(parsed))
-            cls._set_cluster_options(options)
+            cluster_parsed: urllib.parse.ParseResult = urllib.parse.urlparse(server)
+            cluster_auth: dict[str, str] = cls._parse_auth(cluster_parsed)
+            parsed_options.update({k.upper(): v for k, v in cluster_auth.items()})
+            parsed_options.setdefault("CLUSTER_NODES", []).extend(
+                cls._parse_nodes(cluster_parsed)
+            )
+            cls._set_cluster_options(parsed_options)
         else:
-            cls._set_standalone_options(options)
+            cls._set_standalone_options(parsed_options)
 
-        cls._set_options(options)
-        return server, options
+        cls._set_options(parsed_options)
+        return parsed_server, parsed_options
 
-    def __init__(self, server: str | None = None, options: dict[str, Any] | None = None):
+    def __init__(
+        self, server: str | None = None, options: dict[str, Any] | None = None
+    ) -> None:
         super().__init__(*self._parse(server, options))
 
-        self._client: Redis | None = None
+        # Use a separate Optional attribute to avoid clashing with the
+        # declared ``_client: RedisClientT`` on ``BaseStoreBackend``; we only
+        # connect lazily inside ``get_client``.
+        self._client_opt: RedisClientT | None = None
 
         connection_factory_cls_path: str | None = self.options.get(
             "CONNECTION_FACTORY_CLASS"
@@ -117,13 +127,24 @@ class RedisStoreBackend(BaseStoreBackend):
             connection_factory_cls_path, self.options
         )
 
-    def get_client(self) -> "Redis":
-        if self._client is None:
-            self._client = self._connection_factory.connect(self.server)
-        return self._client
+    def get_client(self) -> RedisClientT:
+        if self._client_opt is not None:
+            return self._client_opt
+
+        # Cast once at the redis-py boundary: ``connect`` returns the untyped
+        # ``RedisP`` union, narrow to the declared client protocol.
+        client: RedisClientT = cast(
+            RedisClientT, self._connection_factory.connect(self.server)
+        )
+        self._client_opt = client
+        return client
 
 
-class RedisStore(BaseStore):
+class RedisStoreBackend(BaseRedisStoreBackend[SyncRedisClientP]):
+    """Backend for sync Redis store."""
+
+
+class RedisStore(BaseStore[RedisStoreBackend]):
     """Concrete implementation of BaseStore using Redis as backend.
 
     :class:`throttled.store.RedisStore` is implemented based on
@@ -135,7 +156,9 @@ class RedisStore(BaseStore):
 
     _BACKEND_CLASS: type[RedisStoreBackend] = RedisStoreBackend
 
-    def __init__(self, server: str | None = None, options: dict[str, Any] | None = None):
+    def __init__(
+        self, server: str | None = None, options: dict[str, Any] | None = None
+    ) -> None:
         """Initialize RedisStore.
 
         :param server: Redis Standard Redis URL, you can use it
@@ -166,7 +189,6 @@ class RedisStore(BaseStore):
         value: StoreValueT | None = self._backend.get_client().get(key)
         if value is None:
             return None
-
         return format_value(value)
 
     def hset(
@@ -182,6 +204,3 @@ class RedisStore(BaseStore):
 
     def hgetall(self, name: KeyT) -> StoreDictValueT:
         return format_kv(self._backend.get_client().hgetall(name))
-
-    def make_atomic(self, action_cls: type[AtomicActionP]) -> AtomicActionP:
-        return action_cls(backend=self._backend)

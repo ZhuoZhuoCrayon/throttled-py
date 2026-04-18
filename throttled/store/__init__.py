@@ -1,8 +1,8 @@
 """Store public API."""
 
 from .base import BaseAtomicAction, BaseStore, BaseStoreBackend
-from .memory import MemoryStore, MemoryStoreBackend
-from .redis import RedisStore, RedisStoreBackend
+from .memory import BaseMemoryStoreBackend, MemoryStore, MemoryStoreBackend
+from .redis import BaseRedisStoreBackend, RedisStore, RedisStoreBackend
 from .redis_pool import (
     BaseConnectionFactory,
     ClusterConnectionFactory,
@@ -15,8 +15,10 @@ __all__ = [
     "BaseStoreBackend",
     "BaseAtomicAction",
     "BaseStore",
+    "BaseMemoryStoreBackend",
     "MemoryStoreBackend",
     "MemoryStore",
+    "BaseRedisStoreBackend",
     "RedisStoreBackend",
     "RedisStore",
     "BaseConnectionFactory",
