@@ -1,6 +1,6 @@
 import math
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Generic, TypeVar, cast
+from typing import TYPE_CHECKING, Generic, cast
 
 from ..constants import (
     ATOMIC_ACTION_TYPE_LIMIT,
@@ -16,6 +16,7 @@ from ..types import (
     ActionT,
     AtomicActionTypeT,
     KeyT,
+    MemoryStoreBackendT,
     RateLimiterTypeT,
     StoreT,
     StoreValueT,
@@ -28,9 +29,6 @@ from .base import BaseRateLimiterMixin
 
 if TYPE_CHECKING:
     from redis.commands.core import Script as SyncScript
-
-
-_MemBackendT = TypeVar("_MemBackendT", bound=BaseMemoryStoreBackend)
 
 
 class RedisLimitAtomicActionConstants:
@@ -171,7 +169,7 @@ class RedisPeekAtomicAction(
 
 
 class MemoryLimitAtomicActionCoreMixin(
-    BaseAtomicActionMixin[_MemBackendT], Generic[_MemBackendT]
+    BaseAtomicActionMixin[MemoryStoreBackendT], Generic[MemoryStoreBackendT]
 ):
     """Core mixin for MemoryLimitAtomicAction."""
 
@@ -237,7 +235,7 @@ class MemoryLimitAtomicAction(
 
 
 class MemoryPeekAtomicActionCoreMixin(
-    BaseAtomicActionMixin[_MemBackendT], Generic[_MemBackendT]
+    BaseAtomicActionMixin[MemoryStoreBackendT], Generic[MemoryStoreBackendT]
 ):
     """Core mixin for MemoryPeekAtomicAction."""
 

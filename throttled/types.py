@@ -6,6 +6,8 @@ if TYPE_CHECKING:
     from redis.commands.core import AsyncScript
     from redis.commands.core import Script as SyncScript
 
+    from .store.memory import BaseMemoryStoreBackend
+
 
 _StringLikeT = str
 _NumberLikeT = int | float
@@ -207,6 +209,11 @@ class AsyncRedisClientP(Protocol):
 RedisP = SyncRedisClientP | AsyncRedisClientP
 
 RedisClientT = TypeVar("RedisClientT", bound=RedisP)
+
+MemoryStoreBackendT = TypeVar(
+    "MemoryStoreBackendT",
+    bound="BaseMemoryStoreBackend",
+)
 
 StoreT = TypeVar("StoreT", bound=StoreForLimiterP)
 
