@@ -40,7 +40,7 @@ class TestQuota:
     )
     def test_per_xx(
         self,
-        per_xx: Callable[[int, int | None], Quota],
+        per_xx: Callable[..., Quota],
         constructor_kwargs: dict[str, Any],
         expect: dict[str, Any],
     ):

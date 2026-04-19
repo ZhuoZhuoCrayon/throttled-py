@@ -189,7 +189,7 @@ class TestBuildHookChain:
         """Verify a hook that raises is skipped and rate limiting still works."""
 
         class _FailingHook(Hook):
-            async def on_limit(  # noqa: PLR6301
+            async def on_limit(
                 self,
                 call_next: Callable[[], Awaitable[RateLimitResult]],
                 context: HookContext,

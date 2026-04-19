@@ -180,19 +180,4 @@ disallow_untyped_defs = false
 disallow_incomplete_defs = false
 disallow_untyped_decorators = false
 disallow_untyped_calls = false
-check_untyped_defs = false
 warn_return_any = false
-# Relax remaining test-only noise (pytest.yield clashes, local rebinds, etc.).
-disable_error_code = [
-    "no-redef",
-    "misc",
-    "return-value",
-    "attr-defined",
-    "call-arg",
-    "list-item",
-    "abstract",
-    "assignment",
-    "arg-type",
-    "var-annotated",
-    "type-arg",
-]

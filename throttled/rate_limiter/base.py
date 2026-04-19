@@ -95,11 +95,7 @@ def per_week(limit: int, burst: int | None = None) -> Quota:
 
 @dataclass
 class RateLimitState:
-    """Current state of the rate limiter for a given key.
-
-    Snapshotted after every ``limit`` / ``peek`` call and returned as part of
-    :class:`RateLimitResult`.
-    """
+    """Current state of the rate limiter for a given key."""
 
     #: Represents the maximum number of requests allowed to pass in the initial
     #: state.
@@ -322,8 +318,6 @@ class BaseRateLimiter(
 
     def peek(self, key: str) -> RateLimitState:
         """Retrieve the current state of rate limiter for the given key.
-
-        Does not modify the rate limiter state.
 
         :param key: The unique identifier for the rate limit subject.
                     eg: user ID or IP address.

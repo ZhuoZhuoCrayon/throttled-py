@@ -21,7 +21,7 @@ from . import parametrizes
 
 @pytest.fixture
 def rate_limiter_constructor(
-    store: BaseStore,
+    store: BaseStore[Any],
 ) -> Callable[[Quota], BaseRateLimiter]:
     def _create_rate_limiter(quota: Quota) -> BaseRateLimiter:
         return RateLimiterRegistry.get(RateLimiterType.TOKEN_BUCKET.value)(quota, store)
@@ -81,11 +81,11 @@ class TestTokenBucketRateLimiter:
         assert state == RateLimitState(limit=10, remaining=10, reset_after=0)
 
         rate_limiter.limit(key, cost=5)
-        state: RateLimitState = rate_limiter.peek(key)
+        state = rate_limiter.peek(key)
         assert state == RateLimitState(limit=10, remaining=5, reset_after=5)
 
         time.sleep(1)
-        state: RateLimitState = rate_limiter.peek(key)
+        state = rate_limiter.peek(key)
         assert state in [
             RateLimitState(limit=10, remaining=6, reset_after=4),
             RateLimitState(limit=10, remaining=7, reset_after=3),

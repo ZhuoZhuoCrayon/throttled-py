@@ -152,7 +152,7 @@ class TestThrottled:
         call_count: int = 0
 
         class CountingHook(Hook):
-            async def on_limit(self, *args: object, **kwargs: object) -> RateLimitResult:  # noqa: PLR6301
+            async def on_limit(self, *args: object, **kwargs: object) -> RateLimitResult:
                 nonlocal call_count
                 call_count += 1
                 call_next = cast(Callable[[], Awaitable[RateLimitResult]], args[0])

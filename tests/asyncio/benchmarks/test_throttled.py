@@ -46,13 +46,13 @@ async def call_api(throttle: Throttled) -> bool:
 
 
 @pytest_asyncio.fixture(params=constants.StoreType.choice())
-async def store(request) -> AsyncGenerator[BaseStore, Any]:
-    def _create_store(store_type: str) -> BaseStore:
+async def store(request) -> AsyncGenerator[BaseStore[Any], Any]:
+    def _create_store(store_type: str) -> BaseStore[Any]:
         if store_type == constants.StoreType.MEMORY.value:
             return MemoryStore()
         return RedisStore(server=REDIS_URL)
 
-    store: BaseStore = _create_store(request.param)
+    store: BaseStore[Any] = _create_store(request.param)
 
     yield store
 
@@ -106,7 +106,7 @@ class TestBenchmarkThrottled:
     async def test_limit__serial(
         cls,
         benchmark: utils.Benchmark,
-        store: BaseStore,
+        store: BaseStore[Any],
         using: types.RateLimiterTypeT,
         quota: Quota,
     ):
@@ -119,7 +119,7 @@ class TestBenchmarkThrottled:
     async def test_limit__concurrent(
         cls,
         benchmark: utils.Benchmark,
-        store: BaseStore,
+        store: BaseStore[Any],
         using: types.RateLimiterTypeT,
         quota: Quota,
     ):

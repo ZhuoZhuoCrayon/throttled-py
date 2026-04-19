@@ -115,10 +115,7 @@ class BaseRedisStoreBackend(BaseStoreBackend[RedisClientT], Generic[RedisClientT
     ) -> None:
         super().__init__(*self._parse(server, options))
 
-        # Use a separate Optional attribute to avoid clashing with the
-        # declared ``_client: RedisClientT`` on ``BaseStoreBackend``; we only
-        # connect lazily inside ``get_client``.
-        self._client_opt: RedisClientT | None = None
+        self._client: RedisClientT | None = None
 
         connection_factory_cls_path: str | None = self.options.get(
             "CONNECTION_FACTORY_CLASS"
@@ -128,15 +125,15 @@ class BaseRedisStoreBackend(BaseStoreBackend[RedisClientT], Generic[RedisClientT
         )
 
     def get_client(self) -> RedisClientT:
-        if self._client_opt is not None:
-            return self._client_opt
+        if self._client is not None:
+            return self._client
 
         # Cast once at the redis-py boundary: ``connect`` returns the untyped
         # ``RedisP`` union, narrow to the declared client protocol.
         client: RedisClientT = cast(
             RedisClientT, self._connection_factory.connect(self.server)
         )
-        self._client_opt = client
+        self._client = client
         return client
 
 

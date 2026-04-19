@@ -1,6 +1,6 @@
 import threading
 from collections.abc import Generator
-from typing import Any
+from typing import Any, cast
 
 import pytest
 import redis
@@ -24,7 +24,7 @@ WORKERS: int = 8
 
 
 def clear_redis(client: redis.Redis) -> None:
-    keys: list[str] = client.keys("throttled*")
+    keys: list[str] = cast("list[str]", client.keys("throttled*"))
     client.delete(*keys)
 
 
@@ -47,13 +47,13 @@ def call_api(throttle: Throttled) -> bool:
 
 
 @pytest.fixture(params=StoreType.choice())
-def store(request) -> Generator[BaseStore, Any, None]:
-    def _create_store(store_type: str) -> BaseStore:
+def store(request) -> Generator[BaseStore[Any], Any, None]:
+    def _create_store(store_type: str) -> BaseStore[Any]:
         if store_type == StoreType.MEMORY.value:
             return MemoryStore()
         return RedisStore(server=REDIS_URL)
 
-    store: BaseStore = _create_store(request.param)
+    store: BaseStore[Any] = _create_store(request.param)
 
     yield store
 
@@ -106,7 +106,7 @@ class TestBenchmarkThrottled:
     def test_limit__serial(
         cls,
         benchmark: Benchmark,
-        store: BaseStore,
+        store: BaseStore[Any],
         using: RateLimiterTypeT,
         quota: Quota,
     ):
@@ -119,7 +119,7 @@ class TestBenchmarkThrottled:
     def test_limit__concurrent(
         cls,
         benchmark: Benchmark,
-        store: BaseStore,
+        store: BaseStore[Any],
         using: RateLimiterTypeT,
         quota: Quota,
     ):

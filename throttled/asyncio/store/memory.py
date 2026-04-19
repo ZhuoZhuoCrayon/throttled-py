@@ -1,5 +1,5 @@
 import asyncio
-from typing import Any
+from typing import Any, cast
 
 from ... import constants, store
 from ...types import (
@@ -18,8 +18,7 @@ class MemoryStoreBackend(store.BaseMemoryStoreBackend[AsyncLockP]):
         self, server: str | None = None, options: dict[str, Any] | None = None
     ) -> None:
         super().__init__(server, options)
-        # ``asyncio.Lock()`` structurally matches ``AsyncLockP``.
-        self.lock = asyncio.Lock()
+        self.lock = cast(AsyncLockP, cast(object, asyncio.Lock()))
 
 
 class MemoryStore(BaseStore[MemoryStoreBackend]):

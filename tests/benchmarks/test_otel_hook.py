@@ -25,7 +25,7 @@ except ImportError:
 class NoOpHook(Hook):
     """A hook that does nothing, used to measure hook system overhead."""
 
-    def on_limit(self, *args, **kwargs) -> "RateLimitResult":  # noqa: PLR6301
+    def on_limit(self, *args, **kwargs) -> "RateLimitResult":
         """Execute the next handler without any additional processing."""
         call_next: Callable[[], RateLimitResult] = args[0]
         return call_next()

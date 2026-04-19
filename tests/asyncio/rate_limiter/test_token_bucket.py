@@ -1,5 +1,6 @@
 import asyncio
 from collections.abc import Callable
+from typing import Any
 
 import pytest
 from throttled.asyncio import (
@@ -21,7 +22,7 @@ from ...rate_limiter.test_token_bucket import assert_rate_limit_result
 
 @pytest.fixture
 def rate_limiter_constructor(
-    store: BaseStore,
+    store: BaseStore[Any],
 ) -> Callable[[Quota], BaseRateLimiter]:
     def _create_rate_limiter(quota: Quota) -> BaseRateLimiter:
         return RateLimiterRegistry.get(constants.RateLimiterType.TOKEN_BUCKET.value)(
@@ -82,9 +83,9 @@ class TestTokenBucketRateLimiter:
         assert state == RateLimitState(limit=10, remaining=10, reset_after=0)
 
         await rate_limiter.limit(key, cost=5)
-        state: RateLimitState = await rate_limiter.peek(key)
+        state = await rate_limiter.peek(key)
         assert state == RateLimitState(limit=10, remaining=5, reset_after=5)
 
         await asyncio.sleep(1)
-        state: RateLimitState = await rate_limiter.peek(key)
+        state = await rate_limiter.peek(key)
         assert state == RateLimitState(limit=10, remaining=6, reset_after=4)

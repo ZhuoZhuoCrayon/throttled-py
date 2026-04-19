@@ -12,10 +12,8 @@ _BackendT = TypeVar("_BackendT", bound="BaseStoreBackend[Any]")
 _ActionT = TypeVar("_ActionT")
 
 
-class BaseStoreBackend(Generic[_ClientT]):
+class BaseStoreBackend(abc.ABC, Generic[_ClientT]):
     """Abstract class for all store backends."""
-
-    _client: _ClientT
 
     def __init__(
         self, server: str | None = None, options: dict[str, Any] | None = None
@@ -23,8 +21,10 @@ class BaseStoreBackend(Generic[_ClientT]):
         self.server: str | None = server
         self.options: dict[str, Any] = options or {}
 
+    @abc.abstractmethod
     def get_client(self) -> _ClientT:
-        return self._client
+        """Return the underlying client."""
+        raise NotImplementedError
 
 
 class BaseAtomicActionMixin(Generic[_BackendT]):
@@ -157,8 +157,5 @@ class BaseStore(BaseStoreMixin, abc.ABC, Generic[_BackendT]):
 
     def make_atomic(self, action_cls: type[_ActionT]) -> _ActionT:
         """Create an instance of an AtomicAction bound to this store's backend."""
-        # ``type[_ActionT]`` does not advertise the ``backend=`` keyword; widen
-        # to ``Callable`` so mypy accepts the kwarg. Runtime pairing with the
-        # backend is enforced by the ``STORE_TYPE`` filter in the rate limiter.
         factory: Callable[..., _ActionT] = action_cls
         return factory(backend=self._backend)

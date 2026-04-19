@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from datetime import timedelta
+from typing import Any
 
 import pytest
 from tests.rate_limiter import parametrizes
@@ -20,7 +21,7 @@ from throttled.utils import Benchmark, now_sec
 
 @pytest.fixture
 def rate_limiter_constructor(
-    store: BaseStore,
+    store: BaseStore[Any],
 ) -> Callable[[Quota], BaseRateLimiter]:
     def _create_rate_limiter(quota: Quota) -> BaseRateLimiter:
         return RateLimiterRegistry.get(RateLimiterType.FIXED_WINDOW.value)(quota, store)
@@ -90,6 +91,6 @@ class TestFixedWindowRateLimiter:
 
         await rate_limiter.limit(key)
 
-        state: RateLimitState = await rate_limiter.peek(key)
+        state = await rate_limiter.peek(key)
         assert state.remaining == 0
         _assert(state)

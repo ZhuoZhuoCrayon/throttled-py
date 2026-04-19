@@ -2,7 +2,7 @@ import math
 import threading
 from collections import OrderedDict
 from collections import OrderedDict as OrderedDictT
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, TypeVar, cast
 
 from ..constants import STORE_TTL_STATE_NOT_EXIST, STORE_TTL_STATE_NOT_TTL, StoreType
 from ..exceptions import DataError, SetUpError
@@ -38,6 +38,9 @@ class BaseMemoryStoreBackend(BaseStoreBackend[_ClientT], Generic[_LockT]):
         self.max_size: int = max_size
         self.expire_info: dict[str, float] = {}
         self._client: _ClientT = OrderedDict()
+
+    def get_client(self) -> _ClientT:
+        return self._client
 
     def exists(self, key: KeyT) -> bool:
         return key in self._client
@@ -144,9 +147,7 @@ class MemoryStoreBackend(BaseMemoryStoreBackend[SyncLockP]):
         self, server: str | None = None, options: dict[str, Any] | None = None
     ) -> None:
         super().__init__(server, options)
-        # ``threading.Lock()`` is a factory returning a lock object that
-        # structurally matches ``SyncLockP``; assign directly without cast.
-        self.lock = threading.Lock()
+        self.lock = cast(SyncLockP, cast(object, threading.Lock()))
 
 
 class MemoryStore(BaseStore[MemoryStoreBackend]):
