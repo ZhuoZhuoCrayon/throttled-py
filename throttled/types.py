@@ -90,8 +90,6 @@ class AsyncAtomicActionP(AtomicActionIdentityP, Protocol):
 AtomicActionP = SyncAtomicActionP | AsyncAtomicActionP
 
 
-#: Method-level TypeVar for ``make_atomic``; unbounded on purpose so both
-#: sync and async ``BaseAtomicAction`` subclasses flow through identically.
 _MakeAtomicT = TypeVar("_MakeAtomicT")
 
 
@@ -208,14 +206,8 @@ class AsyncRedisClientP(Protocol):
 
 RedisP = SyncRedisClientP | AsyncRedisClientP
 
-RedisClientT = TypeVar("RedisClientT", SyncRedisClientP, AsyncRedisClientP)
+RedisClientT = TypeVar("RedisClientT", bound=RedisP)
 
-
-#: TypeVar for a store passed to a rate limiter; concrete sync/async subclasses
-#: bind this to :class:`SyncStoreP` / :class:`AsyncStoreP` respectively.
 StoreT = TypeVar("StoreT", bound=StoreForLimiterP)
 
-#: TypeVar for AtomicAction classes registered on a rate limiter; concrete
-#: sync/async subclasses bind this to :class:`SyncAtomicActionP` /
-#: :class:`AsyncAtomicActionP` respectively.
 ActionT = TypeVar("ActionT", bound=AtomicActionIdentityP)

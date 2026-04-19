@@ -3,7 +3,7 @@ import asyncio
 from collections.abc import Callable, Coroutine
 from functools import wraps
 from types import TracebackType
-from typing import Any, ParamSpec, TypeVar, cast, overload
+from typing import Any, ParamSpec, TypeVar
 
 from ..exceptions import DataError, LimitedError
 from ..hooks import HookContext
@@ -22,9 +22,6 @@ from .store import MemoryStore
 P = ParamSpec("P")
 R = TypeVar("R")
 AsyncFunc = Callable[P, Coroutine[Any, Any, R]]
-
-CoroFunc = Callable[..., Coroutine[Any, Any, Any]]
-DecoratorP = Callable[[CoroFunc], CoroFunc]
 
 
 class BaseThrottled(BaseThrottledMixin[BaseRateLimiter, Hook, AsyncStoreP], abc.ABC):
@@ -171,15 +168,7 @@ class Throttled(BaseThrottled):
     async def peek(self, key: KeyT) -> RateLimitState:
         return await self.limiter.peek(key)
 
-    @overload
-    def __call__(self, func: AsyncFunc[P, R]) -> AsyncFunc[P, R]: ...
-
-    @overload
-    def __call__(
-        self, func: None = None
-    ) -> Callable[[AsyncFunc[P, R]], AsyncFunc[P, R]]: ...
-
-    def __call__(self, func: CoroFunc | None = None) -> CoroFunc | DecoratorP:
+    def __call__(self, func: AsyncFunc[P, R]) -> AsyncFunc[P, R]:
         """Decorator to apply rate limiting to an async function.
 
         The cost value is taken from the Throttled instance's initialization.
@@ -193,20 +182,17 @@ class Throttled(BaseThrottled):
         async def func(): pass
         """
 
-        def decorator(f: CoroFunc) -> CoroFunc:
+        def decorator(f: AsyncFunc[P, R]) -> AsyncFunc[P, R]:
             if not self.key:
                 raise DataError(f"Invalid key: {self.key}, must be a non-empty key.")
 
             @wraps(f)
-            async def _inner(*args: object, **kwargs: object) -> object:
+            async def _inner(*args: P.args, **kwargs: P.kwargs) -> R:
                 result: RateLimitResult = await self.limit(cost=self._cost)
                 if result.limited:
                     raise LimitedError(rate_limit_result=result)
-                return cast("object", await f(*args, **kwargs))
+                return await f(*args, **kwargs)
 
             return _inner
-
-        if func is None:
-            return decorator
 
         return decorator(func)

@@ -5,7 +5,7 @@ from _thread import LockType
 from collections.abc import Callable, Sequence
 from functools import wraps
 from types import TracebackType
-from typing import Generic, TypeVar, cast
+from typing import Generic, ParamSpec, TypeVar, cast
 
 from .asyncio.hooks import Hook as AsyncHook
 from .asyncio.rate_limiter import BaseRateLimiter as AsyncBaseRateLimiter
@@ -25,11 +25,12 @@ from .store import MemoryStore
 from .types import KeyT, RateLimiterTypeT, StoreP, SyncStoreP
 from .utils import now_mono_f
 
-RateLimiterP = BaseRateLimiter | AsyncBaseRateLimiter
 HookP = Hook | AsyncHook
-DecoratorP = Callable[[Callable[..., object]], Callable[..., object]]
+P = ParamSpec("P")
+R = TypeVar("R")
+Func = Callable[P, R]
 
-_LimiterT = TypeVar("_LimiterT", bound=RateLimiterP)
+_LimiterT = TypeVar("_LimiterT", bound=BaseRateLimiter | AsyncBaseRateLimiter)
 _HookT = TypeVar("_HookT", bound=HookP)
 _StoreT = TypeVar("_StoreT", bound=StoreP)
 
@@ -132,10 +133,17 @@ class BaseThrottledMixin(Generic[_LimiterT, _HookT, _StoreT]):
     def _get_lock(cls) -> LockType:
         return threading.Lock()
 
+    def _make_limiter(self) -> _LimiterT:
+        """Create a typed limiter instance from the registry-selected class."""
+        limiter_factory: Callable[[Quota, _StoreT], _LimiterT] = cast(
+            "Callable[[Quota, _StoreT], _LimiterT]", self._limiter_cls
+        )
+        return limiter_factory(self._quota, self._store)
+
     @property
     def limiter(self) -> _LimiterT:
         """Lazily initializes and returns the rate limiter instance."""
-        limiter = self._limiter
+        limiter: _LimiterT | None = self._limiter
         if limiter is not None:
             return limiter
 
@@ -145,12 +153,9 @@ class BaseThrottledMixin(Generic[_LimiterT, _HookT, _StoreT]):
             if limiter is not None:
                 return limiter
 
-            limiter_factory = cast(
-                "Callable[[Quota, _StoreT], _LimiterT]", self._limiter_cls
-            )
-            limiter = limiter_factory(self._quota, self._store)
-            self._limiter = limiter
-            return limiter
+            created_limiter: _LimiterT = self._make_limiter()
+            self._limiter = created_limiter
+            return created_limiter
 
     def _validate_hooks(self, hooks: Sequence[_HookT] | None) -> tuple[_HookT, ...]:
         """Validate that all hooks are of the expected type and return as tuple."""
@@ -274,9 +279,7 @@ class BaseThrottled(BaseThrottledMixin[BaseRateLimiter, Hook, SyncStoreP], abc.A
         """Exit the context manager."""
 
     @abc.abstractmethod
-    def __call__(
-        self, func: Callable[..., object] | None = None
-    ) -> Callable[..., object] | DecoratorP:
+    def __call__(self, func: Func[P, R]) -> Func[P, R]:
         """Decorator to apply rate limiting to a function."""
         raise NotImplementedError
 
@@ -336,9 +339,7 @@ class Throttled(BaseThrottled):
             raise LimitedError(rate_limit_result=result)
         return result
 
-    def __call__(
-        self, func: Callable[..., object] | None = None
-    ) -> Callable[..., object] | DecoratorP:
+    def __call__(self, func: Func[P, R]) -> Func[P, R]:
         """Decorator to apply rate limiting to a function.
 
         The cost value is taken from the Throttled instance's initialization.
@@ -358,12 +359,12 @@ class Throttled(BaseThrottled):
         >>> def demo(): pass
         """
 
-        def decorator(f: Callable[..., object]) -> Callable[..., object]:
+        def decorator(f: Func[P, R]) -> Func[P, R]:
             if not self.key:
                 raise DataError(f"Invalid key: {self.key}, must be a non-empty key.")
 
             @wraps(f)
-            def _inner(*args: object, **kwargs: object) -> object:
+            def _inner(*args: P.args, **kwargs: P.kwargs) -> R:
                 # TODO Add options to ignore state.
                 result: RateLimitResult = self.limit(cost=self._cost)
                 if result.limited:
@@ -371,9 +372,6 @@ class Throttled(BaseThrottled):
                 return f(*args, **kwargs)
 
             return _inner
-
-        if func is None:
-            return decorator
 
         return decorator(func)
 
