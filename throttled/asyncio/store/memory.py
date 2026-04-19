@@ -11,8 +11,10 @@ from ...types import (
 from . import BaseStore
 
 
-class MemoryStoreBackend(store.BaseMemoryStoreBackend[AsyncLockP]):
+class MemoryStoreBackend(store.BaseMemoryStoreBackend):
     """Backend for Async MemoryStore."""
+
+    lock: AsyncLockP
 
     def __init__(
         self, server: str | None = None, options: dict[str, Any] | None = None

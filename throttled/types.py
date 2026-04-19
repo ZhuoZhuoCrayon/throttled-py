@@ -52,9 +52,6 @@ class AsyncLockP(Protocol):
     ) -> None: ...
 
 
-LockP = SyncLockP | AsyncLockP
-
-
 class StoreBackendP(Protocol):
     """Protocol for store backends."""
 

@@ -2,13 +2,12 @@ import math
 import threading
 from collections import OrderedDict
 from collections import OrderedDict as OrderedDictT
-from typing import Any, Generic, TypeVar, cast
+from typing import Any, cast
 
 from ..constants import STORE_TTL_STATE_NOT_EXIST, STORE_TTL_STATE_NOT_TTL, StoreType
 from ..exceptions import DataError, SetUpError
 from ..types import (
     KeyT,
-    LockP,
     StoreBucketValueT,
     StoreDictValueT,
     StoreValueT,
@@ -17,14 +16,11 @@ from ..types import (
 from ..utils import now_mono_f
 from .base import BaseStore, BaseStoreBackend
 
-_LockT = TypeVar("_LockT", bound=LockP)
 _ClientT = OrderedDictT[KeyT, StoreBucketValueT]
 
 
-class BaseMemoryStoreBackend(BaseStoreBackend[_ClientT], Generic[_LockT]):
+class BaseMemoryStoreBackend(BaseStoreBackend[_ClientT]):
     """Base backend for Memory Store."""
-
-    lock: _LockT
 
     def __init__(
         self, server: str | None = None, options: dict[str, Any] | None = None
@@ -140,8 +136,10 @@ class BaseMemoryStoreBackend(BaseStoreBackend[_ClientT], Generic[_LockT]):
         return True
 
 
-class MemoryStoreBackend(BaseMemoryStoreBackend[SyncLockP]):
+class MemoryStoreBackend(BaseMemoryStoreBackend):
     """Backend for sync Memory Store."""
+
+    lock: SyncLockP
 
     def __init__(
         self, server: str | None = None, options: dict[str, Any] | None = None

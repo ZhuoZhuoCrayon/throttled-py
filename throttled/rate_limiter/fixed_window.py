@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import Any, Generic, TypeVar, cast
+from typing import Generic, TypeVar, cast
 
 from ..constants import ATOMIC_ACTION_TYPE_LIMIT, RateLimiterType, StoreType
 from ..store import BaseAtomicAction
@@ -20,7 +20,7 @@ from ..utils import now_sec
 from . import BaseRateLimiter, RateLimitResult, RateLimitState
 from .base import BaseRateLimiterMixin
 
-_MemBackendT = TypeVar("_MemBackendT", bound=BaseMemoryStoreBackend[Any])
+_MemBackendT = TypeVar("_MemBackendT", bound=BaseMemoryStoreBackend)
 
 
 class RedisLimitAtomicActionConstants:
@@ -84,7 +84,7 @@ class MemoryLimitAtomicActionCoreMixin(
     @classmethod
     def _do(
         cls,
-        backend: BaseMemoryStoreBackend[Any],
+        backend: BaseMemoryStoreBackend,
         keys: Sequence[KeyT],
         args: Sequence[StoreValueT] | None,
     ) -> tuple[int, int]:
