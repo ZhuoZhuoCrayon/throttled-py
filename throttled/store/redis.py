@@ -2,21 +2,17 @@ import copy
 import urllib.parse
 from typing import Any, Generic, cast
 
+from .. import types
 from ..constants import StoreType
 from ..exceptions import DataError
-from ..types import (
-    KeyT,
-    RedisClientT,
-    StoreDictValueT,
-    StoreValueT,
-    SyncRedisClientP,
-)
 from ..utils import format_kv, format_value
 from .base import BaseStore, BaseStoreBackend
 from .redis_pool import BaseConnectionFactory, get_connection_factory
 
 
-class BaseRedisStoreBackend(BaseStoreBackend[RedisClientT], Generic[RedisClientT]):
+class BaseRedisStoreBackend(
+    BaseStoreBackend[types.RedisClientT], Generic[types.RedisClientT]
+):
     """Base backend for Redis store."""
 
     @classmethod
@@ -115,7 +111,7 @@ class BaseRedisStoreBackend(BaseStoreBackend[RedisClientT], Generic[RedisClientT
     ) -> None:
         super().__init__(*self._parse(server, options))
 
-        self._client: RedisClientT | None = None
+        self._client: types.RedisClientT | None = None
 
         connection_factory_cls_path: str | None = self.options.get(
             "CONNECTION_FACTORY_CLASS"
@@ -124,20 +120,20 @@ class BaseRedisStoreBackend(BaseStoreBackend[RedisClientT], Generic[RedisClientT
             connection_factory_cls_path, self.options
         )
 
-    def get_client(self) -> RedisClientT:
+    def get_client(self) -> types.RedisClientT:
         if self._client is not None:
             return self._client
 
         # Cast once at the redis-py boundary: ``connect`` returns the untyped
         # ``RedisP`` union, narrow to the declared client protocol.
-        client: RedisClientT = cast(
-            RedisClientT, self._connection_factory.connect(self.server)
+        client: types.RedisClientT = cast(
+            "types.RedisClientT", self._connection_factory.connect(self.server)
         )
         self._client = client
         return client
 
 
-class RedisStoreBackend(BaseRedisStoreBackend[SyncRedisClientP]):
+class RedisStoreBackend(BaseRedisStoreBackend[types.SyncRedisClientP]):
     """Backend for sync Redis store."""
 
 
@@ -168,36 +164,36 @@ class RedisStore(BaseStore[RedisStoreBackend]):
         super().__init__(server, options)
         self._backend: RedisStoreBackend = self._BACKEND_CLASS(server, options)
 
-    def exists(self, key: KeyT) -> bool:
+    def exists(self, key: types.KeyT) -> bool:
         return bool(self._backend.get_client().exists(key))
 
-    def ttl(self, key: KeyT) -> int:
+    def ttl(self, key: types.KeyT) -> int:
         return int(self._backend.get_client().ttl(key))
 
-    def expire(self, key: KeyT, timeout: int) -> None:
+    def expire(self, key: types.KeyT, timeout: int) -> None:
         self._validate_timeout(timeout)
         self._backend.get_client().expire(key, timeout)
 
-    def set(self, key: KeyT, value: StoreValueT, timeout: int) -> None:
+    def set(self, key: types.KeyT, value: types.StoreValueT, timeout: int) -> None:
         self._validate_timeout(timeout)
         self._backend.get_client().set(key, value, ex=timeout)
 
-    def get(self, key: KeyT) -> StoreValueT | None:
-        value: StoreValueT | None = self._backend.get_client().get(key)
+    def get(self, key: types.KeyT) -> types.StoreValueT | None:
+        value: types.StoreValueT | None = self._backend.get_client().get(key)
         if value is None:
             return None
         return format_value(value)
 
     def hset(
         self,
-        name: KeyT,
-        key: KeyT | None = None,
-        value: StoreValueT | None = None,
-        mapping: StoreDictValueT | None = None,
+        name: types.KeyT,
+        key: types.KeyT | None = None,
+        value: types.StoreValueT | None = None,
+        mapping: types.StoreDictValueT | None = None,
     ) -> None:
         if key is None and not mapping:
             raise DataError("hset must with key value pairs")
         self._backend.get_client().hset(name, key, value, mapping)
 
-    def hgetall(self, name: KeyT) -> StoreDictValueT:
+    def hgetall(self, name: types.KeyT) -> types.StoreDictValueT:
         return format_kv(self._backend.get_client().hgetall(name))

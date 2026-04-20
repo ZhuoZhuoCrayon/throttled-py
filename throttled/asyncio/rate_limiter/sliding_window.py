@@ -2,23 +2,15 @@ import math
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, cast
 
+from ... import types
 from ...constants import ATOMIC_ACTION_TYPE_LIMIT
 from ...rate_limiter.sliding_window import (
     MemoryLimitAtomicActionCoreMixin,
     RedisLimitAtomicActionConstants,
     SlidingWindowRateLimiterCoreMixin,
 )
-from ...store.base import BaseAtomicActionMixin
-from ...types import (
-    AsyncAtomicActionP,
-    AsyncStoreP,
-    KeyT,
-    StoreValueT,
-)
 from ...utils import now_ms
-from ..store import BaseAtomicAction
-from ..store.memory import MemoryStoreBackend
-from ..store.redis import RedisStoreBackend
+from .. import store
 from . import BaseRateLimiter, RateLimitResult, RateLimitState
 
 if TYPE_CHECKING:
@@ -26,22 +18,26 @@ if TYPE_CHECKING:
 
 
 class RedisLimitAtomicActionCoreMixin(
-    RedisLimitAtomicActionConstants, BaseAtomicActionMixin[RedisStoreBackend]
+    RedisLimitAtomicActionConstants,
+    store.BaseAtomicActionMixin[store.RedisStoreBackend],
 ):
     """Core mixin for async RedisLimitAtomicAction."""
 
-    def __init__(self, backend: RedisStoreBackend) -> None:
+    def __init__(self, backend: store.RedisStoreBackend) -> None:
         super().__init__(backend)
         self._script: AsyncScript = backend.get_client().register_script(self.SCRIPTS)
 
 
 class RedisLimitAtomicAction(
-    RedisLimitAtomicActionCoreMixin, BaseAtomicAction[RedisStoreBackend]
+    RedisLimitAtomicActionCoreMixin,
+    store.BaseAtomicAction[store.RedisStoreBackend],
 ):
     """Redis-based implementation of AtomicAction for Async SlidingWindowRateLimiter."""
 
     async def do(
-        self, keys: Sequence[KeyT], args: Sequence[StoreValueT] | None
+        self,
+        keys: Sequence[types.KeyT],
+        args: Sequence[types.StoreValueT] | None,
     ) -> tuple[int, int, float]:
         limited, used, retry_after = cast(
             "tuple[int, int, str]", await self._script(keys, args)
@@ -50,25 +46,27 @@ class RedisLimitAtomicAction(
 
 
 class MemoryLimitAtomicAction(
-    MemoryLimitAtomicActionCoreMixin[MemoryStoreBackend],
-    BaseAtomicAction[MemoryStoreBackend],
+    MemoryLimitAtomicActionCoreMixin[store.MemoryStoreBackend],
+    store.BaseAtomicAction[store.MemoryStoreBackend],
 ):
     """Memory-based implementation of AtomicAction for Async SlidingWindowRateLimiter."""
 
     async def do(
-        self, keys: Sequence[KeyT], args: Sequence[StoreValueT] | None
+        self,
+        keys: Sequence[types.KeyT],
+        args: Sequence[types.StoreValueT] | None,
     ) -> tuple[int, int, float]:
         async with self._backend.lock:
             return self._do(self._backend, keys, args)
 
 
 class SlidingWindowRateLimiter(
-    SlidingWindowRateLimiterCoreMixin[AsyncStoreP, AsyncAtomicActionP],
+    SlidingWindowRateLimiterCoreMixin[types.AsyncStoreP, types.AsyncAtomicActionP],
     BaseRateLimiter,
 ):
     """Concrete implementation of BaseRateLimiter using sliding window as algorithm."""
 
-    _DEFAULT_ATOMIC_ACTION_CLASSES: Sequence[type[AsyncAtomicActionP]] = (
+    _DEFAULT_ATOMIC_ACTION_CLASSES: Sequence[type[types.AsyncAtomicActionP]] = (
         RedisLimitAtomicAction,
         MemoryLimitAtomicAction,
     )

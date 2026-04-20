@@ -1,12 +1,10 @@
-from collections.abc import Sequence
+from collections.abc import MutableMapping, Sequence
 from types import TracebackType
 from typing import TYPE_CHECKING, Protocol, TypeVar
 
 if TYPE_CHECKING:
     from redis.commands.core import AsyncScript
     from redis.commands.core import Script as SyncScript
-
-    from .store.memory import BaseMemoryStoreBackend
 
 
 _StringLikeT = str
@@ -152,6 +150,26 @@ class AsyncStoreP(StoreForLimiterP, Protocol):
 StoreP = SyncStoreP | AsyncStoreP
 
 
+class MemoryStoreBackendP(StoreBackendP, Protocol):
+    """Protocol for memory-like backend surface used by rate limit algorithms."""
+
+    def get_client(self) -> MutableMapping[KeyT, StoreBucketValueT]: ...
+    def exists(self, key: KeyT) -> bool: ...
+    def ttl(self, key: KeyT) -> int: ...
+    def expire(self, key: KeyT, timeout: int) -> None: ...
+    def set(self, key: KeyT, value: StoreValueT, timeout: int) -> None: ...
+    def get(self, key: KeyT) -> StoreValueT | None: ...
+    def hgetall(self, name: KeyT) -> StoreDictValueT: ...
+
+    def hset(
+        self,
+        name: KeyT,
+        key: KeyT | None = None,
+        value: StoreValueT | None = None,
+        mapping: StoreDictValueT | None = None,
+    ) -> None: ...
+
+
 class SyncRedisClientP(Protocol):
     """Protocol declaring Redis methods used by sync RedisStore.
 
@@ -212,7 +230,7 @@ RedisClientT = TypeVar("RedisClientT", bound=RedisP)
 
 MemoryStoreBackendT = TypeVar(
     "MemoryStoreBackendT",
-    bound="BaseMemoryStoreBackend",
+    bound=MemoryStoreBackendP,
 )
 
 StoreT = TypeVar("StoreT", bound=StoreForLimiterP)

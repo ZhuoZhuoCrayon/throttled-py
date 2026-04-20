@@ -2,26 +2,10 @@ import math
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Generic, cast
 
+from .. import store, types
 from ..constants import ATOMIC_ACTION_TYPE_LIMIT, RateLimiterType, StoreType
-from ..store import BaseAtomicAction
-from ..store.base import BaseAtomicActionMixin
-from ..store.memory import BaseMemoryStoreBackend, MemoryStoreBackend
-from ..store.redis import RedisStoreBackend
-from ..types import (
-    ActionT,
-    AtomicActionTypeT,
-    KeyT,
-    MemoryStoreBackendT,
-    RateLimiterTypeT,
-    StoreDictValueT,
-    StoreT,
-    StoreValueT,
-    SyncAtomicActionP,
-    SyncStoreP,
-)
 from ..utils import now_sec
-from . import BaseRateLimiter, RateLimitResult, RateLimitState
-from .base import BaseRateLimiterMixin
+from . import BaseRateLimiter, BaseRateLimiterMixin, RateLimitResult, RateLimitState
 
 if TYPE_CHECKING:
     from redis.commands.core import Script as SyncScript
@@ -30,7 +14,7 @@ if TYPE_CHECKING:
 class RedisLimitAtomicActionConstants:
     """Identity and Lua script shared by sync / async Redis leaking-bucket actions."""
 
-    TYPE: AtomicActionTypeT = ATOMIC_ACTION_TYPE_LIMIT
+    TYPE: types.AtomicActionTypeT = ATOMIC_ACTION_TYPE_LIMIT
     STORE_TYPE: str = StoreType.REDIS.value
 
     SCRIPTS: str = """
@@ -64,41 +48,46 @@ class RedisLimitAtomicActionConstants:
 
 
 class RedisLimitAtomicActionCoreMixin(
-    RedisLimitAtomicActionConstants, BaseAtomicActionMixin[RedisStoreBackend]
+    RedisLimitAtomicActionConstants,
+    store.BaseAtomicActionMixin[store.RedisStoreBackend],
 ):
     """Core mixin for RedisLimitAtomicAction."""
 
-    def __init__(self, backend: RedisStoreBackend) -> None:
+    def __init__(self, backend: store.RedisStoreBackend) -> None:
         super().__init__(backend)
         self._script: SyncScript = backend.get_client().register_script(self.SCRIPTS)
 
 
 class RedisLimitAtomicAction(
-    RedisLimitAtomicActionCoreMixin, BaseAtomicAction[RedisStoreBackend]
+    RedisLimitAtomicActionCoreMixin,
+    store.BaseAtomicAction[store.RedisStoreBackend],
 ):
     """Redis-based implementation of AtomicAction for LeakingBucketRateLimiter."""
 
     def do(
-        self, keys: Sequence[KeyT], args: Sequence[StoreValueT] | None
+        self,
+        keys: Sequence[types.KeyT],
+        args: Sequence[types.StoreValueT] | None,
     ) -> tuple[int, int]:
         limited, tokens = cast("tuple[int, int]", self._script(keys, args))
         return limited, tokens
 
 
 class MemoryLimitAtomicActionCoreMixin(
-    BaseAtomicActionMixin[MemoryStoreBackendT], Generic[MemoryStoreBackendT]
+    store.BaseAtomicActionMixin[types.MemoryStoreBackendT],
+    Generic[types.MemoryStoreBackendT],
 ):
     """Core mixin for MemoryLimitAtomicAction."""
 
-    TYPE: AtomicActionTypeT = ATOMIC_ACTION_TYPE_LIMIT
+    TYPE: types.AtomicActionTypeT = ATOMIC_ACTION_TYPE_LIMIT
     STORE_TYPE: str = StoreType.MEMORY.value
 
     @classmethod
     def _do(
         cls,
-        backend: BaseMemoryStoreBackend,
-        keys: Sequence[KeyT],
-        args: Sequence[StoreValueT] | None,
+        backend: types.MemoryStoreBackendP,
+        keys: Sequence[types.KeyT],
+        args: Sequence[types.StoreValueT] | None,
     ) -> tuple[int, int]:
         if args is None:
             raise ValueError("args is required")
@@ -108,7 +97,7 @@ class MemoryLimitAtomicActionCoreMixin(
         cost: int = int(args[2])
         now: int = now_sec()
 
-        bucket: StoreDictValueT = backend.hgetall(key)
+        bucket: types.StoreDictValueT = backend.hgetall(key)
         last_tokens: int = int(bucket.get("tokens", 0))
         last_refreshed: int = int(bucket.get("last_refreshed", now))
 
@@ -127,28 +116,31 @@ class MemoryLimitAtomicActionCoreMixin(
 
 
 class MemoryLimitAtomicAction(
-    MemoryLimitAtomicActionCoreMixin[MemoryStoreBackend],
-    BaseAtomicAction[MemoryStoreBackend],
+    MemoryLimitAtomicActionCoreMixin[store.MemoryStoreBackend],
+    store.BaseAtomicAction[store.MemoryStoreBackend],
 ):
     """Memory-based implementation of AtomicAction for LeakingBucketRateLimiter."""
 
     def do(
-        self, keys: Sequence[KeyT], args: Sequence[StoreValueT] | None
+        self,
+        keys: Sequence[types.KeyT],
+        args: Sequence[types.StoreValueT] | None,
     ) -> tuple[int, int]:
         with self._backend.lock:
             return self._do(self._backend, keys, args)
 
 
 class LeakingBucketRateLimiterCoreMixin(
-    BaseRateLimiterMixin[StoreT, ActionT], Generic[StoreT, ActionT]
+    BaseRateLimiterMixin[types.StoreT, types.ActionT],
+    Generic[types.StoreT, types.ActionT],
 ):
     """Core mixin for LeakingBucketRateLimiter."""
 
     class Meta(BaseRateLimiterMixin.Meta):
-        type: RateLimiterTypeT = RateLimiterType.LEAKING_BUCKET.value
+        type: types.RateLimiterTypeT = RateLimiterType.LEAKING_BUCKET.value
 
     @classmethod
-    def _supported_atomic_action_types(cls) -> Sequence[AtomicActionTypeT]:
+    def _supported_atomic_action_types(cls) -> Sequence[types.AtomicActionTypeT]:
         return [ATOMIC_ACTION_TYPE_LIMIT]
 
     def _prepare(self, key: str) -> tuple[str, float, int]:
@@ -174,12 +166,12 @@ class LeakingBucketRateLimiterCoreMixin(
 
 
 class LeakingBucketRateLimiter(
-    LeakingBucketRateLimiterCoreMixin[SyncStoreP, SyncAtomicActionP],
+    LeakingBucketRateLimiterCoreMixin[types.SyncStoreP, types.SyncAtomicActionP],
     BaseRateLimiter,
 ):
     """Concrete implementation of BaseRateLimiter using leaking bucket as algorithm."""
 
-    _DEFAULT_ATOMIC_ACTION_CLASSES: Sequence[type[SyncAtomicActionP]] = (
+    _DEFAULT_ATOMIC_ACTION_CLASSES: Sequence[type[types.SyncAtomicActionP]] = (
         RedisLimitAtomicAction,
         MemoryLimitAtomicAction,
     )
@@ -198,7 +190,7 @@ class LeakingBucketRateLimiter(
         now: int = now_sec()
         formatted_key, rate, capacity = self._prepare(key)
 
-        bucket: StoreDictValueT = self._store.hgetall(formatted_key)
+        bucket: types.StoreDictValueT = self._store.hgetall(formatted_key)
         last_tokens: int = int(bucket.get("tokens", 0))
         last_refreshed: int = int(bucket.get("last_refreshed", now))
 

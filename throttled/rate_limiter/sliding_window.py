@@ -2,25 +2,10 @@ import math
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Generic, cast
 
+from .. import store, types
 from ..constants import ATOMIC_ACTION_TYPE_LIMIT, RateLimiterType, StoreType
-from ..store import BaseAtomicAction
-from ..store.base import BaseAtomicActionMixin
-from ..store.memory import BaseMemoryStoreBackend, MemoryStoreBackend
-from ..store.redis import RedisStoreBackend
-from ..types import (
-    ActionT,
-    AtomicActionTypeT,
-    KeyT,
-    MemoryStoreBackendT,
-    RateLimiterTypeT,
-    StoreT,
-    StoreValueT,
-    SyncAtomicActionP,
-    SyncStoreP,
-)
 from ..utils import now_ms, now_sec
-from . import BaseRateLimiter, RateLimitResult, RateLimitState
-from .base import BaseRateLimiterMixin
+from . import BaseRateLimiter, BaseRateLimiterMixin, RateLimitResult, RateLimitState
 
 if TYPE_CHECKING:
     from redis.commands.core import Script as SyncScript
@@ -29,7 +14,7 @@ if TYPE_CHECKING:
 class RedisLimitAtomicActionConstants:
     """Identity and Lua script shared by sync / async Redis sliding-window actions."""
 
-    TYPE: AtomicActionTypeT = ATOMIC_ACTION_TYPE_LIMIT
+    TYPE: types.AtomicActionTypeT = ATOMIC_ACTION_TYPE_LIMIT
     STORE_TYPE: str = StoreType.REDIS.value
 
     SCRIPTS: str = """
@@ -77,22 +62,26 @@ class RedisLimitAtomicActionConstants:
 
 
 class RedisLimitAtomicActionCoreMixin(
-    RedisLimitAtomicActionConstants, BaseAtomicActionMixin[RedisStoreBackend]
+    RedisLimitAtomicActionConstants,
+    store.BaseAtomicActionMixin[store.RedisStoreBackend],
 ):
     """Core mixin for RedisLimitAtomicAction."""
 
-    def __init__(self, backend: RedisStoreBackend) -> None:
+    def __init__(self, backend: store.RedisStoreBackend) -> None:
         super().__init__(backend)
         self._script: SyncScript = backend.get_client().register_script(self.SCRIPTS)
 
 
 class RedisLimitAtomicAction(
-    RedisLimitAtomicActionCoreMixin, BaseAtomicAction[RedisStoreBackend]
+    RedisLimitAtomicActionCoreMixin,
+    store.BaseAtomicAction[store.RedisStoreBackend],
 ):
     """Redis-based implementation of AtomicAction for SlidingWindowRateLimiter."""
 
     def do(
-        self, keys: Sequence[KeyT], args: Sequence[StoreValueT] | None
+        self,
+        keys: Sequence[types.KeyT],
+        args: Sequence[types.StoreValueT] | None,
     ) -> tuple[int, int, float]:
         limited, used, retry_after = cast(
             "tuple[int, int, str]", self._script(keys, args)
@@ -101,19 +90,20 @@ class RedisLimitAtomicAction(
 
 
 class MemoryLimitAtomicActionCoreMixin(
-    BaseAtomicActionMixin[MemoryStoreBackendT], Generic[MemoryStoreBackendT]
+    store.BaseAtomicActionMixin[types.MemoryStoreBackendT],
+    Generic[types.MemoryStoreBackendT],
 ):
     """Core mixin for MemoryLimitAtomicAction."""
 
-    TYPE: AtomicActionTypeT = ATOMIC_ACTION_TYPE_LIMIT
+    TYPE: types.AtomicActionTypeT = ATOMIC_ACTION_TYPE_LIMIT
     STORE_TYPE: str = StoreType.MEMORY.value
 
     @classmethod
     def _do(
         cls,
-        backend: BaseMemoryStoreBackend,
-        keys: Sequence[KeyT],
-        args: Sequence[StoreValueT] | None,
+        backend: types.MemoryStoreBackendP,
+        keys: Sequence[types.KeyT],
+        args: Sequence[types.StoreValueT] | None,
     ) -> tuple[int, int, float]:
         if args is None:
             raise ValueError("args is required")
@@ -123,7 +113,7 @@ class MemoryLimitAtomicActionCoreMixin(
         limit: int = int(args[1])
         cost: int = int(args[2])
 
-        current_raw: StoreValueT | None = backend.get(current_key)
+        current_raw: types.StoreValueT | None = backend.get(current_key)
         current: int
         if current_raw is None:
             current = 0
@@ -136,7 +126,7 @@ class MemoryLimitAtomicActionCoreMixin(
         period_ms: int = period * 1000
         current_proportion: float = (int(args[3]) % period_ms) / period_ms
         previous_proportion: float = 1 - current_proportion
-        previous_raw: StoreValueT | None = backend.get(previous_key)
+        previous_raw: types.StoreValueT | None = backend.get(previous_key)
         previous: int = math.floor(
             previous_proportion * (int(previous_raw) if previous_raw is not None else 0)
         )
@@ -157,28 +147,31 @@ class MemoryLimitAtomicActionCoreMixin(
 
 
 class MemoryLimitAtomicAction(
-    MemoryLimitAtomicActionCoreMixin[MemoryStoreBackend],
-    BaseAtomicAction[MemoryStoreBackend],
+    MemoryLimitAtomicActionCoreMixin[store.MemoryStoreBackend],
+    store.BaseAtomicAction[store.MemoryStoreBackend],
 ):
     """Memory-based implementation of AtomicAction for SlidingWindowRateLimiter."""
 
     def do(
-        self, keys: Sequence[KeyT], args: Sequence[StoreValueT] | None
+        self,
+        keys: Sequence[types.KeyT],
+        args: Sequence[types.StoreValueT] | None,
     ) -> tuple[int, int, float]:
         with self._backend.lock:
             return self._do(self._backend, keys, args)
 
 
 class SlidingWindowRateLimiterCoreMixin(
-    BaseRateLimiterMixin[StoreT, ActionT], Generic[StoreT, ActionT]
+    BaseRateLimiterMixin[types.StoreT, types.ActionT],
+    Generic[types.StoreT, types.ActionT],
 ):
     """Core mixin for SlidingWindowRateLimiter."""
 
     class Meta(BaseRateLimiterMixin.Meta):
-        type: RateLimiterTypeT = RateLimiterType.SLIDING_WINDOW.value
+        type: types.RateLimiterTypeT = RateLimiterType.SLIDING_WINDOW.value
 
     @classmethod
-    def _supported_atomic_action_types(cls) -> Sequence[AtomicActionTypeT]:
+    def _supported_atomic_action_types(cls) -> Sequence[types.AtomicActionTypeT]:
         return [ATOMIC_ACTION_TYPE_LIMIT]
 
     def _prepare(self, key: str) -> tuple[str, str, int, int]:
@@ -190,12 +183,12 @@ class SlidingWindowRateLimiterCoreMixin(
 
 
 class SlidingWindowRateLimiter(
-    SlidingWindowRateLimiterCoreMixin[SyncStoreP, SyncAtomicActionP],
+    SlidingWindowRateLimiterCoreMixin[types.SyncStoreP, types.SyncAtomicActionP],
     BaseRateLimiter,
 ):
     """Concrete implementation of BaseRateLimiter using sliding window as algorithm."""
 
-    _DEFAULT_ATOMIC_ACTION_CLASSES: Sequence[type[SyncAtomicActionP]] = (
+    _DEFAULT_ATOMIC_ACTION_CLASSES: Sequence[type[types.SyncAtomicActionP]] = (
         RedisLimitAtomicAction,
         MemoryLimitAtomicAction,
     )

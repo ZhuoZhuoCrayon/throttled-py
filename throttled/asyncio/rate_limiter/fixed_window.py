@@ -1,38 +1,34 @@
 from collections.abc import Sequence
 from typing import cast
 
+from ... import types
 from ...constants import ATOMIC_ACTION_TYPE_LIMIT
 from ...rate_limiter.fixed_window import (
     FixedWindowRateLimiterCoreMixin,
     MemoryLimitAtomicActionCoreMixin,
     RedisLimitAtomicActionConstants,
 )
-from ...store.base import BaseAtomicActionMixin
-from ...types import (
-    AsyncAtomicActionP,
-    AsyncStoreP,
-    KeyT,
-    StoreValueT,
-)
-from ..store import BaseAtomicAction
-from ..store.memory import MemoryStoreBackend
-from ..store.redis import RedisStoreBackend
+from .. import store
 from . import BaseRateLimiter, RateLimitResult, RateLimitState
 
 
 class RedisLimitAtomicActionCoreMixin(
-    RedisLimitAtomicActionConstants, BaseAtomicActionMixin[RedisStoreBackend]
+    RedisLimitAtomicActionConstants,
+    store.BaseAtomicActionMixin[store.RedisStoreBackend],
 ):
     """Core mixin for async RedisLimitAtomicAction."""
 
 
 class RedisLimitAtomicAction(
-    RedisLimitAtomicActionCoreMixin, BaseAtomicAction[RedisStoreBackend]
+    RedisLimitAtomicActionCoreMixin,
+    store.BaseAtomicAction[store.RedisStoreBackend],
 ):
     """Redis-based implementation of AtomicAction for Async FixedWindowRateLimiter."""
 
     async def do(
-        self, keys: Sequence[KeyT], args: Sequence[StoreValueT] | None
+        self,
+        keys: Sequence[types.KeyT],
+        args: Sequence[types.StoreValueT] | None,
     ) -> tuple[int, int]:
         if args is None:
             raise ValueError("args is required")
@@ -47,25 +43,27 @@ class RedisLimitAtomicAction(
 
 
 class MemoryLimitAtomicAction(
-    MemoryLimitAtomicActionCoreMixin[MemoryStoreBackend],
-    BaseAtomicAction[MemoryStoreBackend],
+    MemoryLimitAtomicActionCoreMixin[store.MemoryStoreBackend],
+    store.BaseAtomicAction[store.MemoryStoreBackend],
 ):
     """Memory-based implementation of AtomicAction for Async FixedWindowRateLimiter."""
 
     async def do(
-        self, keys: Sequence[KeyT], args: Sequence[StoreValueT] | None
+        self,
+        keys: Sequence[types.KeyT],
+        args: Sequence[types.StoreValueT] | None,
     ) -> tuple[int, int]:
         async with self._backend.lock:
             return self._do(self._backend, keys, args)
 
 
 class FixedWindowRateLimiter(
-    FixedWindowRateLimiterCoreMixin[AsyncStoreP, AsyncAtomicActionP],
+    FixedWindowRateLimiterCoreMixin[types.AsyncStoreP, types.AsyncAtomicActionP],
     BaseRateLimiter,
 ):
     """Concrete implementation of BaseRateLimiter using fixed window as algorithm."""
 
-    _DEFAULT_ATOMIC_ACTION_CLASSES: Sequence[type[AsyncAtomicActionP]] = (
+    _DEFAULT_ATOMIC_ACTION_CLASSES: Sequence[type[types.AsyncAtomicActionP]] = (
         RedisLimitAtomicAction,
         MemoryLimitAtomicAction,
     )

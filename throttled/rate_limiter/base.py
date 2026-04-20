@@ -6,15 +6,8 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import Any, Generic
 
+from .. import types
 from ..exceptions import SetUpError
-from ..types import (
-    ActionT,
-    AtomicActionTypeT,
-    RateLimiterTypeT,
-    StoreT,
-    SyncAtomicActionP,
-    SyncStoreP,
-)
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -149,7 +142,7 @@ class RateLimiterRegistry:
     # Value type is ``type[Any]`` because sync/async registries share the
     # metaclass hook; sync/async subclasses redeclare ``_RATE_LIMITERS`` to
     # restore type safety on the call site.
-    _RATE_LIMITERS: dict[RateLimiterTypeT, type[Any]] = {}
+    _RATE_LIMITERS: dict[types.RateLimiterTypeT, type[Any]] = {}
 
     @classmethod
     def get_register_key(cls, _type: str) -> str:
@@ -164,7 +157,7 @@ class RateLimiterRegistry:
             raise SetUpError(f"failed to register RateLimiter: {e}") from e
 
     @classmethod
-    def get(cls, _type: RateLimiterTypeT) -> type[Any]:
+    def get(cls, _type: types.RateLimiterTypeT) -> type[Any]:
         try:
             return cls._RATE_LIMITERS[cls.get_register_key(_type)]
         except KeyError:
@@ -190,25 +183,25 @@ class RateLimiterMeta(abc.ABCMeta):
         return new_cls
 
 
-class BaseRateLimiterMixin(ABC, Generic[StoreT, ActionT]):
+class BaseRateLimiterMixin(ABC, Generic[types.StoreT, types.ActionT]):
     """Mixin class for RateLimiter."""
 
     KEY_PREFIX: str = "throttled:v1:"
 
     class Meta:
-        type: RateLimiterTypeT = ""
+        type: types.RateLimiterTypeT = ""
 
-    _store: StoreT
-    _atomic_actions: dict[AtomicActionTypeT, ActionT]
+    _store: types.StoreT
+    _atomic_actions: dict[types.AtomicActionTypeT, types.ActionT]
 
     #: Default AtomicAction classes; concrete subclasses override the tuple.
-    _DEFAULT_ATOMIC_ACTION_CLASSES: Sequence[type[ActionT]] = ()
+    _DEFAULT_ATOMIC_ACTION_CLASSES: Sequence[type[types.ActionT]] = ()
 
     def __init__(
         self,
         quota: Quota,
-        store: StoreT,
-        additional_atomic_actions: Sequence[type[ActionT]] | None = None,
+        store: types.StoreT,
+        additional_atomic_actions: Sequence[type[types.ActionT]] | None = None,
     ) -> None:
         self.quota: Quota = quota
         self._store = store
@@ -216,13 +209,13 @@ class BaseRateLimiterMixin(ABC, Generic[StoreT, ActionT]):
         self._register_atomic_actions(additional_atomic_actions or [])
 
     @classmethod
-    def _default_atomic_action_classes(cls) -> Sequence[type[ActionT]]:
+    def _default_atomic_action_classes(cls) -> Sequence[type[types.ActionT]]:
         """Return the default AtomicAction classes for RateLimiter."""
         return cls._DEFAULT_ATOMIC_ACTION_CLASSES
 
     @classmethod
     @abc.abstractmethod
-    def _supported_atomic_action_types(cls) -> Sequence[AtomicActionTypeT]:
+    def _supported_atomic_action_types(cls) -> Sequence[types.AtomicActionTypeT]:
         """Define the supported AtomicAction types for RateLimiter."""
         raise NotImplementedError
 
@@ -231,10 +224,10 @@ class BaseRateLimiterMixin(ABC, Generic[StoreT, ActionT]):
 
         :raise: SetUpError
         """
-        supported_types: set[AtomicActionTypeT] = set(
+        supported_types: set[types.AtomicActionTypeT] = set(
             self._supported_atomic_action_types()
         )
-        registered_types: set[AtomicActionTypeT] = set(self._atomic_actions.keys())
+        registered_types: set[types.AtomicActionTypeT] = set(self._atomic_actions.keys())
 
         missing_types: set[str] = supported_types - registered_types
         if missing_types:
@@ -246,9 +239,9 @@ class BaseRateLimiterMixin(ABC, Generic[StoreT, ActionT]):
                 )
             )
 
-    def _register_atomic_actions(self, classes: Sequence[type[ActionT]]) -> None:
+    def _register_atomic_actions(self, classes: Sequence[type[types.ActionT]]) -> None:
         """Register AtomicAction classes for default and additional classes."""
-        all_classes: list[type[ActionT]] = list(
+        all_classes: list[type[types.ActionT]] = list(
             self._default_atomic_action_classes()
         ) + list(classes)
         for action_cls in all_classes:
@@ -286,7 +279,7 @@ class BaseRateLimiterMixin(ABC, Generic[StoreT, ActionT]):
 
 
 class BaseRateLimiter(
-    BaseRateLimiterMixin[SyncStoreP, SyncAtomicActionP],
+    BaseRateLimiterMixin[types.SyncStoreP, types.SyncAtomicActionP],
     ABC,
     metaclass=RateLimiterMeta,
 ):

@@ -1,6 +1,6 @@
 """Async rate limiter exports."""
 
-from ...rate_limiter.base import (
+from ...rate_limiter import (
     Quota,
     Rate,
     RateLimitResult,

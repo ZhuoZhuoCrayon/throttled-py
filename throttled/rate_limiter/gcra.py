@@ -2,30 +2,15 @@ import math
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Generic, cast
 
+from .. import store, types
 from ..constants import (
     ATOMIC_ACTION_TYPE_LIMIT,
     ATOMIC_ACTION_TYPE_PEEK,
     RateLimiterType,
     StoreType,
 )
-from ..store import BaseAtomicAction
-from ..store.base import BaseAtomicActionMixin
-from ..store.memory import BaseMemoryStoreBackend, MemoryStoreBackend
-from ..store.redis import RedisStoreBackend
-from ..types import (
-    ActionT,
-    AtomicActionTypeT,
-    KeyT,
-    MemoryStoreBackendT,
-    RateLimiterTypeT,
-    StoreT,
-    StoreValueT,
-    SyncAtomicActionP,
-    SyncStoreP,
-)
 from ..utils import now_mono_f
-from . import BaseRateLimiter, RateLimitResult, RateLimitState
-from .base import BaseRateLimiterMixin
+from . import BaseRateLimiter, BaseRateLimiterMixin, RateLimitResult, RateLimitState
 
 if TYPE_CHECKING:
     from redis.commands.core import Script as SyncScript
@@ -34,7 +19,7 @@ if TYPE_CHECKING:
 class RedisLimitAtomicActionConstants:
     """Identity and Lua script shared by sync / async Redis GCRA limit actions."""
 
-    TYPE: AtomicActionTypeT = ATOMIC_ACTION_TYPE_LIMIT
+    TYPE: types.AtomicActionTypeT = ATOMIC_ACTION_TYPE_LIMIT
     STORE_TYPE: str = StoreType.REDIS.value
 
     SCRIPTS: str = """
@@ -81,7 +66,7 @@ class RedisLimitAtomicActionConstants:
 class RedisPeekAtomicActionConstants:
     """Identity and Lua script shared by sync / async Redis GCRA peek actions."""
 
-    TYPE: AtomicActionTypeT = ATOMIC_ACTION_TYPE_PEEK
+    TYPE: types.AtomicActionTypeT = ATOMIC_ACTION_TYPE_PEEK
     STORE_TYPE: str = StoreType.REDIS.value
 
     SCRIPTS: str = """
@@ -118,17 +103,19 @@ class RedisPeekAtomicActionConstants:
 
 
 class RedisLimitAtomicActionCoreMixin(
-    RedisLimitAtomicActionConstants, BaseAtomicActionMixin[RedisStoreBackend]
+    RedisLimitAtomicActionConstants,
+    store.BaseAtomicActionMixin[store.RedisStoreBackend],
 ):
     """Core mixin for RedisLimitAtomicAction."""
 
-    def __init__(self, backend: RedisStoreBackend) -> None:
+    def __init__(self, backend: store.RedisStoreBackend) -> None:
         super().__init__(backend)
         self._script: SyncScript = backend.get_client().register_script(self.SCRIPTS)
 
 
 class RedisLimitAtomicAction(
-    RedisLimitAtomicActionCoreMixin, BaseAtomicAction[RedisStoreBackend]
+    RedisLimitAtomicActionCoreMixin,
+    store.BaseAtomicAction[store.RedisStoreBackend],
 ):
     """Redis-based implementation of AtomicAction for GCRARateLimiter's limit operation.
 
@@ -136,7 +123,9 @@ class RedisLimitAtomicAction(
     """
 
     def do(
-        self, keys: Sequence[KeyT], args: Sequence[StoreValueT] | None
+        self,
+        keys: Sequence[types.KeyT],
+        args: Sequence[types.StoreValueT] | None,
     ) -> tuple[int, int, float, float]:
         limited, remaining, reset_after, retry_after = cast(
             "tuple[int, int, str, str]", self._script(keys, args)
@@ -145,22 +134,26 @@ class RedisLimitAtomicAction(
 
 
 class RedisPeekAtomicActionCoreMixin(
-    RedisPeekAtomicActionConstants, BaseAtomicActionMixin[RedisStoreBackend]
+    RedisPeekAtomicActionConstants,
+    store.BaseAtomicActionMixin[store.RedisStoreBackend],
 ):
     """Core mixin for RedisPeekAtomicAction."""
 
-    def __init__(self, backend: RedisStoreBackend) -> None:
+    def __init__(self, backend: store.RedisStoreBackend) -> None:
         super().__init__(backend)
         self._script: SyncScript = backend.get_client().register_script(self.SCRIPTS)
 
 
 class RedisPeekAtomicAction(
-    RedisPeekAtomicActionCoreMixin, BaseAtomicAction[RedisStoreBackend]
+    RedisPeekAtomicActionCoreMixin,
+    store.BaseAtomicAction[store.RedisStoreBackend],
 ):
     """Redis-based AtomicAction for GCRARateLimiter's peek operation."""
 
     def do(
-        self, keys: Sequence[KeyT], args: Sequence[StoreValueT] | None
+        self,
+        keys: Sequence[types.KeyT],
+        args: Sequence[types.StoreValueT] | None,
     ) -> tuple[int, int, float, float]:
         limited, remaining, reset_after, retry_after = cast(
             "tuple[int, int, str, str]", self._script(keys, args)
@@ -169,19 +162,20 @@ class RedisPeekAtomicAction(
 
 
 class MemoryLimitAtomicActionCoreMixin(
-    BaseAtomicActionMixin[MemoryStoreBackendT], Generic[MemoryStoreBackendT]
+    store.BaseAtomicActionMixin[types.MemoryStoreBackendT],
+    Generic[types.MemoryStoreBackendT],
 ):
     """Core mixin for MemoryLimitAtomicAction."""
 
-    TYPE: AtomicActionTypeT = ATOMIC_ACTION_TYPE_LIMIT
+    TYPE: types.AtomicActionTypeT = ATOMIC_ACTION_TYPE_LIMIT
     STORE_TYPE: str = StoreType.MEMORY.value
 
     @classmethod
     def _do(
         cls,
-        backend: BaseMemoryStoreBackend,
-        keys: Sequence[KeyT],
-        args: Sequence[StoreValueT] | None,
+        backend: types.MemoryStoreBackendP,
+        keys: Sequence[types.KeyT],
+        args: Sequence[types.StoreValueT] | None,
     ) -> tuple[int, int, float, float]:
         if args is None:
             raise ValueError("args is required")
@@ -219,8 +213,8 @@ class MemoryLimitAtomicActionCoreMixin(
 
 
 class MemoryLimitAtomicAction(
-    MemoryLimitAtomicActionCoreMixin[MemoryStoreBackend],
-    BaseAtomicAction[MemoryStoreBackend],
+    MemoryLimitAtomicActionCoreMixin[store.MemoryStoreBackend],
+    store.BaseAtomicAction[store.MemoryStoreBackend],
 ):
     """Memory-based implementation of AtomicAction for GCRARateLimiter's limit operation.
 
@@ -228,26 +222,29 @@ class MemoryLimitAtomicAction(
     """
 
     def do(
-        self, keys: Sequence[KeyT], args: Sequence[StoreValueT] | None
+        self,
+        keys: Sequence[types.KeyT],
+        args: Sequence[types.StoreValueT] | None,
     ) -> tuple[int, int, float, float]:
         with self._backend.lock:
             return self._do(self._backend, keys, args)
 
 
 class MemoryPeekAtomicActionCoreMixin(
-    BaseAtomicActionMixin[MemoryStoreBackendT], Generic[MemoryStoreBackendT]
+    store.BaseAtomicActionMixin[types.MemoryStoreBackendT],
+    Generic[types.MemoryStoreBackendT],
 ):
     """Core mixin for MemoryPeekAtomicAction."""
 
-    TYPE: AtomicActionTypeT = ATOMIC_ACTION_TYPE_PEEK
+    TYPE: types.AtomicActionTypeT = ATOMIC_ACTION_TYPE_PEEK
     STORE_TYPE: str = StoreType.MEMORY.value
 
     @classmethod
     def _do(
         cls,
-        backend: BaseMemoryStoreBackend,
-        keys: Sequence[KeyT],
-        args: Sequence[StoreValueT] | None,
+        backend: types.MemoryStoreBackendP,
+        keys: Sequence[types.KeyT],
+        args: Sequence[types.StoreValueT] | None,
     ) -> tuple[int, int, float, float]:
         if args is None:
             raise ValueError("args is required")
@@ -276,28 +273,31 @@ class MemoryPeekAtomicActionCoreMixin(
 
 
 class MemoryPeekAtomicAction(
-    MemoryPeekAtomicActionCoreMixin[MemoryStoreBackend],
-    BaseAtomicAction[MemoryStoreBackend],
+    MemoryPeekAtomicActionCoreMixin[store.MemoryStoreBackend],
+    store.BaseAtomicAction[store.MemoryStoreBackend],
 ):
     """Memory-based AtomicAction for GCRARateLimiter's peek operation."""
 
     def do(
-        self, keys: Sequence[KeyT], args: Sequence[StoreValueT] | None
+        self,
+        keys: Sequence[types.KeyT],
+        args: Sequence[types.StoreValueT] | None,
     ) -> tuple[int, int, float, float]:
         with self._backend.lock:
             return self._do(self._backend, keys, args)
 
 
 class GCRARateLimiterCoreMixin(
-    BaseRateLimiterMixin[StoreT, ActionT], Generic[StoreT, ActionT]
+    BaseRateLimiterMixin[types.StoreT, types.ActionT],
+    Generic[types.StoreT, types.ActionT],
 ):
     """Core mixin for GCRARateLimiter."""
 
     class Meta(BaseRateLimiterMixin.Meta):
-        type: RateLimiterTypeT = RateLimiterType.GCRA.value
+        type: types.RateLimiterTypeT = RateLimiterType.GCRA.value
 
     @classmethod
-    def _supported_atomic_action_types(cls) -> Sequence[AtomicActionTypeT]:
+    def _supported_atomic_action_types(cls) -> Sequence[types.AtomicActionTypeT]:
         return [ATOMIC_ACTION_TYPE_LIMIT, ATOMIC_ACTION_TYPE_PEEK]
 
     def _prepare(self, key: str) -> tuple[str, float, int]:
@@ -305,12 +305,12 @@ class GCRARateLimiterCoreMixin(
 
 
 class GCRARateLimiter(
-    GCRARateLimiterCoreMixin[SyncStoreP, SyncAtomicActionP],
+    GCRARateLimiterCoreMixin[types.SyncStoreP, types.SyncAtomicActionP],
     BaseRateLimiter,
 ):
     """Concrete implementation of BaseRateLimiter using GCRA as algorithm."""
 
-    _DEFAULT_ATOMIC_ACTION_CLASSES: Sequence[type[SyncAtomicActionP]] = (
+    _DEFAULT_ATOMIC_ACTION_CLASSES: Sequence[type[types.SyncAtomicActionP]] = (
         RedisPeekAtomicAction,
         RedisLimitAtomicAction,
         MemoryLimitAtomicAction,

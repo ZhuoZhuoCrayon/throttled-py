@@ -2,9 +2,7 @@ import abc
 from abc import ABC
 from typing import Any
 
-from ... import rate_limiter
-from ...rate_limiter.base import BaseRateLimiterMixin
-from ...types import AsyncAtomicActionP, AsyncStoreP
+from ... import rate_limiter, types
 
 
 class RateLimiterRegistry(rate_limiter.RateLimiterRegistry):
@@ -23,7 +21,7 @@ class RateLimiterMeta(rate_limiter.RateLimiterMeta):
 
 
 class BaseRateLimiter(
-    BaseRateLimiterMixin[AsyncStoreP, AsyncAtomicActionP],
+    rate_limiter.BaseRateLimiterMixin[types.AsyncStoreP, types.AsyncAtomicActionP],
     ABC,
     metaclass=RateLimiterMeta,
 ):
