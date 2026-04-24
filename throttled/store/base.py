@@ -1,47 +1,55 @@
 import abc
-from typing import Any, Dict, Optional, Sequence, Type
+from collections.abc import Callable, Sequence
+from typing import Any, Generic, TypeVar
 
+from .. import types
 from ..exceptions import DataError
-from ..types import AtomicActionP, AtomicActionTypeT, KeyT, StoreDictValueT, StoreValueT
+
+_ClientT = TypeVar("_ClientT", bound=object)
+
+_BackendT = TypeVar("_BackendT", bound=types.StoreBackendP)
+
+_ActionT = TypeVar("_ActionT")
 
 
-class BaseStoreBackend(abc.ABC):
+class BaseStoreBackend(abc.ABC, Generic[_ClientT]):
     """Abstract class for all store backends."""
 
     def __init__(
-        self, server: Optional[str] = None, options: Optional[Dict[str, Any]] = None
+        self, server: str | None = None, options: dict[str, Any] | None = None
     ) -> None:
-        self.server: Optional[str] = server
-        self.options: Dict[str, Any] = options or {}
+        self.server: str | None = server
+        self.options: dict[str, Any] = options or {}
 
     @abc.abstractmethod
-    def get_client(self) -> Any:
+    def get_client(self) -> _ClientT:
+        """Return the underlying client."""
         raise NotImplementedError
 
 
-class BaseAtomicActionMixin:
-    """Mixin class for AtomicAction.
+class BaseAtomicActionMixin(Generic[_BackendT]):
+    """Mixin class for AtomicAction."""
 
-    This class provides shared logic for both sync and async implementations of
-    AtomicAction. It includes type checking and helper methods that ensure
-    compatibility between store types.
-    """
-
-    # TYPE is the identifier of AtomicAction, must be unique under STORE_TYPE.
-    TYPE: AtomicActionTypeT = ""
-    # STORE_TYPE is the expected type of store with which AtomicAction is compatible.
+    # Identifier of AtomicAction, must be unique under STORE_TYPE.
+    TYPE: types.AtomicActionTypeT = ""
+    # Expected store type with which AtomicAction is compatible.
     STORE_TYPE: str = ""
 
-    def __init__(self, backend: BaseStoreBackend):
-        pass
+    def __init__(self, backend: _BackendT) -> None:
+        self._backend: _BackendT = backend
 
 
-class BaseAtomicAction(BaseAtomicActionMixin, abc.ABC):
+class BaseAtomicAction(BaseAtomicActionMixin[_BackendT], abc.ABC, Generic[_BackendT]):
     """Abstract class for all atomic actions performed by a store backend."""
 
     @abc.abstractmethod
-    def do(self, keys: Sequence[KeyT], args: Optional[Sequence[StoreValueT]]) -> Any:
+    def do(
+        self,
+        keys: Sequence[types.KeyT],
+        args: Sequence[types.StoreValueT] | None,
+    ) -> tuple[int | float, ...]:
         """Execute the AtomicAction on the specified keys with optional arguments.
+
         :param keys: A sequence of keys.
         :param args: Optional sequence of arguments.
         :return: Any: The result of the AtomicAction.
@@ -52,35 +60,37 @@ class BaseAtomicAction(BaseAtomicActionMixin, abc.ABC):
 class BaseStoreMixin:
     """Mixin class for async / sync BaseStore."""
 
-    # TYPE is a unique identifier for the type of store.
+    # Unique identifier for the type of store.
     TYPE: str = ""
 
     @classmethod
     def _validate_timeout(cls, timeout: int) -> None:
         """Validate the timeout.
+
         :param timeout: The timeout in seconds.
-        :raise: DataError
+        :raise: DataError.
         """
         if isinstance(timeout, int) and timeout > 0:
             return
 
         raise DataError(
-            "Invalid timeout: {timeout}, Must be an integer greater than 0.".format(
-                timeout=timeout
-            )
+            f"Invalid timeout: {timeout}, Must be an integer greater than 0."
         )
 
     def __init__(
-        self, server: Optional[str] = None, options: Optional[Dict[str, Any]] = None
-    ):
-        pass
+        self, server: str | None = None, options: dict[str, Any] | None = None
+    ) -> None:
+        self.server: str | None = server
+        self.options: dict[str, Any] = options or {}
 
 
-class BaseStore(BaseStoreMixin, abc.ABC):
+class BaseStore(BaseStoreMixin, abc.ABC, Generic[_BackendT]):
     """Abstract class for all stores."""
 
+    _backend: _BackendT
+
     @abc.abstractmethod
-    def exists(self, key: KeyT) -> bool:
+    def exists(self, key: types.KeyT) -> bool:
         """Check if the specified key exists.
 
         :param key: The key to check.
@@ -89,7 +99,7 @@ class BaseStore(BaseStoreMixin, abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def ttl(self, key: KeyT) -> int:
+    def ttl(self, key: types.KeyT) -> int:
         """Returns the number of seconds until the specified key will expire.
 
         :param key: The key to check.
@@ -99,7 +109,7 @@ class BaseStore(BaseStoreMixin, abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def expire(self, key: KeyT, timeout: int) -> None:
+    def expire(self, key: types.KeyT, timeout: int) -> None:
         """Set the expiration time for the specified key.
 
         :param key: The key to set the expiration for.
@@ -108,7 +118,7 @@ class BaseStore(BaseStoreMixin, abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def set(self, key: KeyT, value: StoreValueT, timeout: int) -> None:
+    def set(self, key: types.KeyT, value: types.StoreValueT, timeout: int) -> None:
         """Set a value for the specified key with specified timeout.
 
         :param key: The key to set.
@@ -118,7 +128,7 @@ class BaseStore(BaseStoreMixin, abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get(self, key: KeyT) -> Optional[StoreValueT]:
+    def get(self, key: types.KeyT) -> types.StoreValueT | None:
         """Get a value for the specified key.
 
         :param key: The key for which to get a value.
@@ -129,10 +139,10 @@ class BaseStore(BaseStoreMixin, abc.ABC):
     @abc.abstractmethod
     def hset(
         self,
-        name: KeyT,
-        key: Optional[KeyT] = None,
-        value: Optional[StoreValueT] = None,
-        mapping: Optional[StoreDictValueT] = None,
+        name: types.KeyT,
+        key: types.KeyT | None = None,
+        value: types.StoreValueT | None = None,
+        mapping: types.StoreDictValueT | None = None,
     ) -> None:
         """Set a value for the specified key in the specified hash.
 
@@ -144,13 +154,10 @@ class BaseStore(BaseStoreMixin, abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def hgetall(self, name: KeyT) -> StoreDictValueT:
+    def hgetall(self, name: types.KeyT) -> types.StoreDictValueT:
         raise NotImplementedError
 
-    @abc.abstractmethod
-    def make_atomic(self, action_cls: Type[AtomicActionP]) -> AtomicActionP:
-        """Create an instance of an AtomicAction for this store.
-        :param action_cls: The class of the AtomicAction.
-        :return: The AtomicAction instance.
-        """
-        raise NotImplementedError
+    def make_atomic(self, action_cls: type[_ActionT]) -> _ActionT:
+        """Create an instance of an AtomicAction bound to this store's backend."""
+        factory: Callable[..., _ActionT] = action_cls
+        return factory(backend=self._backend)

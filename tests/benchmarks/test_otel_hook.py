@@ -1,4 +1,3 @@
-from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 import pytest
@@ -6,6 +5,8 @@ from throttled import Hook, Throttled, per_sec
 from throttled.utils import Benchmark
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from opentelemetry.sdk.metrics.export import InMemoryMetricReader
     from throttled import RateLimitResult
 
@@ -24,7 +25,7 @@ except ImportError:
 class NoOpHook(Hook):
     """A hook that does nothing, used to measure hook system overhead."""
 
-    def on_limit(self, *args, **kwargs) -> "RateLimitResult":  # noqa: PLR6301
+    def on_limit(self, *args, **kwargs) -> "RateLimitResult":
         """Execute the next handler without any additional processing."""
         call_next: Callable[[], RateLimitResult] = args[0]
         return call_next()

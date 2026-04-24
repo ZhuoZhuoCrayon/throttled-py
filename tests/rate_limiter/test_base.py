@@ -1,8 +1,8 @@
+from collections.abc import Callable
 from datetime import timedelta
-from typing import Any, Callable, Dict, Optional
+from typing import Any
 
 import pytest
-
 from throttled import Quota, rate_limiter
 
 
@@ -40,9 +40,9 @@ class TestQuota:
     )
     def test_per_xx(
         self,
-        per_xx: Callable[[int, Optional[int]], Quota],
-        constructor_kwargs: Dict[str, Any],
-        expect: Dict[str, Any],
+        per_xx: Callable[..., Quota],
+        constructor_kwargs: dict[str, Any],
+        expect: dict[str, Any],
     ):
         quota: Quota = per_xx(**constructor_kwargs)
         assert quota.burst == expect["burst"]

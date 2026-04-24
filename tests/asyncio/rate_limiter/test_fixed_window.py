@@ -1,8 +1,8 @@
+from collections.abc import Callable
 from datetime import timedelta
-from typing import Any, Callable, Generator, List
+from typing import Any
 
 import pytest
-
 from tests.rate_limiter import parametrizes
 from tests.rate_limiter.test_fixed_window import assert_rate_limit_result
 from throttled.asyncio import (
@@ -21,12 +21,12 @@ from throttled.utils import Benchmark, now_sec
 
 @pytest.fixture
 def rate_limiter_constructor(
-    store: BaseStore,
-) -> Generator[Callable[[Quota], BaseRateLimiter], Any, None]:
+    store: BaseStore[Any],
+) -> Callable[[Quota], BaseRateLimiter]:
     def _create_rate_limiter(quota: Quota) -> BaseRateLimiter:
         return RateLimiterRegistry.get(RateLimiterType.FIXED_WINDOW.value)(quota, store)
 
-    yield _create_rate_limiter
+    return _create_rate_limiter
 
 
 @pytest.mark.asyncio
@@ -66,7 +66,7 @@ class TestFixedWindowRateLimiter:
             result = await rate_limiter.limit("key")
             return result.limited
 
-        results: List[bool] = await benchmark.async_concurrent(
+        results: list[bool] = await benchmark.async_concurrent(
             task=_task, batch=requests_num
         )
 
@@ -91,6 +91,6 @@ class TestFixedWindowRateLimiter:
 
         await rate_limiter.limit(key)
 
-        state: RateLimitState = await rate_limiter.peek(key)
+        state = await rate_limiter.peek(key)
         assert state.remaining == 0
         _assert(state)

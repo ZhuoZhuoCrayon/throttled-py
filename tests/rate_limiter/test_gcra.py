@@ -1,8 +1,8 @@
 import time
-from typing import Callable, List
+from collections.abc import Callable
+from typing import Any
 
 import pytest
-
 from throttled import (
     BaseRateLimiter,
     BaseStore,
@@ -20,7 +20,9 @@ from . import parametrizes
 
 
 @pytest.fixture
-def rate_limiter_constructor(store: BaseStore) -> Callable[[Quota], BaseRateLimiter]:
+def rate_limiter_constructor(
+    store: BaseStore[Any],
+) -> Callable[[Quota], BaseRateLimiter]:
     def _create_rate_limiter(quota: Quota) -> BaseRateLimiter:
         return RateLimiterRegistry.get(RateLimiterType.GCRA.value)(quota, store)
 
@@ -69,7 +71,7 @@ class TestGCRARateLimiter:
 
         with Timer(callback=_callback):
             rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
-            results: List[bool] = benchmark.concurrent(
+            results: list[bool] = benchmark.concurrent(
                 task=lambda: rate_limiter.limit("key").limited, batch=requests_num
             )
 
@@ -82,16 +84,16 @@ class TestGCRARateLimiter:
         assert state == RateLimitState(limit=10, remaining=10, reset_after=0)
 
         rate_limiter.limit(key, cost=5)
-        state: RateLimitState = rate_limiter.peek(key)
+        state = rate_limiter.peek(key)
         assert state.limit == 10 and state.remaining == 5
         assert 5 - state.reset_after < 0.1
 
         time.sleep(1)
-        state: RateLimitState = rate_limiter.peek(key)
+        state = rate_limiter.peek(key)
         assert state.limit == 10 and state.remaining == 6
         assert 4 - state.reset_after < 0.1
 
         rate_limiter.limit(key, cost=6)
-        state: RateLimitState = rate_limiter.peek(key)
+        state = rate_limiter.peek(key)
         assert state.remaining == 0
         assert 10 - state.reset_after < 0.1

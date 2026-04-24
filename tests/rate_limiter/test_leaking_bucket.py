@@ -1,8 +1,8 @@
 import time
-from typing import Any, Callable, Dict, List
+from collections.abc import Callable
+from typing import Any
 
 import pytest
-
 from throttled import (
     BaseRateLimiter,
     BaseStore,
@@ -20,7 +20,9 @@ from . import parametrizes
 
 
 @pytest.fixture
-def rate_limiter_constructor(store: BaseStore) -> Callable[[Quota], BaseRateLimiter]:
+def rate_limiter_constructor(
+    store: BaseStore[Any],
+) -> Callable[[Quota], BaseRateLimiter]:
     def _create_rate_limiter(quota: Quota) -> BaseRateLimiter:
         return RateLimiterRegistry.get(RateLimiterType.LEAKING_BUCKET.value)(
             quota, store
@@ -30,7 +32,7 @@ def rate_limiter_constructor(store: BaseStore) -> Callable[[Quota], BaseRateLimi
 
 
 def assert_rate_limit_result(
-    case: Dict[str, Any], quota: Quota, result: RateLimitResult
+    case: dict[str, Any], quota: Quota, result: RateLimitResult
 ):
     assert result.limited == case["limited"]
     assert result.state.limit == quota.burst
@@ -67,7 +69,7 @@ class TestLeakingBucketRateLimiter:
 
         with Timer(callback=_callback):
             rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
-            results: List[bool] = benchmark.concurrent(
+            results: list[bool] = benchmark.concurrent(
                 task=lambda: rate_limiter.limit("key").limited, batch=requests_num
             )
 
@@ -80,11 +82,11 @@ class TestLeakingBucketRateLimiter:
         assert state == RateLimitState(limit=10, remaining=10, reset_after=0)
 
         rate_limiter.limit(key, cost=5)
-        state: RateLimitState = rate_limiter.peek(key)
+        state = rate_limiter.peek(key)
         assert state == RateLimitState(limit=10, remaining=5, reset_after=5)
 
         time.sleep(1)
-        state: RateLimitState = rate_limiter.peek(key)
+        state = rate_limiter.peek(key)
         assert state.limit == 10
         assert 6 - state.remaining <= 1
         assert 4 - state.reset_after <= 4

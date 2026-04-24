@@ -1,5 +1,4 @@
 import asyncio
-from typing import Any
 
 from throttled.asyncio import RateLimiterType, Throttled, utils
 
@@ -19,7 +18,7 @@ async def call_api() -> bool:
 
 
 async def main() -> None:
-    benchmark: Any = utils.Benchmark()  # type: ignore[no-untyped-call]
+    benchmark: utils.Benchmark = utils.Benchmark()
     denied_num: int = sum(await benchmark.async_concurrent(call_api, 1_000, workers=4))
     print(f"❌ Denied: {denied_num} requests")
 

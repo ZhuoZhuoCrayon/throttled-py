@@ -26,25 +26,38 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import abc
-from typing import TYPE_CHECKING, Any
-from urllib.parse import ParseResult, ParseResultBytes, parse_qs, urlparse
+from typing import TYPE_CHECKING, Any, Protocol, TypeAlias, cast
+from urllib.parse import ParseResult, parse_qs, urlparse
 
 from ..exceptions import SetUpError
+from ..types import RedisP
 from ..utils import import_string, to_bool
 
 if TYPE_CHECKING:
     import redis
     import redis.asyncio as aioredis
     from redis.asyncio.cluster import ClusterNode as AsyncClusterNode
-    from redis.asyncio.connection import DefaultParser as AsyncDefaultParser
     from redis.cluster import ClusterNode as SyncClusterNode
-    from redis.connection import DefaultParser as SyncDefaultParser
 
-    ConnectionPool = redis.ConnectionPool | aioredis.ConnectionPool
-    Redis = redis.Redis | aioredis.Redis
-    Sentinel = redis.Sentinel | aioredis.Sentinel
-    ClusterNode = SyncClusterNode | AsyncClusterNode
-    DefaultParser = SyncDefaultParser | AsyncDefaultParser
+    ConnectionPool: TypeAlias = redis.ConnectionPool | aioredis.ConnectionPool
+    Sentinel: TypeAlias = redis.Sentinel | aioredis.Sentinel
+    ClusterNode: TypeAlias = SyncClusterNode | AsyncClusterNode
+
+
+class _RedisClientFactory(Protocol):
+    """Protocol for Redis client class constructor.
+
+    Replaces ``type[Redis]`` to allow calling the constructor with
+    arbitrary keyword arguments without ``cast("Any", cls)(...)``.
+    """
+
+    def __call__(self, **kwargs: object) -> RedisP: ...
+
+
+class _SentinelPoolP(Protocol):
+    """Protocol for SentinelConnectionPool's ``is_master`` attribute."""
+
+    is_master: bool
 
 
 class BaseConnectionFactory(abc.ABC):
@@ -52,10 +65,12 @@ class BaseConnectionFactory(abc.ABC):
 
     _pools: dict[str, "ConnectionPool"] = {}
 
-    def __init__(self, options: dict[str, Any]):
+    def __init__(self, options: dict[str, Any]) -> None:
         pool_cls_path: str = options.get("CONNECTION_POOL_CLASS", "redis.ConnectionPool")
         try:
-            self.pool_cls: type[ConnectionPool] = import_string(pool_cls_path)
+            self.pool_cls: type[ConnectionPool] = cast(
+                "type[ConnectionPool]", import_string(pool_cls_path)
+            )
         except ImportError:
             raise ImportError(
                 f"Could not import connection pool class '{pool_cls_path}', "
@@ -69,7 +84,9 @@ class BaseConnectionFactory(abc.ABC):
         self.redis_client_cls_path: str = options.get(
             "REDIS_CLIENT_CLASS", "redis.Redis"
         )
-        self.redis_client_cls: type[Redis] = import_string(self.redis_client_cls_path)
+        self.redis_client_cls: _RedisClientFactory = cast(
+            "_RedisClientFactory", import_string(self.redis_client_cls_path)
+        )
         self.redis_client_cls_kwargs: dict[str, Any] = options.get(
             "REDIS_CLIENT_KWARGS", {}
         )
@@ -77,22 +94,24 @@ class BaseConnectionFactory(abc.ABC):
         parser_cls_path: str = options.get(
             "PARSER_CLASS", "redis.connection.DefaultParser"
         )
-        self.parser_cls: type[DefaultParser] = import_string(parser_cls_path)
+        self.parser_cls: type[object] = cast(
+            "type[object]", import_string(parser_cls_path)
+        )
 
         self.options: dict[str, Any] = options
 
     @abc.abstractmethod
-    def make_connection_params(self, url: str = None) -> dict[str, Any]:
+    def make_connection_params(self, url: str | None = None) -> dict[str, Any]:
         """Build a complete dict of connection parameters."""
         raise NotImplementedError
 
     @abc.abstractmethod
-    def connect(self, url: str | None = None) -> "Redis":
+    def connect(self, url: str | None = None) -> RedisP:
         """Given a basic connection parameters, return a new connection."""
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_connection(self, params: dict[str, Any]) -> "Redis":
+    def get_connection(self, params: dict[str, Any]) -> RedisP:
         """Given a now preformatted params, return a new connection.
 
         The default implementation uses a cached pools for create new connection.
@@ -148,11 +167,11 @@ class ConnectionFactory(BaseConnectionFactory):
 
         return kwargs
 
-    def connect(self, url: str | None = None) -> "Redis":
+    def connect(self, url: str | None = None) -> RedisP:
         params: dict[str, Any] = self.make_connection_params(url)
         return self.get_connection(params)
 
-    def get_connection(self, params) -> "Redis":
+    def get_connection(self, params: dict[str, Any]) -> RedisP:
         pool: ConnectionPool = self.get_or_create_connection_pool(params)
         return self.redis_client_cls(
             connection_pool=pool, **self.redis_client_cls_kwargs
@@ -189,12 +208,12 @@ class ConnectionFactory(BaseConnectionFactory):
 class SentinelConnectionFactory(ConnectionFactory):
     """Connection factory for Redis Sentinel."""
 
-    def __init__(self, options):
+    def __init__(self, options: dict[str, Any]) -> None:
         # allow overriding the default SentinelConnectionPool class
         options.setdefault("CONNECTION_POOL_CLASS", "redis.SentinelConnectionPool")
         super().__init__(options)
 
-        sentinels: list[tuple[str, str | int]] = options.get("SENTINELS")
+        sentinels: list[tuple[str, str | int]] | None = options.get("SENTINELS")
         if not sentinels:
             raise SetUpError("SENTINELS must be provided as a list of (host, port).")
 
@@ -207,7 +226,9 @@ class SentinelConnectionFactory(ConnectionFactory):
         connection_kwargs.update(self.pool_cls_kwargs)
 
         sentinel_cls_path: str = options.get("SENTINEL_CLASS", "redis.Sentinel")
-        sentinel_cls: type[Sentinel] = import_string(sentinel_cls_path)
+        sentinel_cls: type[Sentinel] = cast(
+            "type[Sentinel]", import_string(sentinel_cls_path)
+        )
         self._sentinel: Sentinel = sentinel_cls(
             sentinels,
             sentinel_kwargs=options.get("SENTINEL_KWARGS"),
@@ -219,7 +240,7 @@ class SentinelConnectionFactory(ConnectionFactory):
 
     def get_connection_pool(self, params: dict[str, Any]) -> "ConnectionPool":
         """Return a new sentinel connection pool for the given parameters."""
-        url: ParseResult | ParseResultBytes = urlparse(params["url"])
+        url: ParseResult = cast("ParseResult", urlparse(params["url"]))
 
         # explicitly set service_name and sentinel_manager for the
         # SentinelConnectionPool constructor since will be called by from_url.
@@ -229,9 +250,11 @@ class SentinelConnectionFactory(ConnectionFactory):
 
         # convert "is_master" to a boolean if set on the URL, otherwise if not
         # provided it defaults to True.
-        is_master: str | None = parse_qs(url.query).get("is_master")
+        is_master: list[str] = parse_qs(url.query).get("is_master", [])
         if is_master:
-            pool.is_master = to_bool(is_master[0])
+            is_master_value: bool | None = to_bool(is_master[0])
+            if is_master_value is not None:
+                cast("_SentinelPoolP", cast("object", pool)).is_master = is_master_value
 
         return pool
 
@@ -239,15 +262,17 @@ class SentinelConnectionFactory(ConnectionFactory):
 class ClusterConnectionFactory(ConnectionFactory):
     """Connection factory for Redis Cluster."""
 
-    def __init__(self, options):
+    def __init__(self, options: dict[str, Any]) -> None:
         options.setdefault("REDIS_CLIENT_CLASS", "redis.cluster.RedisCluster")
         options.setdefault("REDIS_CLUSTER_NODE_CLASS", "redis.cluster.ClusterNode")
         super().__init__(options)
 
         cluster_node_cls_path: str = options["REDIS_CLUSTER_NODE_CLASS"]
-        cluster_node_cls: type[ClusterNode] = import_string(cluster_node_cls_path)
+        cluster_node_cls: type[ClusterNode] = cast(
+            "type[ClusterNode]", import_string(cluster_node_cls_path)
+        )
 
-        cluster_nodes: list[tuple[str, str | int]] = options.get("CLUSTER_NODES")
+        cluster_nodes: list[tuple[str, str | int]] | None = options.get("CLUSTER_NODES")
         if not cluster_nodes:
             raise SetUpError("CLUSTER_NODES must be provided as a list of (host, port).")
 
@@ -255,12 +280,14 @@ class ClusterConnectionFactory(ConnectionFactory):
         for node in cluster_nodes:
             self._startup_nodes.append(cluster_node_cls(*node))
 
-    def get_connection(self, params) -> "Redis":
-        params: dict[str, Any] = dict(params)
-        params.pop("url", None)
-        params.pop("parser_class", None)
+    def get_connection(self, params: dict[str, Any]) -> RedisP:
+        cluster_params: dict[str, Any] = dict(params)
+        cluster_params.pop("url", None)
+        cluster_params.pop("parser_class", None)
         return self.redis_client_cls(
-            startup_nodes=self._startup_nodes, **params, **self.redis_client_cls_kwargs
+            startup_nodes=self._startup_nodes,
+            **cluster_params,
+            **self.redis_client_cls_kwargs,
         )
 
 
@@ -270,5 +297,7 @@ def get_connection_factory(
     """Return a ConnectionFactory instance given a class path and options."""
     # TODO read from env.
     default_path: str = "throttled.store.ConnectionFactory"
-    cls: type[BaseConnectionFactory] = import_string(path or default_path)
+    cls: type[BaseConnectionFactory] = cast(
+        "type[BaseConnectionFactory]", import_string(path or default_path)
+    )
     return cls(options or {})

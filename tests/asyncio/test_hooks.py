@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Awaitable, Callable
+from typing import cast
 
 import pytest
 from throttled import (
@@ -8,7 +9,7 @@ from throttled import (
     RateLimitResult,
     per_sec,
 )
-from throttled.asyncio import Throttled as AsyncThrottled
+from throttled.asyncio import Throttled
 from throttled.asyncio.hooks import Hook, build_hook_chain
 from throttled.constants import StoreType
 from throttled.hooks import Hook as SyncHook
@@ -36,7 +37,7 @@ class TestHook:
     def test_is_abstract(cls) -> None:
         """Hook should not be instantiable directly."""
         with pytest.raises(TypeError, match="abstract"):
-            Hook()
+            cast("type[object]", Hook)()
 
     @classmethod
     def test_must_implement_on_limit(cls) -> None:
@@ -46,7 +47,7 @@ class TestHook:
             pass
 
         with pytest.raises(TypeError, match="abstract"):
-            IncompleteHook()
+            cast("type[object]", IncompleteHook)()
 
     @classmethod
     @pytest.mark.asyncio
@@ -55,7 +56,7 @@ class TestHook:
         alert_calls: list[str] = []
 
         class AlertHook(Hook):
-            async def on_limit(self, *args, **kwargs) -> RateLimitResult:  # noqa: PLR6301
+            async def on_limit(self, *args, **kwargs) -> RateLimitResult:
                 call_next: Callable[[], Awaitable[RateLimitResult]] = args[0]
                 context: HookContext = args[1]
                 result: RateLimitResult = await call_next()
@@ -118,12 +119,12 @@ class TestBuildHookChain:
         call_order: list[str] = []
 
         class FailingHook(Hook):
-            async def on_limit(self, *args, **kwargs) -> RateLimitResult:  # noqa: PLR6301
+            async def on_limit(self, *args, **kwargs) -> RateLimitResult:
                 call_order.append("failing_before")
                 raise RuntimeError("Hook failed!")
 
         class WorkingHook(Hook):
-            async def on_limit(self, *args, **kwargs) -> RateLimitResult:  # noqa: PLR6301
+            async def on_limit(self, *args, **kwargs) -> RateLimitResult:
                 call_next: Callable[[], Awaitable[RateLimitResult]] = args[0]
                 call_order.append("working_before")
                 res: RateLimitResult = await call_next()
@@ -157,7 +158,7 @@ class TestBuildHookChain:
         """Hook exception should be logged with logger.exception."""
 
         class FailingHook(Hook):
-            async def on_limit(self, *args, **kwargs) -> RateLimitResult:  # noqa: PLR6301
+            async def on_limit(self, *args, **kwargs) -> RateLimitResult:
                 raise RuntimeError("Hook failed!")
 
         async def do_limit() -> RateLimitResult:
@@ -182,7 +183,7 @@ class TestBuildHookChain:
         call_order: list[str] = []
 
         class HookA(Hook):
-            async def on_limit(self, *args, **kwargs) -> RateLimitResult:  # noqa: PLR6301
+            async def on_limit(self, *args, **kwargs) -> RateLimitResult:
                 call_next: Callable[[], Awaitable[RateLimitResult]] = args[0]
                 call_order.append("A_before")
                 res: RateLimitResult = await call_next()
@@ -190,7 +191,7 @@ class TestBuildHookChain:
                 return res
 
         class HookB(Hook):
-            async def on_limit(self, *args, **kwargs) -> RateLimitResult:  # noqa: PLR6301
+            async def on_limit(self, *args, **kwargs) -> RateLimitResult:
                 call_next: Callable[[], Awaitable[RateLimitResult]] = args[0]
                 call_order.append("B_before")
                 res: RateLimitResult = await call_next()
@@ -215,12 +216,13 @@ class TestBuildHookChain:
         """Hook that raises AFTER await call_next() should not cause double execution.
 
         hook calls call_next() successfully, then raises during post-processing.
-        The except block should return the cached result instead of calling next_fn() again.
+        The except block should return the cached result instead of calling next_fn()
+        again.
         """
         call_count: int = 0
 
         class PostProcessFailHook(Hook):
-            async def on_limit(self, *args, **kwargs) -> RateLimitResult:  # noqa: PLR6301
+            async def on_limit(self, *args, **kwargs) -> RateLimitResult:
                 call_next: Callable[[], Awaitable[RateLimitResult]] = args[0]
                 await call_next()
                 raise RuntimeError("post-processing failed")
@@ -246,7 +248,7 @@ class TestBuildHookChain:
         the exception should propagate."""
 
         class PassthroughHook(Hook):
-            async def on_limit(self, *args, **kwargs) -> RateLimitResult:  # noqa: PLR6301
+            async def on_limit(self, *args, **kwargs) -> RateLimitResult:
                 call_next: Callable[[], Awaitable[RateLimitResult]] = args[0]
                 return await call_next()
 
@@ -267,7 +269,7 @@ class TestBuildHookChain:
         calls next_fn() which also raises, that exception should propagate."""
 
         class FailBeforeCallNextHook(Hook):
-            async def on_limit(self, *args, **kwargs) -> RateLimitResult:  # noqa: PLR6301
+            async def on_limit(self, *args, **kwargs) -> RateLimitResult:
                 raise RuntimeError("hook failed before call_next")
 
         async def do_limit() -> RateLimitResult:
@@ -281,19 +283,19 @@ class TestBuildHookChain:
 
 
 class _AsyncNoopHook(Hook):
-    async def on_limit(  # noqa: PLR6301
+    async def on_limit(
         self,
         call_next: Callable[[], Awaitable[RateLimitResult]],
-        context,  # noqa: ANN001
+        context: HookContext,
     ) -> RateLimitResult:
         return await call_next()
 
 
 class _SyncNoopHook(SyncHook):
-    def on_limit(  # noqa: PLR6301
+    def on_limit(
         self,
         call_next: Callable[[], RateLimitResult],
-        context,  # noqa: ANN001
+        context: HookContext,
     ) -> RateLimitResult:
         return call_next()
 
@@ -306,19 +308,27 @@ class TestHookTypeValidation:
     @classmethod
     def test_validate_hooks__rejects_non_hook(cls) -> None:
         with pytest.raises(TypeError):
-            AsyncThrottled(key="k", quota=per_sec(1), hooks=[_NotAHook()])
+            Throttled(
+                key="k",
+                quota=per_sec(1),
+                hooks=cast("list[Hook]", [_NotAHook()]),
+            )
 
     @classmethod
     def test_validate_hooks__rejects_sync_hook(cls) -> None:
         with pytest.raises(TypeError):
-            AsyncThrottled(key="k", quota=per_sec(1), hooks=[_SyncNoopHook()])
+            Throttled(
+                key="k",
+                quota=per_sec(1),
+                hooks=cast("list[Hook]", [_SyncNoopHook()]),
+            )
 
 
 class TestHookContainerBehavior:
     @classmethod
     def test_validate_hooks__stores_as_tuple_from_list(cls) -> None:
         hooks = [_AsyncNoopHook(), _AsyncNoopHook()]
-        throttle = AsyncThrottled(key="k", quota=per_sec(1), hooks=hooks)
+        throttle = Throttled(key="k", quota=per_sec(1), hooks=hooks)
 
         assert isinstance(throttle._hooks, tuple)
         assert throttle._hooks == tuple(hooks)
@@ -326,7 +336,7 @@ class TestHookContainerBehavior:
     @classmethod
     def test_validate_hooks__stores_as_tuple_from_tuple(cls) -> None:
         hooks = (_AsyncNoopHook(), _AsyncNoopHook())
-        throttle = AsyncThrottled(key="k", quota=per_sec(1), hooks=hooks)
+        throttle = Throttled(key="k", quota=per_sec(1), hooks=hooks)
 
         assert isinstance(throttle._hooks, tuple)
         assert throttle._hooks == hooks

@@ -1,8 +1,8 @@
 import asyncio
-from typing import Callable, List
+from collections.abc import Callable
+from typing import Any
 
 import pytest
-
 from throttled.asyncio import (
     BaseRateLimiter,
     BaseStore,
@@ -21,7 +21,9 @@ from ...rate_limiter.test_gcra import assert_rate_limit_result
 
 
 @pytest.fixture
-def rate_limiter_constructor(store: BaseStore) -> Callable[[Quota], BaseRateLimiter]:
+def rate_limiter_constructor(
+    store: BaseStore[Any],
+) -> Callable[[Quota], BaseRateLimiter]:
     def _create_rate_limiter(quota: Quota) -> BaseRateLimiter:
         return RateLimiterRegistry.get(RateLimiterType.GCRA.value)(quota, store)
 
@@ -63,7 +65,7 @@ class TestGCRARateLimiter:
 
         async with utils.Timer(callback=_callback):
             rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
-            results: List[bool] = await benchmark.async_concurrent(
+            results: list[bool] = await benchmark.async_concurrent(
                 task=_task, batch=requests_num
             )
 
@@ -78,16 +80,16 @@ class TestGCRARateLimiter:
         assert state == RateLimitState(limit=10, remaining=10, reset_after=0)
 
         await rate_limiter.limit(key, cost=5)
-        state: RateLimitState = await rate_limiter.peek(key)
+        state = await rate_limiter.peek(key)
         assert state.limit == 10 and state.remaining == 5
         assert 5 - state.reset_after < 0.1
 
         await asyncio.sleep(1)
-        state: RateLimitState = await rate_limiter.peek(key)
+        state = await rate_limiter.peek(key)
         assert state.limit == 10 and state.remaining == 6
         assert 4 - state.reset_after < 0.1
 
         await rate_limiter.limit(key, cost=6)
-        state: RateLimitState = await rate_limiter.peek(key)
+        state = await rate_limiter.peek(key)
         assert state.remaining == 0
         assert 10 - state.reset_after < 0.1

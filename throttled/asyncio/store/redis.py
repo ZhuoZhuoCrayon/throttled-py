@@ -1,23 +1,22 @@
 from typing import Any
 
-from ... import constants, store, utils
+from ... import constants, store, types, utils
 from ...exceptions import DataError
-from ...types import AtomicActionP, KeyT, StoreDictValueT, StoreValueT
 from . import BaseStore
 
 
-class RedisStoreBackend(store.RedisStoreBackend):
+class RedisStoreBackend(store.BaseRedisStoreBackend[types.AsyncRedisClientP]):
     """Backend for Async RedisStore."""
 
     @classmethod
-    def _set_options(cls, options: dict[str, Any]):
+    def _set_options(cls, options: dict[str, Any]) -> None:
         super()._set_options(options)
         options.setdefault("REUSE_CONNECTION", False)
         options.setdefault("REDIS_CLIENT_CLASS", "redis.asyncio.Redis")
         options.setdefault("PARSER_CLASS", "redis.asyncio.connection.DefaultParser")
 
     @classmethod
-    def _set_sentinel_options(cls, options: dict[str, Any]):
+    def _set_sentinel_options(cls, options: dict[str, Any]) -> None:
         super()._set_sentinel_options(options)
         options.setdefault("SENTINEL_CLASS", "redis.asyncio.Sentinel")
         options.setdefault(
@@ -25,12 +24,12 @@ class RedisStoreBackend(store.RedisStoreBackend):
         )
 
     @classmethod
-    def _set_standalone_options(cls, options: dict[str, Any]):
+    def _set_standalone_options(cls, options: dict[str, Any]) -> None:
         super()._set_standalone_options(options)
         options.setdefault("CONNECTION_POOL_CLASS", "redis.asyncio.ConnectionPool")
 
     @classmethod
-    def _set_cluster_options(cls, options: dict[str, Any]):
+    def _set_cluster_options(cls, options: dict[str, Any]) -> None:
         super()._set_cluster_options(options)
         options.setdefault(
             "REDIS_CLIENT_CLASS",
@@ -41,33 +40,35 @@ class RedisStoreBackend(store.RedisStoreBackend):
         )
 
 
-class RedisStore(BaseStore):
+class RedisStore(BaseStore[RedisStoreBackend]):
     """Concrete implementation of BaseStore using Redis as backend."""
 
     TYPE: str = constants.StoreType.REDIS.value
 
     _BACKEND_CLASS: type[RedisStoreBackend] = RedisStoreBackend
 
-    def __init__(self, server: str | None = None, options: dict[str, Any] | None = None):
+    def __init__(
+        self, server: str | None = None, options: dict[str, Any] | None = None
+    ) -> None:
         super().__init__(server, options)
         self._backend: RedisStoreBackend = self._BACKEND_CLASS(server, options)
 
-    async def exists(self, key: KeyT) -> bool:
+    async def exists(self, key: types.KeyT) -> bool:
         return bool(await self._backend.get_client().exists(key))
 
-    async def ttl(self, key: KeyT) -> int:
+    async def ttl(self, key: types.KeyT) -> int:
         return int(await self._backend.get_client().ttl(key))
 
-    async def expire(self, key: KeyT, timeout: int) -> None:
+    async def expire(self, key: types.KeyT, timeout: int) -> None:
         self._validate_timeout(timeout)
         await self._backend.get_client().expire(key, timeout)
 
-    async def set(self, key: KeyT, value: StoreValueT, timeout: int) -> None:
+    async def set(self, key: types.KeyT, value: types.StoreValueT, timeout: int) -> None:
         self._validate_timeout(timeout)
         await self._backend.get_client().set(key, value, ex=timeout)
 
-    async def get(self, key: KeyT) -> StoreValueT | None:
-        value: StoreValueT | None = await self._backend.get_client().get(key)
+    async def get(self, key: types.KeyT) -> types.StoreValueT | None:
+        value: types.StoreValueT | None = await self._backend.get_client().get(key)
         if value is None:
             return None
 
@@ -75,17 +76,14 @@ class RedisStore(BaseStore):
 
     async def hset(
         self,
-        name: KeyT,
-        key: KeyT | None = None,
-        value: StoreValueT | None = None,
-        mapping: StoreDictValueT | None = None,
+        name: types.KeyT,
+        key: types.KeyT | None = None,
+        value: types.StoreValueT | None = None,
+        mapping: types.StoreDictValueT | None = None,
     ) -> None:
         if key is None and not mapping:
             raise DataError("hset must with key value pairs")
         await self._backend.get_client().hset(name, key, value, mapping)
 
-    async def hgetall(self, name: KeyT) -> StoreDictValueT:
+    async def hgetall(self, name: types.KeyT) -> types.StoreDictValueT:
         return utils.format_kv(await self._backend.get_client().hgetall(name))
-
-    def make_atomic(self, action_cls: type[AtomicActionP]) -> AtomicActionP:
-        return action_cls(backend=self._backend)

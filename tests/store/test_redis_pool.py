@@ -1,7 +1,6 @@
-from typing import Any, Dict, Optional, Type
+from typing import Any
 
 import pytest
-
 from throttled.store import BaseConnectionFactory, get_connection_factory
 
 
@@ -44,9 +43,9 @@ class TestRedisPool:
     )
     def test_get_connection_factory__raise(
         self,
-        path: Optional[str],
-        options: Optional[Dict[str, Any]],
-        exc: Type[BaseException],
+        path: str | None,
+        options: dict[str, Any] | None,
+        exc: type[BaseException],
         match: str,
     ):
         with pytest.raises(exc, match=match):

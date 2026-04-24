@@ -134,9 +134,27 @@ known-third-party = ["throttled", "tests"]
 "__init__.py" = ["F401"]
 # Allow too many arguments in throttled.py.
 "throttled.py" = ["PLR0913", "PLR0917", "UP038"]
+# T201 - Benchmark utility intentionally prints runtime output.
+"throttled/utils.py" = ["T201"]
 # D- Ignore docstring related rules in examples.
 # PLR0913 / PLR0917 - Ignore too many arguments in tests.
-"tests/**/*.py" = ["D", "PLR0913", "PLR0917", "ANN"]
+"tests/**/*.py" = [
+    "D",
+    "PLR0913",
+    "PLR0917",
+    "ANN",
+    # PLR6301 - test method signatures follow pytest conventions (self-required).
+    "PLR6301",
+    # PLR2004 - magic values are idiomatic in test assertions.
+    "PLR2004",
+    # PT006 / PT007 - parametrize argument style is intentional.
+    "PT006",
+    "PT007",
+    # PT018 - keep compound assertions readable as-is.
+    "PT018",
+    # PLR6201 - container literals are fine in test parametrize bodies.
+    "PLR6201",
+]
 # D - Ignore docstring related rules in examples.
 # T201 - Ignore use of print statements in examples.
 "examples/*.py" = ["D", "T201"]
@@ -147,3 +165,19 @@ quote-style = "double"
 
 [tool.pytest.ini_options]
 asyncio_default_fixture_loop_scope = "function"
+
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+
+# Tests intentionally stay untyped: pytest fixtures, parametrize and async
+# decorators would otherwise require pervasive annotation noise that obscures
+# the test intent. Limit strict typing to the ``throttled`` package itself.
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_untyped_decorators = false
+disallow_untyped_calls = false
+warn_return_any = false

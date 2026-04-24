@@ -1,30 +1,24 @@
 import math
 import threading
 from collections import OrderedDict
-from typing import Any, Dict, Optional
-from typing import OrderedDict as OrderedDictT
-from typing import Type
+from collections import OrderedDict as OrderedDictT
+from typing import Any, cast
 
+from .. import types
 from ..constants import STORE_TTL_STATE_NOT_EXIST, STORE_TTL_STATE_NOT_TTL, StoreType
 from ..exceptions import DataError, SetUpError
-from ..types import (
-    AtomicActionP,
-    KeyT,
-    LockP,
-    StoreBucketValueT,
-    StoreDictValueT,
-    StoreValueT,
-)
 from ..utils import now_mono_f
 from .base import BaseStore, BaseStoreBackend
 
+_ClientT = OrderedDictT[types.KeyT, types.StoreBucketValueT]
 
-class MemoryStoreBackend(BaseStoreBackend):
-    """Backend for Memory Store."""
+
+class BaseMemoryStoreBackend(BaseStoreBackend[_ClientT]):
+    """Base backend for Memory Store."""
 
     def __init__(
-        self, server: Optional[str] = None, options: Optional[Dict[str, Any]] = None
-    ):
+        self, server: str | None = None, options: dict[str, Any] | None = None
+    ) -> None:
         super().__init__(server, options)
 
         max_size: int = self.options.get("MAX_SIZE", 1024)
@@ -32,25 +26,20 @@ class MemoryStoreBackend(BaseStoreBackend):
             raise SetUpError("MAX_SIZE must be a positive integer")
 
         self.max_size: int = max_size
-        self.expire_info: Dict[str, float] = {}
-        self.lock: LockP = self._get_lock()
-        self._client: OrderedDictT[KeyT, StoreBucketValueT] = OrderedDict()
+        self.expire_info: dict[str, float] = {}
+        self._client: _ClientT = OrderedDict()
 
-    @classmethod
-    def _get_lock(cls) -> LockP:
-        return threading.Lock()
-
-    def get_client(self) -> OrderedDictT[KeyT, StoreBucketValueT]:
+    def get_client(self) -> _ClientT:
         return self._client
 
-    def exists(self, key: KeyT) -> bool:
+    def exists(self, key: types.KeyT) -> bool:
         return key in self._client
 
-    def has_expired(self, key: KeyT) -> bool:
+    def has_expired(self, key: types.KeyT) -> bool:
         return self.ttl(key) == STORE_TTL_STATE_NOT_EXIST
 
-    def ttl(self, key: KeyT) -> int:
-        exp: Optional[float] = self.expire_info.get(key)
+    def ttl(self, key: types.KeyT) -> int:
+        exp: float | None = self.expire_info.get(key)
         if exp is None:
             if not self.exists(key):
                 return STORE_TTL_STATE_NOT_EXIST
@@ -61,26 +50,29 @@ class MemoryStoreBackend(BaseStoreBackend):
             return STORE_TTL_STATE_NOT_EXIST
         return math.ceil(ttl)
 
-    def check_and_evict(self, key: KeyT) -> None:
+    def check_and_evict(self, key: types.KeyT) -> None:
         is_full: bool = len(self._client) >= self.max_size
         if is_full and not self.exists(key):
             pop_key, __ = self._client.popitem(last=False)
             self.expire_info.pop(pop_key, None)
 
-    def expire(self, key: KeyT, timeout: int) -> None:
+    def expire(self, key: types.KeyT, timeout: int) -> None:
         self.expire_info[key] = now_mono_f() + timeout
 
-    def get(self, key: KeyT) -> Optional[StoreValueT]:
+    def get(self, key: types.KeyT) -> types.StoreValueT | None:
         if self.has_expired(key):
             self.delete(key)
             return None
 
-        value: Optional[StoreValueT] = self._client.get(key)
+        bucket_value: types.StoreBucketValueT | None = self._client.get(key)
+        if bucket_value is not None and isinstance(bucket_value, dict):
+            raise DataError("dict value does not support get")
+        value: types.StoreValueT | None = bucket_value
         if value is not None:
             self._client.move_to_end(key)
         return value
 
-    def set(self, key: KeyT, value: StoreValueT, timeout: int) -> None:
+    def set(self, key: types.KeyT, value: types.StoreValueT, timeout: int) -> None:
         self.check_and_evict(key)
         self._client[key] = value
         self._client.move_to_end(key)
@@ -88,37 +80,39 @@ class MemoryStoreBackend(BaseStoreBackend):
 
     def hset(
         self,
-        name: KeyT,
-        key: Optional[KeyT] = None,
-        value: Optional[StoreValueT] = None,
-        mapping: Optional[StoreDictValueT] = None,
+        name: types.KeyT,
+        key: types.KeyT | None = None,
+        value: types.StoreValueT | None = None,
+        mapping: types.StoreDictValueT | None = None,
     ) -> None:
         if key is None and not mapping:
             raise DataError("hset must with key value pairs")
 
-        kv: StoreDictValueT = {}
+        kv: types.StoreDictValueT = {}
         if key is not None:
+            if value is None:
+                raise DataError("hset with key requires non-empty value")
             kv[key] = value
         if mapping:
             kv.update(mapping)
 
-        origin: Optional[StoreBucketValueT] = self._client.get(name)
+        origin: types.StoreBucketValueT | None = self._client.get(name)
         if origin is not None:
             if not isinstance(origin, dict):
                 raise DataError("origin must be a dict")
             origin.update(kv)
         else:
-            self.check_and_evict(key)
+            self.check_and_evict(name)
             self._client[name] = kv
 
         self._client.move_to_end(name)
 
-    def hgetall(self, name: KeyT) -> StoreDictValueT:
+    def hgetall(self, name: types.KeyT) -> types.StoreDictValueT:
         if self.has_expired(name):
             self.delete(name)
             return {}
 
-        kv: Optional[StoreBucketValueT] = self._client.get(name)
+        kv: types.StoreBucketValueT | None = self._client.get(name)
         if not (kv is None or isinstance(kv, dict)):
             raise DataError("NumberLike value does not support hgetall")
 
@@ -127,7 +121,7 @@ class MemoryStoreBackend(BaseStoreBackend):
 
         return kv or {}
 
-    def delete(self, key: KeyT) -> bool:
+    def delete(self, key: types.KeyT) -> bool:
         try:
             self.expire_info.pop(key, None)
             del self._client[key]
@@ -136,7 +130,19 @@ class MemoryStoreBackend(BaseStoreBackend):
         return True
 
 
-class MemoryStore(BaseStore):
+class MemoryStoreBackend(BaseMemoryStoreBackend):
+    """Backend for sync Memory Store."""
+
+    lock: types.SyncLockP
+
+    def __init__(
+        self, server: str | None = None, options: dict[str, Any] | None = None
+    ) -> None:
+        super().__init__(server, options)
+        self.lock = cast("types.SyncLockP", cast("object", threading.Lock()))
+
+
+class MemoryStore(BaseStore[MemoryStoreBackend]):
     """Concrete implementation of BaseStore using Memory as backend.
 
     :class:`throttled.store.MemoryStore` is essentially a memory-based
@@ -155,50 +161,47 @@ class MemoryStore(BaseStore):
 
     TYPE: str = StoreType.MEMORY.value
 
-    _BACKEND_CLASS: Type[MemoryStoreBackend] = MemoryStoreBackend
+    _BACKEND_CLASS: type[MemoryStoreBackend] = MemoryStoreBackend
 
     def __init__(
-        self, server: Optional[str] = None, options: Optional[Dict[str, Any]] = None
-    ):
-        """
-        Initialize MemoryStore, see
+        self, server: str | None = None, options: dict[str, Any] | None = None
+    ) -> None:
+        """Initialize MemoryStore.
+
         :ref:`MemoryStore Arguments <store-configuration-memory-store-arguments>`.
         """
         super().__init__(server, options)
         self._backend: MemoryStoreBackend = self._BACKEND_CLASS(server, options)
 
-    def exists(self, key: KeyT) -> bool:
+    def exists(self, key: types.KeyT) -> bool:
         return self._backend.exists(key)
 
-    def ttl(self, key: KeyT) -> int:
+    def ttl(self, key: types.KeyT) -> int:
         return self._backend.ttl(key)
 
-    def expire(self, key: KeyT, timeout: int) -> None:
+    def expire(self, key: types.KeyT, timeout: int) -> None:
         self._validate_timeout(timeout)
         self._backend.expire(key, timeout)
 
-    def set(self, key: KeyT, value: StoreValueT, timeout: int) -> None:
+    def set(self, key: types.KeyT, value: types.StoreValueT, timeout: int) -> None:
         self._validate_timeout(timeout)
         with self._backend.lock:
             self._backend.set(key, value, timeout)
 
-    def get(self, key: KeyT) -> Optional[StoreValueT]:
+    def get(self, key: types.KeyT) -> types.StoreValueT | None:
         with self._backend.lock:
             return self._backend.get(key)
 
     def hset(
         self,
-        name: KeyT,
-        key: Optional[KeyT] = None,
-        value: Optional[StoreValueT] = None,
-        mapping: Optional[StoreDictValueT] = None,
+        name: types.KeyT,
+        key: types.KeyT | None = None,
+        value: types.StoreValueT | None = None,
+        mapping: types.StoreDictValueT | None = None,
     ) -> None:
         with self._backend.lock:
             self._backend.hset(name, key, value, mapping)
 
-    def hgetall(self, name: KeyT) -> StoreDictValueT:
+    def hgetall(self, name: types.KeyT) -> types.StoreDictValueT:
         with self._backend.lock:
             return self._backend.hgetall(name)
-
-    def make_atomic(self, action_cls: Type[AtomicActionP]) -> AtomicActionP:
-        return action_cls(backend=self._backend)

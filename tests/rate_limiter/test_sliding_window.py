@@ -1,9 +1,9 @@
 import math
+from collections.abc import Callable
 from datetime import timedelta
-from typing import Any, Callable, Generator, List
+from typing import Any
 
 import pytest
-
 from throttled import (
     BaseRateLimiter,
     BaseStore,
@@ -23,14 +23,14 @@ from . import parametrizes
 
 @pytest.fixture
 def rate_limiter_constructor(
-    store: BaseStore,
-) -> Generator[Callable[[Quota], BaseRateLimiter], Any, None]:
+    store: BaseStore[Any],
+) -> Callable[[Quota], BaseRateLimiter]:
     def _create_rate_limiter(quota: Quota) -> BaseRateLimiter:
         return RateLimiterRegistry.get(RateLimiterType.SLIDING_WINDOW.value)(
             quota, store
         )
 
-    yield _create_rate_limiter
+    return _create_rate_limiter
 
 
 def assert_rate_limit_result(
@@ -79,7 +79,7 @@ class TestSlidingWindowRateLimiter:
 
         with Timer(callback=_callback):
             rate_limiter: BaseRateLimiter = rate_limiter_constructor(quota)
-            results: List[bool] = benchmark.concurrent(
+            results: list[bool] = benchmark.concurrent(
                 task=lambda: rate_limiter.limit("key").limited, batch=requests_num
             )
 

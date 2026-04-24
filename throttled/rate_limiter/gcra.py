@@ -1,30 +1,25 @@
 import math
-from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple, Type, Union
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Generic, cast
 
+from .. import store, types
 from ..constants import (
     ATOMIC_ACTION_TYPE_LIMIT,
     ATOMIC_ACTION_TYPE_PEEK,
     RateLimiterType,
     StoreType,
 )
-from ..store import BaseAtomicAction
-from ..types import AtomicActionP, AtomicActionTypeT, KeyT, RateLimiterTypeT, StoreValueT
 from ..utils import now_mono_f
 from . import BaseRateLimiter, BaseRateLimiterMixin, RateLimitResult, RateLimitState
 
 if TYPE_CHECKING:
-    from redis.commands.core import AsyncScript
     from redis.commands.core import Script as SyncScript
 
-    from ..store import MemoryStoreBackend, RedisStoreBackend
 
-    Script = Union[AsyncScript, SyncScript]
+class RedisLimitAtomicActionConstants:
+    """Identity and Lua script shared by sync / async Redis GCRA limit actions."""
 
-
-class RedisLimitAtomicActionCoreMixin:
-    """Core mixin for RedisLimitAtomicAction."""
-
-    TYPE: AtomicActionTypeT = ATOMIC_ACTION_TYPE_LIMIT
+    TYPE: types.AtomicActionTypeT = ATOMIC_ACTION_TYPE_LIMIT
     STORE_TYPE: str = StoreType.REDIS.value
 
     SCRIPTS: str = """
@@ -67,27 +62,12 @@ class RedisLimitAtomicActionCoreMixin:
     return {limited, remaining, tostring(reset_after), tostring(retry_after)}
     """
 
-    def __init__(self, backend: "RedisStoreBackend"):
-        super().__init__(backend)
-        self._script: Script = backend.get_client().register_script(self.SCRIPTS)
 
+class RedisPeekAtomicActionConstants:
+    """Identity and Lua script shared by sync / async Redis GCRA peek actions."""
 
-class RedisLimitAtomicAction(RedisLimitAtomicActionCoreMixin, BaseAtomicAction):
-    """Redis-based implementation of AtomicAction for GCRARateLimiter's limit operation.
-    Inspire by [Rate Limiting, Cells, and GCRA](https://brandur.org/rate-limiting).
-    """
-
-    def do(
-        self, keys: Sequence[KeyT], args: Optional[Sequence[StoreValueT]]
-    ) -> Tuple[int, int, float, float]:
-        limited, remaining, reset_after, retry_after = self._script(keys, args)
-        return limited, remaining, float(reset_after), float(retry_after)
-
-
-class RedisPeekAtomicActionCoreMixin:
-    """Core mixin for RedisPeekAtomicAction."""
-
-    TYPE: AtomicActionTypeT = ATOMIC_ACTION_TYPE_PEEK
+    TYPE: types.AtomicActionTypeT = ATOMIC_ACTION_TYPE_PEEK
+    STORE_TYPE: str = StoreType.REDIS.value
 
     SCRIPTS: str = """
     local emission_interval = tonumber(ARGV[1])
@@ -122,33 +102,89 @@ class RedisPeekAtomicActionCoreMixin:
     """
 
 
-class RedisPeekAtomicAction(RedisPeekAtomicActionCoreMixin, RedisLimitAtomicAction):
-    """
-    Redis-based implementation of AtomicAction for GCRARateLimiter's peek operation.
-    """
+class RedisLimitAtomicActionCoreMixin(
+    RedisLimitAtomicActionConstants,
+    store.BaseAtomicActionMixin[store.RedisStoreBackend],
+):
+    """Core mixin for RedisLimitAtomicAction."""
+
+    def __init__(self, backend: store.RedisStoreBackend) -> None:
+        super().__init__(backend)
+        self._script: SyncScript = backend.get_client().register_script(self.SCRIPTS)
 
 
-class MemoryLimitAtomicActionCoreMixin:
+class RedisLimitAtomicAction(
+    RedisLimitAtomicActionCoreMixin,
+    store.BaseAtomicAction[store.RedisStoreBackend],
+):
+    """Redis-based implementation of AtomicAction for GCRARateLimiter's limit operation.
+
+    Inspire by [Rate Limiting, Cells, and GCRA](https://brandur.org/rate-limiting).
+    """
+
+    def do(
+        self,
+        keys: Sequence[types.KeyT],
+        args: Sequence[types.StoreValueT] | None,
+    ) -> tuple[int, int, float, float]:
+        limited, remaining, reset_after, retry_after = cast(
+            "tuple[int, int, str, str]", self._script(keys, args)
+        )
+        return limited, remaining, float(reset_after), float(retry_after)
+
+
+class RedisPeekAtomicActionCoreMixin(
+    RedisPeekAtomicActionConstants,
+    store.BaseAtomicActionMixin[store.RedisStoreBackend],
+):
+    """Core mixin for RedisPeekAtomicAction."""
+
+    def __init__(self, backend: store.RedisStoreBackend) -> None:
+        super().__init__(backend)
+        self._script: SyncScript = backend.get_client().register_script(self.SCRIPTS)
+
+
+class RedisPeekAtomicAction(
+    RedisPeekAtomicActionCoreMixin,
+    store.BaseAtomicAction[store.RedisStoreBackend],
+):
+    """Redis-based AtomicAction for GCRARateLimiter's peek operation."""
+
+    def do(
+        self,
+        keys: Sequence[types.KeyT],
+        args: Sequence[types.StoreValueT] | None,
+    ) -> tuple[int, int, float, float]:
+        limited, remaining, reset_after, retry_after = cast(
+            "tuple[int, int, str, str]", self._script(keys, args)
+        )
+        return limited, remaining, float(reset_after), float(retry_after)
+
+
+class MemoryLimitAtomicActionCoreMixin(
+    store.BaseAtomicActionMixin[types.MemoryStoreBackendT],
+    Generic[types.MemoryStoreBackendT],
+):
     """Core mixin for MemoryLimitAtomicAction."""
 
-    TYPE: AtomicActionTypeT = ATOMIC_ACTION_TYPE_LIMIT
+    TYPE: types.AtomicActionTypeT = ATOMIC_ACTION_TYPE_LIMIT
     STORE_TYPE: str = StoreType.MEMORY.value
-
-    def __init__(self, backend: "MemoryStoreBackend"):
-        super().__init__(backend)
-        self._backend: MemoryStoreBackend = backend
 
     @classmethod
     def _do(
         cls,
-        backend: "MemoryStoreBackend",
-        keys: Sequence[KeyT],
-        args: Optional[Sequence[StoreValueT]],
-    ) -> Tuple[int, int, float, float]:
+        backend: types.MemoryStoreBackendP,
+        keys: Sequence[types.KeyT],
+        args: Sequence[types.StoreValueT] | None,
+    ) -> tuple[int, int, float, float]:
+        if args is None:
+            raise ValueError("args is required")
         key: str = keys[0]
-        emission_interval, capacity, cost = args
+        emission_interval: float = float(args[0])
+        capacity: int = int(args[1])
+        cost: int = int(args[2])
         now: float = now_mono_f()
-        last_tat: float = backend.get(key) or now
+        last_tat: float = float(backend.get(key) or now)
 
         fill_time_for_cost: float = cost * emission_interval
         fill_time_for_capacity: float = capacity * emission_interval
@@ -157,109 +193,131 @@ class MemoryLimitAtomicActionCoreMixin:
         time_elapsed: float = now - allow_at
 
         remaining: int = math.floor(time_elapsed / emission_interval)
+        limited: int = 0
+        retry_after: float = 0.0
+        reset_after: float = tat - now
         if remaining < 0:
-            limited: int = 1
-            retry_after: float = -time_elapsed
-            reset_after: float = max(0.0, last_tat - now)
-            remaining: int = min(capacity, cost + remaining)
-        else:
-            limited: int = 0
-            retry_after: float = 0
-            reset_after: float = tat - now
-            if reset_after > 0:
-                # When cost equals 0, there's no need to update TAT.
-                backend.set(key, tat, math.ceil(reset_after))
+            limited = 1
+            retry_after = abs(time_elapsed)
+            reset_after = max(0.0, last_tat - now)
+            remaining = min(capacity, cost + remaining)
+        elif reset_after > 0:
+            # When cost equals 0, there's no need to update TAT.
+            backend.set(key, tat, math.ceil(reset_after))
 
         return limited, remaining, reset_after, retry_after
 
 
-class MemoryLimitAtomicAction(MemoryLimitAtomicActionCoreMixin, BaseAtomicAction):
+class MemoryLimitAtomicAction(
+    MemoryLimitAtomicActionCoreMixin[store.MemoryStoreBackend],
+    store.BaseAtomicAction[store.MemoryStoreBackend],
+):
     """Memory-based implementation of AtomicAction for GCRARateLimiter's limit operation.
+
     Inspire by [Rate Limiting, Cells, and GCRA](https://brandur.org/rate-limiting).
     """
 
     def do(
-        self, keys: Sequence[KeyT], args: Optional[Sequence[StoreValueT]]
-    ) -> Tuple[int, int, float, float]:
+        self,
+        keys: Sequence[types.KeyT],
+        args: Sequence[types.StoreValueT] | None,
+    ) -> tuple[int, int, float, float]:
         with self._backend.lock:
             return self._do(self._backend, keys, args)
 
 
-class MemoryPeekAtomicActionCoreMixin:
+class MemoryPeekAtomicActionCoreMixin(
+    store.BaseAtomicActionMixin[types.MemoryStoreBackendT],
+    Generic[types.MemoryStoreBackendT],
+):
     """Core mixin for MemoryPeekAtomicAction."""
 
-    TYPE: AtomicActionTypeT = ATOMIC_ACTION_TYPE_PEEK
+    TYPE: types.AtomicActionTypeT = ATOMIC_ACTION_TYPE_PEEK
+    STORE_TYPE: str = StoreType.MEMORY.value
 
     @classmethod
     def _do(
         cls,
-        backend: "MemoryStoreBackend",
-        keys: Sequence[KeyT],
-        args: Optional[Sequence[StoreValueT]],
-    ) -> Tuple[int, int, float, float]:
+        backend: types.MemoryStoreBackendP,
+        keys: Sequence[types.KeyT],
+        args: Sequence[types.StoreValueT] | None,
+    ) -> tuple[int, int, float, float]:
+        if args is None:
+            raise ValueError("args is required")
         key: str = keys[0]
-        emission_interval: float = args[0]
-        capacity: int = args[1]
+        emission_interval: float = float(args[0])
+        capacity: int = int(args[1])
 
         now: float = now_mono_f()
-        tat: float = backend.get(key) or now
+        tat: float = float(backend.get(key) or now)
         fill_time_for_capacity: float = capacity * emission_interval
         allow_at: float = max(now, tat) - fill_time_for_capacity
         time_elapsed: float = now - allow_at
 
         reset_after: float = max(0.0, tat - now)
         remaining: int = math.floor(time_elapsed / emission_interval)
+        limited: int = 0
+        retry_after: float = 0.0
         if remaining < 1:
-            limited: int = 1
-            remaining: int = 0
-            retry_after: float = math.fabs(time_elapsed)
-        else:
-            limited: int = 0
-            retry_after: float = 0
+            limited = 1
+            remaining = 0
+            retry_after = abs(time_elapsed)
         return limited, remaining, reset_after, retry_after
 
 
-class MemoryPeekAtomicAction(MemoryPeekAtomicActionCoreMixin, MemoryLimitAtomicAction):
-    """
-    Memory-based implementation of AtomicAction for GCRARateLimiter's peek operation.
-    """
+class MemoryPeekAtomicAction(
+    MemoryPeekAtomicActionCoreMixin[store.MemoryStoreBackend],
+    store.BaseAtomicAction[store.MemoryStoreBackend],
+):
+    """Memory-based AtomicAction for GCRARateLimiter's peek operation."""
+
+    def do(
+        self,
+        keys: Sequence[types.KeyT],
+        args: Sequence[types.StoreValueT] | None,
+    ) -> tuple[int, int, float, float]:
+        with self._backend.lock:
+            return self._do(self._backend, keys, args)
 
 
-class GCRARateLimiterCoreMixin(BaseRateLimiterMixin):
+class GCRARateLimiterCoreMixin(
+    BaseRateLimiterMixin[types.StoreT, types.ActionT],
+    Generic[types.StoreT, types.ActionT],
+):
     """Core mixin for GCRARateLimiter."""
 
-    _DEFAULT_ATOMIC_ACTION_CLASSES: List[Type[AtomicActionP]] = []
-
-    class Meta:
-        type: RateLimiterTypeT = RateLimiterType.GCRA.value
+    class Meta(BaseRateLimiterMixin.Meta):
+        type: types.RateLimiterTypeT = RateLimiterType.GCRA.value
 
     @classmethod
-    def _default_atomic_action_classes(cls) -> List[Type[AtomicActionP]]:
-        return cls._DEFAULT_ATOMIC_ACTION_CLASSES
-
-    @classmethod
-    def _supported_atomic_action_types(cls) -> List[AtomicActionTypeT]:
+    def _supported_atomic_action_types(cls) -> Sequence[types.AtomicActionTypeT]:
         return [ATOMIC_ACTION_TYPE_LIMIT, ATOMIC_ACTION_TYPE_PEEK]
 
-    def _prepare(self, key: str) -> Tuple[str, float, int]:
+    def _prepare(self, key: str) -> tuple[str, float, int]:
         return self._prepare_key(key), self.quota.emission_interval, self.quota.burst
 
 
-class GCRARateLimiter(GCRARateLimiterCoreMixin, BaseRateLimiter):
+class GCRARateLimiter(
+    GCRARateLimiterCoreMixin[types.SyncStoreP, types.SyncAtomicActionP],
+    BaseRateLimiter,
+):
     """Concrete implementation of BaseRateLimiter using GCRA as algorithm."""
 
-    _DEFAULT_ATOMIC_ACTION_CLASSES: List[Type[AtomicActionP]] = [
+    _DEFAULT_ATOMIC_ACTION_CLASSES: Sequence[type[types.SyncAtomicActionP]] = (
         RedisPeekAtomicAction,
         RedisLimitAtomicAction,
         MemoryLimitAtomicAction,
         MemoryPeekAtomicAction,
-    ]
+    )
 
     def _limit(self, key: str, cost: int = 1) -> RateLimitResult:
         formatted_key, emission_interval, capacity = self._prepare(key)
-        limited, remaining, reset_after, retry_after = self._atomic_actions[
-            ATOMIC_ACTION_TYPE_LIMIT
-        ].do([formatted_key], [emission_interval, capacity, cost])
+        limited, remaining, reset_after, retry_after = cast(
+            "tuple[int, int, float, float]",
+            self._atomic_actions[ATOMIC_ACTION_TYPE_LIMIT].do(
+                [formatted_key], [emission_interval, capacity, cost]
+            ),
+        )
 
         return RateLimitResult(
             limited=bool(limited),
@@ -268,9 +326,12 @@ class GCRARateLimiter(GCRARateLimiterCoreMixin, BaseRateLimiter):
 
     def _peek(self, key: str) -> RateLimitState:
         formatted_key, emission_interval, capacity = self._prepare(key)
-        limited, remaining, reset_after, retry_after = self._atomic_actions[
-            ATOMIC_ACTION_TYPE_PEEK
-        ].do([formatted_key], [emission_interval, capacity])
+        _limited, remaining, reset_after, retry_after = cast(
+            "tuple[int, int, float, float]",
+            self._atomic_actions[ATOMIC_ACTION_TYPE_PEEK].do(
+                [formatted_key], [emission_interval, capacity]
+            ),
+        )
         return RateLimitState(
             limit=capacity,
             remaining=remaining,

@@ -16,6 +16,7 @@ repos:
     hooks:
       - id: mypy-strict
         name: mypy-strict
-        entry: uv run mypy --strict
+        entry: uv run --no-sync mypy throttled tests
         language: system
+        pass_filenames: false
         types: [python]

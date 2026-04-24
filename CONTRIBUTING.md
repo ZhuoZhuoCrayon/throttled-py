@@ -288,8 +288,11 @@ This project follows [Conventional Commits](https://www.conventionalcommits.org/
 ### Format
 
 ```
-<type>: <description> (#<issue-number>)
+<type>: <description>
 ```
+
+Append `(#<issue-number>)` only when the commit intentionally links to a
+specific issue.
 
 ### Allowed Types
 
@@ -307,6 +310,7 @@ This project follows [Conventional Commits](https://www.conventionalcommits.org/
 
 ```bash
 # Good
+git commit -m "refactor: narrow memory store lock typing"
 git commit -m "feat: add hook system with OpenTelemetry support (#37)"
 git commit -m "fix: add @wraps decorator for metadata preservation (#120)"
 git commit -m "docs: update contributing guidelines (#127)"

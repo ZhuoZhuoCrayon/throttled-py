@@ -31,7 +31,7 @@ def decorated_demo() -> Callable[[int, int], int]:
     def demo(left: int, right: int) -> int:
         return left + right
 
-    return cast(Callable[[int, int], int], demo)
+    return cast("Callable[[int, int], int]", demo)
 
 
 class TestThrottled:
@@ -182,7 +182,7 @@ class TestThrottled:
                 self.name = name
 
             def on_limit(self, *args: object, **kwargs: object) -> RateLimitResult:
-                call_next = cast(Callable[[], RateLimitResult], args[0])
+                call_next = cast("Callable[[], RateLimitResult]", args[0])
                 order.append(f"{self.name}_before")
                 result: RateLimitResult = call_next()
                 order.append(f"{self.name}_after")
@@ -209,10 +209,10 @@ class TestThrottled:
         call_count: int = 0
 
         class CountingHook(Hook):
-            def on_limit(self, *args: object, **kwargs: object) -> RateLimitResult:  # noqa: PLR6301
+            def on_limit(self, *args: object, **kwargs: object) -> RateLimitResult:
                 nonlocal call_count
                 call_count += 1
-                call_next = cast(Callable[[], RateLimitResult], args[0])
+                call_next = cast("Callable[[], RateLimitResult]", args[0])
                 return call_next()
 
         throttle: Throttled = Throttled(

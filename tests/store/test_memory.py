@@ -1,5 +1,4 @@
 import pytest
-
 from throttled import MemoryStore
 from throttled.constants import STORE_TTL_STATE_NOT_EXIST
 

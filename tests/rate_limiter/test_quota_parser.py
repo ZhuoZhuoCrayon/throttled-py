@@ -69,4 +69,4 @@ class TestQuotaParser:
     @pytest.mark.parametrize(("bad_quota"), [None, 123, 1.2, [], {}])
     def test_parse__reject_non_string(cls, bad_quota: object) -> None:
         with pytest.raises(DataError, match="non-empty string"):
-            parse(cast(str, bad_quota))
+            parse(cast("str", bad_quota))

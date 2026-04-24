@@ -1,8 +1,8 @@
 import time
-from typing import Any, Callable, Dict, Generator
+from collections.abc import Callable
+from typing import Any
 
 import pytest
-
 from throttled import (
     BaseRateLimiter,
     BaseStore,
@@ -21,16 +21,16 @@ from . import parametrizes
 
 @pytest.fixture
 def rate_limiter_constructor(
-    store: BaseStore,
-) -> Generator[Callable[[Quota], BaseRateLimiter], Any, None]:
+    store: BaseStore[Any],
+) -> Callable[[Quota], BaseRateLimiter]:
     def _create_rate_limiter(quota: Quota) -> BaseRateLimiter:
         return RateLimiterRegistry.get(RateLimiterType.TOKEN_BUCKET.value)(quota, store)
 
-    yield _create_rate_limiter
+    return _create_rate_limiter
 
 
 def assert_rate_limit_result(
-    case: Dict[str, Any], quota: Quota, result: RateLimitResult
+    case: dict[str, Any], quota: Quota, result: RateLimitResult
 ):
     assert result.limited == case["limited"]
     assert result.state.limit == quota.burst
@@ -81,11 +81,11 @@ class TestTokenBucketRateLimiter:
         assert state == RateLimitState(limit=10, remaining=10, reset_after=0)
 
         rate_limiter.limit(key, cost=5)
-        state: RateLimitState = rate_limiter.peek(key)
+        state = rate_limiter.peek(key)
         assert state == RateLimitState(limit=10, remaining=5, reset_after=5)
 
         time.sleep(1)
-        state: RateLimitState = rate_limiter.peek(key)
+        state = rate_limiter.peek(key)
         assert state in [
             RateLimitState(limit=10, remaining=6, reset_after=4),
             RateLimitState(limit=10, remaining=7, reset_after=3),
