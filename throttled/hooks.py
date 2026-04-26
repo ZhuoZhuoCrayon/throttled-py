@@ -4,7 +4,7 @@ import abc
 import logging
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -99,7 +99,7 @@ def build_hook_chain(
             next_fn: Callable[[], "RateLimitResult"],
         ) -> Callable[[], "RateLimitResult"]:
             def chain_fn() -> "RateLimitResult":
-                next_called = False
+                next_called: bool = False
                 next_result: RateLimitResult | None = None
 
                 def tracked_next() -> "RateLimitResult":
@@ -127,9 +127,7 @@ def build_hook_chain(
                 except Exception:
                     logger.exception("Hook %r raised during on_limit", h)
                     if next_called:
-                        if next_result is None:
-                            return next_fn()
-                        return next_result
+                        return cast("RateLimitResult", next_result)
                     return next_fn()
 
             return chain_fn
