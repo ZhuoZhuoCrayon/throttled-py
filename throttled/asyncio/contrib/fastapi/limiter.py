@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import inspect
 import logging
+from collections.abc import Awaitable, Callable
 from functools import wraps
 from typing import TYPE_CHECKING, ParamSpec, TypeAlias, TypeVar
 
@@ -18,7 +19,7 @@ from .keys import KeyParts, compose_key
 from .middleware import _STATE_KEY
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable, Mapping, Sequence
+    from collections.abc import Mapping, Sequence
 
     from throttled.asyncio.hooks import Hook
     from throttled.asyncio.rate_limiter import Quota, RateLimitResult
@@ -31,7 +32,7 @@ R = TypeVar("R")
 logger = logging.getLogger(__name__)
 
 #: Sync or async callable that returns the principal key for a request.
-KeyFunc: TypeAlias = "Callable[[Request], str | Awaitable[str]]"
+KeyFunc: TypeAlias = Callable[[Request], str | Awaitable[str]]
 
 
 class Limiter:
@@ -146,14 +147,31 @@ async def _check(
     :returns: The :class:`RateLimitResult`. Caller inspects
         ``result.limited`` to decide between 429 and success.
     """
-    key_value: str | Awaitable[str] = key_func(request)
-    principal: str = await key_value if inspect.isawaitable(key_value) else key_value
+    principal: str = await _resolve_principal(key_func, request)
     route: str = _route_template(request)
     key: str = compose_key(
         KeyParts(method=request.method, route=route, principal=principal)
     )
 
     return await throttled.limit(key=key)
+
+
+async def _resolve_principal(key_func: KeyFunc, request: Request) -> str:
+    """Run ``key_func`` and resolve its sync or async result to a string.
+
+    Centralizes the sync-or-async branch so callers receive a plain
+    ``str`` and do not need to narrow ``str | Awaitable[str]`` at the
+    call site.
+
+    :param key_func: User-provided principal extractor; may return
+        either a string directly or an awaitable that resolves to one.
+    :param request: Incoming FastAPI request.
+    :returns: The resolved principal string.
+    """
+    key_value: str | Awaitable[str] = key_func(request)
+    if inspect.isawaitable(key_value):
+        return await key_value
+    return key_value
 
 
 def _route_template(request: Request) -> str:
