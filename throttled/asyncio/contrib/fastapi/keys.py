@@ -12,9 +12,9 @@ class KeyParts(NamedTuple):
     """Structured parts that compose a storage key.
 
     :param method: HTTP method (``"GET"``, ``"POST"``...).
-    :param route: The matched route template (``"/users/{id}"``). Falls
-        back to the concrete URL path when the router has not populated
-        it yet.
+    :param route: The matched route template (``"/users/{id}"``).
+        Producers must populate this from FastAPI route metadata; this
+        module does not fall back to a concrete URL path.
     :param principal: Result of the user-provided ``key_func``.
     """
 

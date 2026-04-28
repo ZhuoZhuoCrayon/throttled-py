@@ -43,7 +43,8 @@ class Limiter:
         (see :mod:`throttled.rate_limiter.quota_parser`).
     :param store: Storage backend. Defaults to
         :class:`~throttled.asyncio.store.MemoryStore` when ``None``.
-    :param using: Rate-limit algorithm. Defaults to ``fixed_window``.
+    :param using: Rate-limit algorithm. Defaults to ``token_bucket`` to
+        match :class:`throttled.asyncio.throttled.Throttled`.
     :param key_func: Sync or async callable that returns the principal
         key. Defaults to :func:`.key_funcs.get_remote_address`.
     :param hooks: Optional async hooks forwarded to the internal
@@ -55,7 +56,7 @@ class Limiter:
         quota: Quota | str,
         *,
         store: StoreP | None = None,
-        using: RateLimiterTypeT = RateLimiterType.FIXED_WINDOW.value,
+        using: RateLimiterTypeT = RateLimiterType.TOKEN_BUCKET.value,
         key_func: KeyFunc = get_remote_address,
         hooks: Sequence[Hook] | None = None,
     ) -> None:

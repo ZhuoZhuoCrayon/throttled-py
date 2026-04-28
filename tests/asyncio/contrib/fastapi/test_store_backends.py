@@ -79,8 +79,10 @@ class TestRedisStoreSharedAcrossLimiters:
         for sub-app-local policies sharing one Redis backend in
         production deployments.
         """
-        limiter_lenient = Limiter("100/m", store=redis_store)
-        limiter_strict = Limiter("2/m", store=redis_store)
+        # Use fixed_window so remaining-count assertions reflect a simple
+        # shared counter rather than token-bucket refill semantics.
+        limiter_lenient = Limiter("100/m", store=redis_store, using="fixed_window")
+        limiter_strict = Limiter("2/m", store=redis_store, using="fixed_window")
 
         # Two apps with the same path so the route_template part matches;
         # they only differ by which Limiter wraps them. Using two apps

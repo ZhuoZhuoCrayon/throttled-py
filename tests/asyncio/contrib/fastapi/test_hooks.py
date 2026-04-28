@@ -115,12 +115,12 @@ class TestOTelHookIntegration:
 
         assert allowed_cost == 1
         assert allowed_attrs["result"] == "allowed"
-        assert allowed_attrs["algorithm"] == "fixed_window"
+        assert allowed_attrs["algorithm"] == "token_bucket"
         assert allowed_attrs["store_type"] == "memory"
         assert "GET" in allowed_attrs["key"]
 
         assert denied_cost == 1
         assert denied_attrs["result"] == "denied"
-        assert denied_attrs["algorithm"] == "fixed_window"
+        assert denied_attrs["algorithm"] == "token_bucket"
         assert denied_attrs["store_type"] == "memory"
         assert allowed_attrs["key"] == denied_attrs["key"]
