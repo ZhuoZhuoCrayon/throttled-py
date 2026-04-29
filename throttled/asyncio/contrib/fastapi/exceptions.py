@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import math
 from typing import TYPE_CHECKING
 
 from fastapi.responses import JSONResponse
@@ -44,6 +43,10 @@ async def rate_limit_exceeded_handler(
 
         app.add_exception_handler(RateLimitExceededError, rate_limit_exceeded_handler)
 
+    The wait time for the client is delivered through the standard
+    HTTP ``Retry-After`` header. The body matches FastAPI's
+    :class:`fastapi.HTTPException` shape with a ``detail`` field only.
+
     See draft-ietf-httpapi-ratelimit-headers and RFC 9110 section 10.2.3.
 
     :param request: Inbound request (required by Starlette signature).
@@ -52,23 +55,16 @@ async def rate_limit_exceeded_handler(
         ``Retry-After`` headers.
     """
     headers: dict[str, str] = {}
-    retry_after_sec: int = 0
 
     if isinstance(exc, RateLimitExceededError):
-        context = exc.rate_limit_context
         _inject_rate_limit_headers(
             headers,
-            context,
+            exc.rate_limit_context,
             include_retry_after=True,
         )
-        if context.result.state is not None:
-            retry_after_sec = math.ceil(context.result.state.retry_after)
 
     return JSONResponse(
         status_code=429,
-        content={
-            "detail": "Rate limit exceeded",
-            "retry_after": retry_after_sec,
-        },
+        content={"detail": "Rate limit exceeded"},
         headers=headers,
     )

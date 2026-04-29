@@ -82,9 +82,7 @@ class TestLimiterLimit:
         assert response.headers["RateLimit-Remaining"] == "0"
         assert "RateLimit-Reset" in response.headers
         assert "Retry-After" in response.headers
-        body = response.json()
-        assert body["detail"] == "Rate limit exceeded"
-        assert body["retry_after"] == int(response.headers["Retry-After"])
+        assert response.json() == {"detail": "Rate limit exceeded"}
 
     @classmethod
     async def test_limit__sync_function__raises_typeerror_at_decoration(

@@ -84,7 +84,7 @@ class TestRateLimitExceededHandler:
         assert response.headers["Retry-After"] == str(math.ceil(1.5))
 
     @classmethod
-    async def test_rate_limit_exceeded_handler__retry_after__body_matches_header(
+    async def test_rate_limit_exceeded_handler__body__matches_http_exception_shape(
         cls,
     ) -> None:
         result = RateLimitResult(
@@ -92,6 +92,5 @@ class TestRateLimitExceededHandler:
             state_values=(10, 0, 5.0, 2.3),
         )
         response = await _limited_response(result)
-        body = response.json()
-        assert body["retry_after"] == int(response.headers["Retry-After"])
-        assert body["retry_after"] == math.ceil(2.3)
+        assert response.json() == {"detail": "Rate limit exceeded"}
+        assert response.headers["Retry-After"] == str(math.ceil(2.3))
