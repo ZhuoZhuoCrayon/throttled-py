@@ -14,9 +14,9 @@ from throttled.asyncio.throttled import Throttled
 from throttled.constants import RateLimiterType
 
 from .exceptions import RateLimitExceededError
+from .headers import _DEFAULT_HEADER_POLICY, _STATE_KEY, RateLimitContext
 from .key_funcs import get_remote_address
 from .keys import KeyParts, compose_key
-from .middleware import _STATE_KEY
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
@@ -110,21 +110,25 @@ class Limiter:
                     throttled=throttled,
                     key_func=resolved_key_func,
                 )
+                context: RateLimitContext = RateLimitContext(
+                    result=result,
+                    headers=_DEFAULT_HEADER_POLICY,
+                )
                 if result.limited:
                     logger.debug(
                         "Rate limit exceeded: %s %s",
                         request.method,
                         _route_template(request),
                     )
-                    raise RateLimitExceededError(result)
+                    raise RateLimitExceededError(context)
 
                 logger.debug(
-                    "Rate limit passed: %s %s, remaining=%d",
+                    "Rate limit passed: %s %s, remaining=%s",
                     request.method,
                     _route_template(request),
-                    result.state.remaining if result.state else -1,
+                    result.state.remaining if result.state else "unknown",
                 )
-                setattr(request.state, _STATE_KEY, result)
+                setattr(request.state, _STATE_KEY, context)
                 return await func(*args, **kwargs)
 
             return wrapper

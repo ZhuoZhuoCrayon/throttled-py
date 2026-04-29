@@ -8,20 +8,30 @@ from typing import TYPE_CHECKING
 from fastapi.responses import JSONResponse
 from throttled.exceptions import LimitedError
 
+from .headers import _inject_rate_limit_headers
+
 if TYPE_CHECKING:
     from fastapi import Request
-    from throttled.asyncio.rate_limiter import RateLimitResult
+
+    from .headers import RateLimitContext
 
 
 class RateLimitExceededError(LimitedError):
     """Raised by :class:`Limiter` when a route exceeds its quota.
 
-    :param result: The :class:`RateLimitResult` carrying
-        limit/remaining/reset/retry fields.
+    The :func:`rate_limit_exceeded_handler` reads
+    :attr:`rate_limit_context` to render ``RateLimit-*`` and
+    ``Retry-After`` headers on the 429 response.
+
+    :param context: The :class:`RateLimitContext` carrying the
+        rate-limit result and the header policy used to render the
+        429 response.
     """
 
-    def __init__(self, result: RateLimitResult) -> None:
-        super().__init__(rate_limit_result=result)
+    def __init__(self, context: RateLimitContext) -> None:
+        super().__init__(rate_limit_result=context.result)
+        #: The decorator-owned rate-limit context.
+        self.rate_limit_context: RateLimitContext = context
 
 
 async def rate_limit_exceeded_handler(
@@ -44,17 +54,15 @@ async def rate_limit_exceeded_handler(
     headers: dict[str, str] = {}
     retry_after_sec: int = 0
 
-    result: RateLimitResult | None = None
-    if isinstance(exc, LimitedError):
-        result = exc.rate_limit_result
-
-    if result is not None and result.state is not None:
-        state = result.state
-        retry_after_sec = math.ceil(state.retry_after)
-        headers["RateLimit-Limit"] = str(state.limit)
-        headers["RateLimit-Remaining"] = str(state.remaining)
-        headers["RateLimit-Reset"] = str(math.ceil(state.reset_after))
-        headers["Retry-After"] = str(retry_after_sec)
+    if isinstance(exc, RateLimitExceededError):
+        context = exc.rate_limit_context
+        _inject_rate_limit_headers(
+            headers,
+            context,
+            include_retry_after=True,
+        )
+        if context.result.state is not None:
+            retry_after_sec = math.ceil(context.result.state.retry_after)
 
     return JSONResponse(
         status_code=429,

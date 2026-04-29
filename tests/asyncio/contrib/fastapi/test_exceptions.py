@@ -9,7 +9,9 @@ import httpx
 import pytest
 from fastapi import FastAPI
 from throttled.asyncio.contrib.fastapi import (
+    RateLimitContext,
     RateLimitExceededError,
+    RateLimitHeaderPolicy,
     rate_limit_exceeded_handler,
 )
 from throttled.asyncio.rate_limiter import RateLimitResult
@@ -24,7 +26,9 @@ async def _limited_response(
 
     @app.get("/limited")
     async def limited() -> dict[str, bool]:
-        raise RateLimitExceededError(result)
+        raise RateLimitExceededError(
+            RateLimitContext(result=result, headers=RateLimitHeaderPolicy())
+        )
 
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(
@@ -40,6 +44,16 @@ class TestRateLimitExceededError:
         cls,
     ) -> None:
         assert issubclass(RateLimitExceededError, LimitedError)
+
+    @classmethod
+    def test_rate_limit_exceeded_error__exposes_context_and_result(
+        cls,
+    ) -> None:
+        result = RateLimitResult(limited=True, state_values=(100, 0, 60.0, 1.5))
+        context = RateLimitContext(result=result, headers=RateLimitHeaderPolicy())
+        exc = RateLimitExceededError(context)
+        assert exc.rate_limit_context is context
+        assert exc.rate_limit_result is result
 
 
 @pytest.mark.asyncio
