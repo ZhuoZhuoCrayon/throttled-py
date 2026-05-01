@@ -1,6 +1,34 @@
 Version History
 ================
 
+v3.3.0 - 2026-05-01
+---------------------
+
+`简体中文 (v3.3.0) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.rst#v330---2026-05-01>`_ | English
+
+**🚀 New Features**
+
+- feat: add quota DSL parser and string quota support @ZhuoZhuoCrayon (#141)
+- feat(hook): add hook type validation and exception logging (#134) @s3ich4n (#135)
+
+**✨ Improvements**
+
+- refactor: improve type hints for mypy strict compliance @ZhuoZhuoCrayon (#159)
+
+**📦 Dependencies**
+
+- build(deps): bump cryptography from 46.0.6 to 46.0.7 @dependabot[bot] (#148)
+
+**🍃 Maintenance**
+
+- docs: remove squash-before-push requirement from CONTRIBUTING.md (#146) @s3ich4n (#147)
+- docs: align README python badge and extras with pyproject @ZhuoZhuoCrayon (#144)
+- ci: add strict mypy hook and type-check lint rules @ZhuoZhuoCrayon (#142)
+- docs: add AGENTS guidance and branch naming rules @ZhuoZhuoCrayon (#143)
+
+**Full Changelog**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v3.2.0...v3.3.0
+
+
 v3.2.0 - 2026-04-03
 ---------------------
 
