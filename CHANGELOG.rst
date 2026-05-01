@@ -1,6 +1,34 @@
 Version History
 =================
 
+v3.3.0 - 2026-05-01
+---------------------
+
+`English Documents Available (v3.3.0) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.rst#v330---2026-05-01>`_ | 简体中文
+
+**🚀 功能**
+
+- feat: 添加 quota DSL 解析器与字符串配额支持 @ZhuoZhuoCrayon (#141)
+- feat(hook): 添加 Hook 类型校验与异常日志记录 (#134) @s3ich4n (#135)
+
+**✨ 优化**
+
+- refactor: 改进类型提示以满足 mypy strict 合规要求 @ZhuoZhuoCrayon (#159)
+
+**📦 依赖项更新**
+
+- build(deps): 将 cryptography 从 46.0.6 升级到 46.0.7 @dependabot[bot] (#148)
+
+**🍃 维护工作**
+
+- docs: 从 CONTRIBUTING.md 移除推送前 squash 要求 (#146) @s3ich4n (#147)
+- docs: 使 README Python 徽章与 extras 与 pyproject 保持一致 @ZhuoZhuoCrayon (#144)
+- ci: 添加 strict mypy hook 与类型检查 lint 规则 @ZhuoZhuoCrayon (#142)
+- docs: 添加 AGENTS 指引与分支命名规则 @ZhuoZhuoCrayon (#143)
+
+**完整更新日志**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v3.2.0...v3.3.0
+
+
 v3.2.0 - 2026-04-03
 ---------------------
 
