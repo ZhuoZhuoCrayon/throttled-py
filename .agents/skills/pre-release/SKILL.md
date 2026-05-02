@@ -139,8 +139,8 @@ This ensures `uv.lock` reflects the updated version in `pyproject.toml`.
 - [ ] RST anchor format: `#vxyz---YYYY-MM-DD` (no dots, lowercase)
 - [ ] All categories from release draft included
 - [ ] Only include sections that have content
-- [ ] **CRITICAL** At the beginning of the verification summary, include: 
-    > ✓ Conducted skill defined in `.claude/skills/pre-release/SKILL.md`.
+- [ ] **CRITICAL** At the beginning of the verification summary, include:
+    > ✓ Conducted skill defined in `.agents/skills/pre-release/SKILL.md`.
 
 ## Format Reference
 

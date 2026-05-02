@@ -1,8 +1,11 @@
 # GitHub Copilot Code Review Instructions
 
-This document provides comprehensive code review guidelines for the throttled-py project, 
+This document provides comprehensive code review guidelines for the throttled-py project,
 ensuring consistency and quality in all pull requests reviewed by GitHub Copilot.
 
+> **⚠️ CRITICAL INSTRUCTION**: Read `CONTRIBUTING.md` before every review.
+> Treat it as the source of truth for project conventions and workflow.
+>
 > **⚠️ CRITICAL INSTRUCTION**: Every PR review summary **MUST** begin with:
 > `✓ Review conducted following guidelines defined in .github/copilot-instructions.md`
 
@@ -12,27 +15,10 @@ ensuring consistency and quality in all pull requests reviewed by GitHub Copilot
 
 As a Copilot agent reviewing this project, prioritize the following principles:
 
-1.  **Clarity and Maintainability**: Code must be easy to read and understand. Follow PEP 8, use clear naming, and provide meaningful docstrings (PEP 257).
+1.  **Clarity and Maintainability**: Code must be easy to read, understand, and change.
 2.  **Correctness and Reliability**: Ensure algorithms are implemented correctly. Pay close attention to concurrency (`asyncio`, `threading`), thread safety, and atomic operations, as they are critical for a rate-limiting library.
-3.  **Performance**: Rate limiting must be fast. Suggest efficient data structures and algorithms. Use the project's established tooling (`ruff`, `black`, `mypy`) to enforce quality.
-4.  **Test Coverage**: All new logic must be accompanied by comprehensive `pytest` tests. Aim for high test coverage.
-5.  **MANDATORY Review Acknowledgment**: 
-    
-    **RULE**: The FIRST line of EVERY PR review summary MUST be exactly:
-    ```
-    ✓ Review conducted following guidelines defined in `.github/copilot-instructions.md`
-    ```
-    
-    This is **NON-NEGOTIABLE**. Do NOT omit this statement under any circumstances.
-
----
-
-## Agent Workflow & Skills (CRITICAL)
-
-Before executing ANY complex task (especially releases, refactoring, or testing), you **MUST** follow the workflow defined in:
-**`.github/instructions/use-skills.instructions.md`**
-
-This instruction file defines how to efficiently discover and apply project-specific skills by scanning `.claude/skills`.
+3.  **Performance**: Rate limiting must be fast. Review data structures and algorithms in hot paths.
+4.  **Test Relevance**: New behavior should be covered by tests proportional to its risk.
 
 ---
 
@@ -45,16 +31,16 @@ English documentation must follow the [Google Markdown Style Guide](https://goog
 **Key Requirements:**
 
 - **Line Length**: Maintain an 80-character line limit (exceptions: links, tables, headings, code blocks)
-- **Headings**: 
+- **Headings**:
   - Use ATX-style headings (`#`, `##`, etc.)
   - Use unique and descriptive names for each heading
   - Add spacing after `#` and newlines before/after headings
   - Use only one H1 heading per document
 - **Lists**: Use lazy numbering for long ordered lists
-- **Code Blocks**: 
+- **Code Blocks**:
   - Always declare the language for syntax highlighting
   - Prefer fenced code blocks (```) over indented code blocks
-- **Links**: 
+- **Links**:
   - Use informative link titles
   - Use reference links for long URLs or repeated links
   - Define reference links after their first use
@@ -63,17 +49,17 @@ English documentation must follow the [Google Markdown Style Guide](https://goog
 - **Document Layout**: Follow this structure:
   ```markdown
   # Document Title
-  
+
   Short introduction.
-  
+
   [TOC]
-  
+
   ## Topic
-  
+
   Content.
-  
+
   ## See also
-  
+
   * Links to related resources
   ```
 
@@ -109,9 +95,9 @@ As an expert-level Python engineer, provide professional feedback on the followi
 
 - **PEP 8 Compliance**: Ensure code follows [PEP 8](https://peps.python.org/pep-0008/) style guide
 - **Type Hints**: Use type hints (PEP 484) for function signatures and complex variables
-- **Docstrings**: Follow [PEP 257](https://peps.python.org/pep-0257/) for docstrings; prefer Google or NumPy style
-- **Line Length**: Maximum 88 characters (as enforced by the `black` formatter).
-- **Import Organization**: 
+- **Docstrings**: Review docstrings against `CONTRIBUTING.md`; public API docstrings should render correctly in Sphinx
+- **Line Length and Formatting**: Use `pyproject.toml` as the source of truth
+- **Import Organization**:
   - Group imports: standard library, third-party, local (as enforced by `ruff`).
   - Use absolute imports over relative imports
   - Avoid wildcard imports (`from module import *`)
@@ -127,22 +113,18 @@ As an expert-level Python engineer, provide professional feedback on the followi
 
 ### 3. Design Patterns & Architecture
 
-- **SOLID Principles**: 
+- **SOLID Principles**:
   - Single Responsibility: Each class/function should have one reason to change
   - Open/Closed: Open for extension, closed for modification
   - Liskov Substitution: Subtypes must be substitutable for base types
   - Interface Segregation: Many specific interfaces are better than one general interface
   - Dependency Inversion: Depend on abstractions, not concretions
 - **Design Patterns**: Apply appropriate patterns (Factory, Strategy, Observer, etc.)
-- **Module Structure**: 
-  - Keep modules focused and cohesive
-  - Avoid circular dependencies
-  - Use `__init__.py` to define public API
 - **Separation of Concerns**: Separate business logic, data access, and presentation layers
 
 ### 4. Performance Optimization
 
-- **Algorithm Efficiency**: 
+- **Algorithm Efficiency**:
   - Evaluate time and space complexity
   - Suggest more efficient algorithms when applicable
 - **Data Structures**: Choose appropriate data structures (dict vs. list, set for lookups, etc.)
@@ -154,7 +136,7 @@ As an expert-level Python engineer, provide professional feedback on the followi
 ### 5. Asynchronous Programming
 
 - **Async/Await**: Use `async`/`await` properly for I/O-bound operations
-- **Concurrency**: 
+- **Concurrency**:
   - Use `asyncio` for async operations
   - Use `threading` for I/O-bound tasks
   - Use `multiprocessing` for CPU-bound tasks
@@ -163,7 +145,7 @@ As an expert-level Python engineer, provide professional feedback on the followi
 
 ### 6. Error Handling & Reliability
 
-- **Exception Handling**: 
+- **Exception Handling**:
   - Catch specific exceptions, not generic `Exception`
   - Use `try-except-else-finally` appropriately
   - Don't use exceptions for flow control
@@ -172,52 +154,14 @@ As an expert-level Python engineer, provide professional feedback on the followi
 - **Validation**: Validate inputs and handle edge cases
 - **Defensive Programming**: Check preconditions and postconditions
 
-### 7. Testing & Quality Assurance
+### 7. Documentation & Maintainability
 
-- **Test Coverage**: Aim for high test coverage (>80%)
-- **Test Types**: Include unit tests, integration tests, and e2e tests
-- **Test Framework**: Use `pytest` with appropriate fixtures and parametrize
-- **Mocking**: Use `unittest.mock` or `pytest-mock` for dependencies
-- **Test Naming**: Use descriptive test names (e.g., `test_rate_limiter_blocks_when_quota_exceeded`)
-- **Assertions**: Use clear, specific assertions
-
-### 8. Security Best Practices
-
-- **Input Validation**: Validate and sanitize all user inputs
-- **SQL Injection**: Use parameterized queries or ORMs
-- **Secrets Management**: Never hardcode secrets; use environment variables or secret managers
-- **Dependencies**: Keep dependencies updated; check for vulnerabilities
-- **Authentication**: Use secure authentication mechanisms
-- **Data Encryption**: Encrypt sensitive data at rest and in transit
-
-### 9. Dependency Management
-
-- **Package Management**: Use `pyproject.toml` (PEP 621) for modern Python projects
-- **Dependency Pinning**: Pin dependencies with version constraints
-- **Virtual Environments**: Document virtual environment setup
-- **Minimal Dependencies**: Avoid unnecessary dependencies
-- **License Compatibility**: Ensure dependency licenses are compatible
-
-### 10. Documentation & Maintainability
-
-- **Code Comments**: 
+- **Code Comments**:
   - Explain "why", not "what"
   - Keep comments up-to-date with code changes
   - Avoid obvious comments
-- **README**: Include clear installation, usage, and contribution guidelines
-- **CHANGELOG**: Maintain a changelog following [Keep a Changelog](https://keepachangelog.com/)
-- **API Documentation**: Generate API docs from docstrings (Sphinx, MkDocs)
-- **Examples**: Provide clear usage examples
 
-### 11. Tooling & Development Workflow
-
-- **Linters & Formatters**: Use `ruff` for linting and `black` for formatting. Ensure code is compliant before merging.
-- **Type Checkers**: Use `mypy` or `pyright` for static type checking.
-- **Pre-commit Hooks**: Set up pre-commit hooks for automated checks to catch issues early.
-- **CI/CD**: Implement continuous integration with automated tests.
-- **Code Coverage**: Use `coverage.py` or `pytest-cov` to measure test coverage.
-
-### 12. Specific to Rate Limiting Projects
+### 8. Specific to Rate Limiting Projects
 
 - **Thread Safety**: Ensure rate limiters are thread-safe when needed
 - **Atomic Operations**: Use atomic operations for counter updates
@@ -248,17 +192,6 @@ As an expert-level Python engineer, provide professional feedback on the followi
 - [ ] No code duplication (DRY principle)
 - [ ] Dependencies are justified and minimal
 - [ ] Backwards compatibility is maintained (or breaking changes are documented)
-
-### Pull Request Quality
-
-- **Title**: Clear, descriptive title summarizing the change
-- **Description**: 
-  - Explain what changed and why
-  - Reference related issues
-  - Include before/after behavior for bug fixes
-- **Size**: Keep PRs small and focused (ideally <400 lines)
-- **Commits**: Use clear, conventional commit messages
-- **Breaking Changes**: Clearly document breaking changes
 
 ### Continuous Improvement
 
