@@ -1,16 +1,16 @@
 # throttled-py Agent Instructions
 
-This file defines the minimum rule order for AI agents and contributors
-working in this repository.
+This file is the first repository entry point for AI agents working on throttled-py.
 
-## 0x01 Canonical Rules
+Direct task instructions take priority. Use the table below to find canonical project documents.
 
-- For contribution workflow and standards, follow `CONTRIBUTING.md`.
+## 0x01 Project Navigation
 
-## 0x02 Branch and Commit Guardrails
-
-- Create branches from `main`.
-- Use the naming format documented in `CONTRIBUTING.md`:
-  `<type>/<yymmdd>_<topic>`.
-- Follow the commit conventions in `CONTRIBUTING.md`.
-
+| Need                       | Canonical location                    | Notes                            |
+|----------------------------|---------------------------------------|----------------------------------|
+| Contribution workflow      | `CONTRIBUTING.md`                     | Project conventions and PR flow. |
+| Tool configuration         | `pyproject.toml`                      | Tooling and lint rules.          |
+| CI workflows               | `.github/workflows/`                  | Current CI jobs.                 |
+| Coverage status thresholds | `codecov.yml`                         | Coverage gates.                  |
+| Code review guidance       | `.github/copilot-instructions.md`     | Review rules.                    |
+| Pre-release skill          | `.agents/skills/pre-release/SKILL.md` | Release preparation.             |

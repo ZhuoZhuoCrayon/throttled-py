@@ -81,50 +81,53 @@ packages = ["throttled"]
 line-length = 89
 
 [tool.ruff.lint]
-# refer: https://docs.astral.sh/ruff/rules/
+# Keep this list self-describing; CONTRIBUTING.md points agents here for lint facts.
+# Rule reference: https://docs.astral.sh/ruff/rules/
 select = [
-    "F",      # Pyflakes
-    "E",      # pycodestyle (Error)
-    "W",      # pycodestyle (Warning)
-    "C90",    # pycodestyle (Complexity)
-    "I",      # isort
-    "D",      # pydocstyle
-    "UP",     # pyupgrade
-    "SIM",    # flake8-simplify
-    "G",      # flake8-logging-format
-    "LOG",    # flake8-logging
-    "N",      # pep8-naming
-    "TRY",    # tryceratops
-    "YTT",    # flake8-2020
-    "B",      # flake8-bugbear
-    "T10",    # flake8-debugger
-    "T20",    # flake8-print
-    "C4",     # flake8-comprehensions
-    "RET",    # flake8-return
-    "PERF",   # Perflint
-    "PL",     # Pylint
-    "PIE",    # flake8-pie
-    "PYI006", # flake8-pyi
-    "PYI062", # flake8-pyi
-    "PYI063", # flake8-pyi
-    "PYI066", # flake8-pyi
-    "ANN",    # flake8-annotations
-    "TCH",    # flake8-type-checking
-    "PT",     # flake8-pytest-style
+    "F",      # Pyflakes: catch undefined names, unused imports, and basic mistakes.
+    "E",      # pycodestyle errors: keep syntax and layout conventional.
+    "W",      # pycodestyle warnings: catch subtle style and whitespace issues.
+    "C90",    # mccabe complexity: keep functions small enough to review.
+    "I",      # isort: keep imports sorted and grouped.
+    "D",      # pydocstyle: require docstring presence and style checks.
+    "UP",     # pyupgrade: prefer modern Python 3.10+ syntax.
+    "SIM",    # flake8-simplify: use simpler equivalent code.
+    "G",      # flake8-logging-format: avoid unsafe logging format patterns.
+    "LOG",    # flake8-logging: use logging APIs consistently.
+    "N",      # pep8-naming: keep Python names conventional.
+    "TRY",    # tryceratops: keep exception handling explicit and readable.
+    "YTT",    # flake8-2020: avoid Python version compatibility traps.
+    "B",      # flake8-bugbear: catch likely bugs and risky patterns.
+    "T10",    # flake8-debugger: do not commit debugger breakpoints.
+    "T20",    # flake8-print: do not commit print-based diagnostics.
+    "C4",     # flake8-comprehensions: prefer clearer comprehensions.
+    "RET",    # flake8-return: keep return paths direct and explicit.
+    "PERF",   # Perflint: prefer efficient idioms in hot paths.
+    "PL",     # Pylint: apply design, readability, and correctness checks.
+    "PIE",    # flake8-pie: catch small code-quality issues.
+    "PYI006", # flake8-pyi: use preferred typing patterns in stubs.
+    "PYI062", # flake8-pyi: keep stub-style annotations valid.
+    "PYI063", # flake8-pyi: prefer PEP 570 positional-only syntax.
+    "PYI066", # flake8-pyi: avoid bad default values in stubs.
+    "ANN",    # flake8-annotations: require explicit type annotations.
+    "TCH",    # flake8-type-checking: move type-only imports under TYPE_CHECKING.
+    "PT",     # flake8-pytest-style: keep pytest tests idiomatic.
 ]
 ignore = [
-    "D102",     # disable missing docstring in public method
-    "D105",     # disable missing docstring in magic method
-    "D106",     # disable missing docstring in public nested class
-    "D107",     # disable missing docstring in __init__
-    "D203",
-    "D213",     # disable multi-line-summary-second-line to avoid conflict with D212,
-    "D100",     # Missing docstring in public module
-    "TRY003",   # disable check for long exception messages that are not defined in the exception class itself
+    "D102",     # Allow undocumented public methods; document public API intent instead.
+    "D105",     # Allow magic methods to inherit meaning from Python protocols.
+    "D106",     # Allow nested public classes without duplicate docstrings.
+    "D107",     # Allow __init__ docs to live on the class docstring.
+    "D203",     # Do not require a blank line before class docstrings; avoid D211 conflict.
+    "D213",     # Keep multi-line summaries on the first line; avoid D212 conflict.
+    "D100",     # Allow modules without top-level docstrings.
+    "TRY003",   # Allow readable inline exception messages when custom classes add noise.
 ]
 preview = true
 
 [tool.ruff.lint.pydocstyle]
+# Project docstrings use Sphinx/reStructuredText field syntax in CONTRIBUTING.md.
+# This value only selects Ruff/pydocstyle D-rule presets; it is not the docstring markup style.
 convention = "google"
 
 [tool.ruff.lint.isort]

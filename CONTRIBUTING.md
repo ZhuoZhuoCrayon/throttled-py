@@ -7,12 +7,11 @@ This guide will help you get started and ensure a smooth review process. If anyt
 
 - [Getting Started](#getting-started)
 - [Development Setup](#development-setup)
-- [Branch Naming](#branch-naming)
 - [Code Style](#code-style)
 - [Testing Guidelines](#testing-guidelines)
 - [Documentation](#documentation)
 - [Public vs Internal APIs](#public-vs-internal-apis)
-- [Commit Conventions](#commit-conventions)
+- [Commit and Branch Conventions](#commit-and-branch-conventions)
 - [Pull Request Process](#pull-request-process)
 - [PR Checklist](#pr-checklist)
 
@@ -66,51 +65,22 @@ uv run prek run --all-files
 
 > **Important**: Please run prek locally before pushing. CI will block merging if the Code Quality check fails.
 
-## Branch Naming
-
-Create branches from `main` and use the format below:
-
-```text
-<type>/<yymmdd>_<topic>
-```
-
-Where:
-
-- `type`: one of `feat`, `fix`, `docs`, `ci`, `refactor`, `test`, `chore`,
-  `perf`, `build`
-- `yymmdd`: date in two-digit year format (for example: `260405`)
-- `topic`: short, lowercase identifier using letters, numbers, and `_`
-
-Examples:
-
-```bash
-git checkout main
-git pull --ff-only upstream main
-git checkout -b feat/260405_quota_parser_dsl
-git checkout -b docs/260405_contributing_branch_rules
-```
-
 ## Code Style
 
 ### Linting (ruff)
 
-All code is linted and formatted by [ruff](https://docs.astral.sh/ruff/). The full configuration is in [`pyproject.toml`](pyproject.toml). Key settings:
+All code is linted and formatted by [ruff](https://docs.astral.sh/ruff/).
 
-- **Line length**: `89` characters
-- **Docstring style**: reStructuredText (`:param:`, `:return:`). See [Docstrings](#docstrings) below.
-- **Enabled rule sets**:
+Use [`pyproject.toml`](pyproject.toml) as the source of truth for:
 
-  | Code | Rule Set | Code | Rule Set |
-  |------|----------|------|----------|
-  | `F` | Pyflakes | `SIM` | flake8-simplify |
-  | `E` / `W` | pycodestyle | `G` / `LOG` | flake8-logging |
-  | `C90` | mccabe (complexity) | `TRY` | tryceratops |
-  | `I` | isort | `B` | flake8-bugbear |
-  | `D` | pydocstyle | `T10` / `T20` | flake8-debugger / print |
-  | `UP` | pyupgrade | `C4` | flake8-comprehensions |
-  | `N` | pep8-naming | `RET` | flake8-return |
-  | `PL` | Pylint | `PERF` | Perflint |
-  | `PT` | flake8-pytest-style | `PIE` / `PYI` | flake8-pie / pyi |
+- line length
+- enabled and ignored rule families
+- per-file ignores
+- formatting options
+
+Read `tool.ruff` and `tool.ruff.lint` before changing lint behavior.
+
+Docstring style is covered in [Docstrings](#docstrings).
 
 ### Type Hints
 
@@ -128,8 +98,12 @@ result: List[str] = []
 
 ### Docstrings
 
-Please use [**reStructuredText (rst)** style](https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html) consistently. This is required because the project uses [Sphinx](https://www.sphinx-doc.org/) with `autodoc` to generate API documentation from docstrings.
-Sphinx parses rst syntax (`:param:`, `:return:`), so Google-style (`Args:`, `Returns:`) will not render correctly in the generated docs.
+Use [**reStructuredText (rst)** style](https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html) because Sphinx `autodoc` parses rst fields from docstrings.
+
+Docstring requirements:
+
+- Use rst field syntax, such as `:param:` and `:return:`.
+- Avoid `Args:` and `Returns:` sections; they do not render correctly in generated docs.
 
 ```python
 # Good - rst style (parsed correctly by Sphinx autodoc)
@@ -146,7 +120,7 @@ def build_hook_chain(
     :return: A callable that executes the hook chain.
     """
 
-# Bad - Google style (will NOT render in Sphinx API docs)
+# Bad - Args/Returns sections (will NOT render in Sphinx API docs)
 def build_hook_chain(...):
     """Build a hook chain.
 
@@ -216,12 +190,12 @@ def mock_meter() -> MagicMock:
 
 ### Coverage Requirements
 
-CI checks test coverage via [Codecov](https://about.codecov.io/). Please make sure your changes meet the following thresholds:
+CI reports coverage through [Codecov](https://about.codecov.io/).
 
-| Scope | Target |
-|-------|--------|
-| **Project** (overall) | 85% |
-| **Patch** (changed lines) | 65% |
+Use [`codecov.yml`](codecov.yml) as the source of truth for:
+
+- project coverage gates
+- patch coverage gates
 
 You can check coverage locally:
 
@@ -281,32 +255,58 @@ For internal-only modules/utilities:
 - Unit tests may import internal modules directly.
 - Integration tests should still validate behavior through public APIs.
 
-## Commit Conventions
+## Commit and Branch Conventions
 
-This project follows [Conventional Commits](https://www.conventionalcommits.org/). Commit messages are validated by [commitlint](https://commitlint.js.org/) in CI (GitHub Actions).
+Create branches from `main` and use this format:
 
-### Format
-
+```text
+<type>/<yymmdd>_<topic>
 ```
+
+Branch components:
+
+- `type`: change category. Use `feat`, `fix`, `docs`, `ci`, `refactor`, `test`, `chore`, `perf`, or `build`.
+- `yymmdd`: date with a two-digit year, for example `260405`
+- `topic`: short lowercase identifier separated with `_`
+
+Examples:
+
+```bash
+git checkout main
+git pull --ff-only upstream main
+git checkout -b feat/260405_quota_parser_dsl
+git checkout -b docs/260405_contributing_branch_rules
+```
+
+Commit conventions:
+
+- Follow [Conventional Commits](https://www.conventionalcommits.org/).
+- CI validates commit messages with [commitlint](https://commitlint.js.org/).
+
+### Commit Format
+
+```text
 <type>: <description>
 ```
 
-Append `(#<issue-number>)` only when the commit intentionally links to a
-specific issue.
+Rules:
 
-### Allowed Types
+- Append `(#<issue-number>)` only when the commit intentionally links to a specific issue.
+- Use a scope when useful, for example `docs(contributing): shorten ruff guidance`.
 
-| Type | Description |
-|------|-------------|
-| `feat` | A new feature |
-| `fix` | A bug fix |
-| `docs` | Documentation only changes |
-| `ci` | Changes to CI configuration |
-| `refactor` | Code change that neither fixes a bug nor adds a feature |
-| `test` | Adding or updating tests |
-| `chore` | Build process or tooling changes |
+### Commit Types
 
-### Examples
+- `feat`: a new feature
+- `fix`: a bug fix
+- `docs`: documentation-only changes
+- `ci`: CI configuration changes
+- `refactor`: code changes that neither fix a bug nor add a feature
+- `test`: adding or updating tests
+- `chore`: build process or tooling changes
+- `perf`: performance improvements
+- `build`: build system or dependency changes
+
+### Commit Examples
 
 ```bash
 # Good
@@ -353,22 +353,29 @@ If you rebased onto `main`, you may need to force-push:
 git push --force-with-lease origin <your-branch>
 ```
 
-### 3. Respond to Reviews
+### 3. Code Review Guidance
+
+Use the canonical review documents:
+
+- `.github/copilot-instructions.md`: project-specific code review guidance
+- `CONTRIBUTING.md`: contributor workflow and project conventions
+
+### 4. Respond to Reviews
 
 - Please address all review comments before requesting re-review.
 - Rebase onto `main` when the maintainer asks you to sync.
 - Please re-run prek after making changes to ensure lint checks still pass.
 
-### 4. CI Checks
+### 5. CI Checks
 
-All of the following must pass before merging:
+Current CI definitions live in `.github/workflows/`.
+Before merging, the workflows relevant to the PR must pass, including:
 
-| Check | What It Does |
-|-------|-------------|
-| **Code Quality** | ruff lint + format via prek |
-| **Tests** | pytest across Python 3.10 - 3.14 + PyPy |
-| **Commitlint** | Validates commit message format |
-| **Coverage** | Reports test coverage (patch + project) |
+- code quality
+- tests
+- commit message validation
+- coverage reporting
+- triggered release workflows
 
 ## PR Checklist
 
@@ -395,5 +402,6 @@ Before submitting your pull request, please verify the following:
 
 ### Branch and Commit
 
-- [ ] Commit message follows Conventional Commits (`<type>: <description> (#issue)`)
+- [ ] Commit message follows Conventional Commits (`<type>: <description>`)
+- [ ] Branch name follows `<type>/<yymmdd>_<topic>`
 - [ ] Branch is rebased onto `main`
