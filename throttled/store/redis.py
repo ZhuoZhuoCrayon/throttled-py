@@ -2,6 +2,8 @@ import copy
 import urllib.parse
 from typing import Any, Generic, cast
 
+import redis.exceptions
+
 from .. import types
 from ..constants import StoreType
 from ..exceptions import DataError
@@ -14,6 +16,11 @@ class BaseRedisStoreBackend(
     BaseStoreBackend[types.RedisClientT], Generic[types.RedisClientT]
 ):
     """Base backend for Redis store."""
+
+    base_exceptions = (
+        redis.exceptions.RedisError,
+        redis.exceptions.RedisClusterException,
+    )
 
     @classmethod
     def _parse_auth(cls, parsed: urllib.parse.ParseResult) -> dict[str, str]:

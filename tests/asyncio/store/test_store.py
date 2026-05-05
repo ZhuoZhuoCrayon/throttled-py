@@ -6,6 +6,12 @@ from throttled.asyncio import BaseStore, RedisStore, constants, exceptions, type
 from ...store import parametrizes
 
 
+def _replace_store_backend(store: BaseStore[Any], backend: Any) -> Any:
+    original_backend = store._backend
+    store._backend = backend
+    return original_backend
+
+
 @pytest.mark.asyncio
 class TestStore:
     @classmethod
@@ -131,6 +137,35 @@ class TestStore:
         for params, expected_result in zip(params_list, expected_results, strict=False):
             await store.hset("name", **params)
             assert await store.hgetall("name") == expected_result
+
+    @classmethod
+    @parametrizes.STORE_UNAVAILABLE_METHOD_PARAMETRIZE
+    async def test_unavailable(
+        cls, store: BaseStore[Any], method_name: str, params: dict[str, Any]
+    ) -> None:
+        base_exceptions: tuple[type[BaseException], ...] = store._backend.base_exceptions
+        if not base_exceptions:
+            pytest.skip(
+                f"{store._backend.__class__.__name__} "
+                f"does not define unavailable exceptions"
+            )
+
+        async def _call():
+            if method_name == "make_atomic":
+                getattr(store, method_name)(**params)
+            else:
+                await getattr(store, method_name)(**params)
+
+        original_backend = _replace_store_backend(
+            store, parametrizes.BrokenStoreBackend(base_exceptions)
+        )
+        try:
+            with pytest.raises(exceptions.StoreUnavailableError) as exc_info:
+                await _call()
+        finally:
+            store._backend = original_backend
+
+        assert isinstance(exc_info.value.__cause__, base_exceptions)
 
 
 _REDIS_STORE_PARSE_COMMON_OPTIONS: dict[str, Any] = {
