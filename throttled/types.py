@@ -58,7 +58,7 @@ class AsyncLockP(Protocol):
 class StoreBackendP(Protocol):
     """Protocol for store backends."""
 
-    base_exceptions: tuple[type[BaseException], ...]
+    base_exceptions: tuple[type[Exception], ...]
 
     def get_client(self) -> object: ...
 

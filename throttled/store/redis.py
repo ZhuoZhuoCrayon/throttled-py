@@ -1,8 +1,7 @@
 import copy
 import urllib.parse
+from types import ModuleType
 from typing import Any, Generic, cast
-
-import redis.exceptions
 
 from .. import types
 from ..constants import StoreType
@@ -11,16 +10,34 @@ from ..utils import format_kv, format_value
 from .base import BaseStore, BaseStoreBackend
 from .redis_pool import BaseConnectionFactory, get_connection_factory
 
+redis_exceptions: ModuleType | None
+
+try:
+    import redis.exceptions as redis_exceptions
+except ImportError:  # pragma: no cover - exercised in optional-dependency envs.
+    redis_exceptions = None
+
+
+def _build_base_exceptions() -> tuple[type[Exception], ...]:
+    if redis_exceptions is None:
+        return ()
+
+    base_exceptions: list[type[Exception]] = [redis_exceptions.RedisError]
+    cluster_exception: object | None = getattr(
+        redis_exceptions, "RedisClusterException", None
+    )
+    if isinstance(cluster_exception, type) and issubclass(cluster_exception, Exception):
+        base_exceptions.append(cluster_exception)
+    return tuple(base_exceptions)
+
 
 class BaseRedisStoreBackend(
     BaseStoreBackend[types.RedisClientT], Generic[types.RedisClientT]
 ):
     """Base backend for Redis store."""
 
-    base_exceptions = (
-        redis.exceptions.RedisError,
-        redis.exceptions.RedisClusterException,
-    )
+    # Older redis-py versions do not expose ``RedisClusterException``.
+    base_exceptions = _build_base_exceptions()
 
     @classmethod
     def _parse_auth(cls, parsed: urllib.parse.ParseResult) -> dict[str, str]:

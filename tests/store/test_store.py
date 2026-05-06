@@ -129,7 +129,7 @@ class TestStore:
     def test_store_unavailable__wrap_backend_error(
         cls, store: BaseStore[Any], method_name: str, params: dict[str, Any]
     ) -> None:
-        base_exceptions: tuple[type[BaseException], ...] = store._backend.base_exceptions
+        base_exceptions: tuple[type[Exception], ...] = store._backend.base_exceptions
         if not base_exceptions:
             pytest.skip(
                 f"{store._backend.__class__.__name__} "

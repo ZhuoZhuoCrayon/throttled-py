@@ -124,7 +124,7 @@ STORE_HGETALL_PARAMETRIZE = pytest.mark.parametrize(
 
 
 class BrokenStoreBackend(types.StoreBackendP):
-    def __init__(self, base_exceptions: tuple[type[BaseException], ...]) -> None:
+    def __init__(self, base_exceptions: tuple[type[Exception], ...]) -> None:
         self.base_exceptions = base_exceptions
 
     def __getattr__(self, name: str) -> Callable[..., object]:

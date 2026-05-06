@@ -18,7 +18,7 @@ class BaseStoreBackend(abc.ABC, Generic[_ClientT]):
 
     # Base exceptions that may be raised by the backend,
     # used for error handling in stores.
-    base_exceptions: tuple[type[BaseException], ...] = ()
+    base_exceptions: tuple[type[Exception], ...] = ()
 
     def __init__(
         self, server: str | None = None, options: dict[str, Any] | None = None

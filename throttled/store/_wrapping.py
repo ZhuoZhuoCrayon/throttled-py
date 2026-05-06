@@ -6,7 +6,7 @@ from typing import Any, Final, NoReturn, Protocol, TypeAlias, cast
 from .. import types
 from ..exceptions import StoreUnavailableError
 
-StoreBaseExceptions: TypeAlias = tuple[type[BaseException], ...]
+StoreBaseExceptions: TypeAlias = tuple[type[Exception], ...]
 WrapperFactory: TypeAlias = Callable[[Callable[..., Any]], Callable[..., Any]]
 
 _STORE_WRAPPED_ATTR: Final = "__store_unavailable_wrapped__"
@@ -41,7 +41,7 @@ def _wrap_class_method(
     setattr(cls, method_name, wrapped)
 
 
-def _raise_store_unavailable(exc: BaseException) -> NoReturn:
+def _raise_store_unavailable(exc: Exception) -> NoReturn:
     raise StoreUnavailableError("Store backend is unavailable.") from exc
 
 
