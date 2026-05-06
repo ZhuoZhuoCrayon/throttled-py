@@ -58,6 +58,8 @@ class AsyncLockP(Protocol):
 class StoreBackendP(Protocol):
     """Protocol for store backends."""
 
+    base_exceptions: tuple[type[Exception], ...]
+
     def get_client(self) -> object: ...
 
 
@@ -86,11 +88,6 @@ class AsyncAtomicActionP(AtomicActionIdentityP, Protocol):
         keys: Sequence[KeyT],
         args: Sequence[StoreValueT] | None,
     ) -> tuple[int | float, ...]: ...
-
-
-#: Deprecated compatibility alias; prefer :class:`SyncAtomicActionP` /
-#: :class:`AsyncAtomicActionP` or the shared :class:`AtomicActionIdentityP`.
-AtomicActionP = SyncAtomicActionP | AsyncAtomicActionP
 
 
 _MakeAtomicT = TypeVar("_MakeAtomicT")

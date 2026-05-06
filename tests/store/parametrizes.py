@@ -1,7 +1,9 @@
+from collections.abc import Callable
 from datetime import timedelta
-from typing import Any
+from typing import Any, cast
 
 import pytest
+from throttled import types
 
 STORE_EXISTS_SET_BEFORE = pytest.mark.parametrize(
     "set_before", [True, False], ids=["set", "not set"]
@@ -117,6 +119,40 @@ STORE_HGETALL_PARAMETRIZE = pytest.mark.parametrize(
             ],
             [{"k0": 0}, {"k0": 0, "k1": 1}, {"k0": 0, "k1": 1, "k2": 2}],
         ]
+    ],
+)
+
+
+class BrokenStoreBackend(types.StoreBackendP):
+    def __init__(self, base_exceptions: tuple[type[Exception], ...]) -> None:
+        self.base_exceptions = base_exceptions
+
+    def __getattr__(self, name: str) -> Callable[..., object]:
+        def _raise(*args: object, **kwargs: object) -> object:
+            raise self.base_exceptions[0]
+
+        return _raise
+
+    def get_client(self) -> object:
+        return self
+
+
+class BrokenAtomicAction:
+    def __init__(self, backend: types.StoreBackendP) -> None:
+        cast("BrokenStoreBackend", backend.get_client()).register_script("script")
+
+
+STORE_UNAVAILABLE_METHOD_PARAMETRIZE = pytest.mark.parametrize(
+    "method_name, params",
+    [
+        ["exists", {"key": "key"}],
+        ["ttl", {"key": "key"}],
+        ["expire", {"key": "key", "timeout": 1}],
+        ["set", {"key": "key", "value": 1, "timeout": 1}],
+        ["get", {"key": "key"}],
+        ["hset", {"name": "name", "key": "key", "value": 1}],
+        ["hgetall", {"name": "name"}],
+        ["make_atomic", {"action_cls": BrokenAtomicAction}],
     ],
 )
 

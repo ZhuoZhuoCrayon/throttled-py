@@ -4,6 +4,7 @@ from typing import Any, Generic, TypeVar
 
 from .. import types
 from ..exceptions import DataError
+from ._wrapping import wrap_class_methods
 
 _ClientT = TypeVar("_ClientT", bound=object)
 
@@ -14,6 +15,10 @@ _ActionT = TypeVar("_ActionT")
 
 class BaseStoreBackend(abc.ABC, Generic[_ClientT]):
     """Abstract class for all store backends."""
+
+    # Base exceptions that may be raised by the backend,
+    # used for error handling in stores.
+    base_exceptions: tuple[type[Exception], ...] = ()
 
     def __init__(
         self, server: str | None = None, options: dict[str, Any] | None = None
@@ -27,13 +32,30 @@ class BaseStoreBackend(abc.ABC, Generic[_ClientT]):
         raise NotImplementedError
 
 
-class BaseAtomicActionMixin(Generic[_BackendT]):
+class AutoWrapMethodsMixin:
+    """Mixin class for auto-wrapping subclass-declared methods.
+
+    Subclasses declare ``_WRAPPED_METHOD_NAMES`` to describe which methods should
+    be wrapped once the class becomes concrete.
+    """
+
+    # List of method names to wrap, declared by concrete subclasses.
+    _WRAPPED_METHOD_NAMES: tuple[str, ...] = ()
+
+    def __init_subclass__(cls, **kwargs: object) -> None:
+        super().__init_subclass__(**kwargs)
+        wrap_class_methods(cls, cls._WRAPPED_METHOD_NAMES)
+
+
+class BaseAtomicActionMixin(AutoWrapMethodsMixin, Generic[_BackendT]):
     """Mixin class for AtomicAction."""
 
     # Identifier of AtomicAction, must be unique under STORE_TYPE.
     TYPE: types.AtomicActionTypeT = ""
     # Expected store type with which AtomicAction is compatible.
     STORE_TYPE: str = ""
+
+    _WRAPPED_METHOD_NAMES: tuple[str, ...] = ("do",)
 
     def __init__(self, backend: _BackendT) -> None:
         self._backend: _BackendT = backend
@@ -57,11 +79,22 @@ class BaseAtomicAction(BaseAtomicActionMixin[_BackendT], abc.ABC, Generic[_Backe
         raise NotImplementedError
 
 
-class BaseStoreMixin:
+class BaseStoreMixin(AutoWrapMethodsMixin):
     """Mixin class for async / sync BaseStore."""
 
     # Unique identifier for the type of store.
     TYPE: str = ""
+
+    _WRAPPED_METHOD_NAMES: tuple[str, ...] = (
+        "exists",
+        "ttl",
+        "expire",
+        "set",
+        "get",
+        "hset",
+        "hgetall",
+        "make_atomic",
+    )
 
     @classmethod
     def _validate_timeout(cls, timeout: int) -> None:
