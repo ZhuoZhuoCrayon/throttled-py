@@ -37,6 +37,7 @@
 * Supports [configuration of rate limiting algorithms](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#3-algorithms) and provides flexible [quota configuration](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#4-quota-configuration).
 * Supports immediate response and [wait-retry](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#wait--retry) modes, and provides [function call](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#function-call), [decorator](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#decorator), and [context manager](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#context-manager) modes.
 * Supports integration with the [MCP](https://modelcontextprotocol.io/introduction) [Python SDK](https://github.com/modelcontextprotocol/python-sdk) to provide rate limiting support for model dialog processes.
+* Official [FastAPI integration](https://throttled-py.readthedocs.io/en/latest/contrib/fastapi.html) with async decorator-based rate limiting, IETF-compliant `RateLimit-*` headers, and HTTP 429 handling.
 * Excellent performance,  The execution time for a single rate limiting API call is equivalent to(see [Benchmarks](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#-benchmarks) for details):
   * In-Memory: ~2.5-4.5x `dict[key] += 1` operations.
   * Redis: ~1.06-1.37x `INCRBY key increment` operations.
@@ -69,6 +70,7 @@ $ pip install "throttled-py[redis,otel]"
 | `memory`    | In-Memory backend is available by default (`memory` extra installs no additional dependencies). |
 | `redis`     | Use Redis as storage backend.     |
 | `otel`      | Enable OpenTelemetry hook support. |
+| `fastapi`   | [FastAPI integration](https://throttled-py.readthedocs.io/en/latest/contrib/fastapi.html) with decorator-based rate limiting. |
 
 
 ## 🎨 Quick Start
