@@ -198,7 +198,10 @@ class TestLimiterLimit:
         independent rate-limit keys. Each sub-app registers its
         own middleware and exception handler (app-local model)."""
         store = MemoryStore()
-        limiter = Limiter("1/s", store=store)
+        # Use a per-minute quota so token-bucket refill cannot trigger
+        # within the test's wall time and produce a flaky 200 on the
+        # final assertion.
+        limiter = Limiter("1/m", store=store)
 
         api = FastAPI()
         admin = FastAPI()
