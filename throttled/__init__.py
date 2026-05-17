@@ -29,7 +29,7 @@ from .store import (
 )
 from .throttled import Throttled
 
-__version__ = "3.3.0"
+__version__ = "3.3.1"
 VERSION = tuple(map(int, __version__.split(".")))
 
 
