@@ -3,7 +3,6 @@ from datetime import timedelta
 from typing import Any, cast
 
 import pytest
-from throttled import types
 
 STORE_EXISTS_SET_BEFORE = pytest.mark.parametrize(
     "set_before", [True, False], ids=["set", "not set"]
@@ -123,7 +122,7 @@ STORE_HGETALL_PARAMETRIZE = pytest.mark.parametrize(
 )
 
 
-class BrokenStoreBackend(types.StoreBackendP):
+class BrokenStoreBackend:
     def __init__(self, base_exceptions: tuple[type[Exception], ...]) -> None:
         self.base_exceptions = base_exceptions
 
@@ -138,7 +137,7 @@ class BrokenStoreBackend(types.StoreBackendP):
 
 
 class BrokenAtomicAction:
-    def __init__(self, backend: types.StoreBackendP) -> None:
+    def __init__(self, backend: BrokenStoreBackend) -> None:
         cast("BrokenStoreBackend", backend.get_client()).register_script("script")
 
 

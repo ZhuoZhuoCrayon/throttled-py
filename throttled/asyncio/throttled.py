@@ -1,33 +1,115 @@
 import abc
 import asyncio
-from collections.abc import Callable, Coroutine
+from collections.abc import Callable, Coroutine, Sequence
 from functools import wraps
 from types import TracebackType
 from typing import Any
 
-from .. import types
-from ..exceptions import DataError, LimitedError
-from ..hooks import HookContext
-from ..throttled import BaseThrottledMixin
-from ..utils import now_mono_f
-from .hooks import Hook, build_hook_chain
+from .. import exceptions, types, utils
+from .._throttled.logic import ThrottledLogic
+from .hooks import Hook, HookContext, build_hook_chain
 from .rate_limiter import (
     BaseRateLimiter,
+    Quota,
     RateLimiterRegistry,
     RateLimitResult,
     RateLimitState,
 )
-from .store import MemoryStore
+from .store import BaseStore, MemoryStore
 
 AsyncFunc = Callable[types.P, Coroutine[Any, Any, types.R]]
 
 
-class BaseThrottled(
-    BaseThrottledMixin[BaseRateLimiter, Hook, types.AsyncStoreP], abc.ABC
-):
+class BaseThrottled(ThrottledLogic, abc.ABC):
     """Abstract class for all throttled classes."""
 
+    __slots__ = (
+        "key",
+        "timeout",
+        "_quota",
+        "_cost",
+        "_store",
+        "_limiter_cls",
+        "_limiter",
+        "_hooks",
+    )
+
     _ALLOWED_HOOK_TYPES = (Hook,)
+    _REGISTRY_CLASS: type[RateLimiterRegistry] = RateLimiterRegistry
+    _DEFAULT_GLOBAL_STORE: BaseStore = MemoryStore()
+
+    def __init__(
+        self,
+        key: types.KeyT | None = None,
+        timeout: float | None = None,
+        using: types.RateLimiterTypeT | None = None,
+        quota: Quota | str | None = None,
+        store: BaseStore | None = None,
+        cost: int = 1,
+        hooks: Sequence[Hook] | None = None,
+    ) -> None:
+        """Initializes the Throttled class.
+
+        :param key: The unique identifier for the rate limit subject,
+            e.g. user ID or IP address.
+        :param timeout: Maximum wait time in seconds when rate limit is exceeded.
+            (Default) If set to -1, it will return immediately.
+            Otherwise, it will block until the request can be processed
+            or the timeout is reached.
+        :param using: The type of rate limiter to use, you can choose from
+            :class:`RateLimiterType`, default: ``token_bucket``.
+        :param quota: The quota for the rate limiter, default: 60 requests per minute.
+            It accepts either:
+            - :class:`throttled.rate_limiter.Quota`
+            - A quota DSL string, e.g. ``"100/s burst 200"``
+        :param store: The store to use for the rate limiter. By default, it uses
+            the global shared :class:`throttled.asyncio.store.MemoryStore` instance
+            with maximum capacity of 1024, so you don't usually need to create it
+            manually.
+        :type store: :class:`throttled.asyncio.store.BaseStore`
+        :param cost: The cost of each request in terms of how much of the rate limit
+            quota it consumes, default: 1.
+        :param hooks: A sequence of hooks invoked by the middleware before and/or after
+            each ``limit()`` operation, including any internal retries.
+        """
+        self.key: str | None = key
+
+        self.timeout: float = self._NON_BLOCKING if timeout is None else timeout
+        self._validate_timeout(self.timeout)
+
+        self._quota: Quota = self._parse_quota(quota)
+        self._store: BaseStore = store or self._DEFAULT_GLOBAL_STORE
+        self._limiter_cls: type[BaseRateLimiter] = self._REGISTRY_CLASS.get(
+            using or self._DEFAULT_RATE_LIMITER_TYPE
+        )
+        self._limiter: BaseRateLimiter | None = None
+        self._hooks: tuple[Hook, ...] = self._validate_hooks(hooks)
+
+        self._validate_cost(cost)
+        self._cost: int = cost
+
+    @property
+    def limiter(self) -> BaseRateLimiter:
+        """Lazily initializes and returns the async rate limiter instance."""
+        limiter: BaseRateLimiter | None = self._limiter
+        if limiter is not None:
+            return limiter
+
+        created_limiter: BaseRateLimiter = self._limiter_cls(self._quota, self._store)
+        self._limiter = created_limiter
+        return created_limiter
+
+    def _validate_hooks(self, hooks: Sequence[Hook] | None) -> tuple[Hook, ...]:
+        """Validate that all hooks are of the expected type and return as tuple."""
+        if not hooks:
+            return ()
+        for hook in hooks:
+            if not isinstance(hook, self._ALLOWED_HOOK_TYPES):
+                expected = ", ".join(t.__name__ for t in self._ALLOWED_HOOK_TYPES)
+                raise TypeError(
+                    f"Invalid hook type: {type(hook).__name__}. Expected: {expected}"
+                )
+        return tuple(hooks)
 
     @abc.abstractmethod
     async def __aenter__(self) -> RateLimitResult:
@@ -93,21 +175,17 @@ class BaseThrottled(
 class Throttled(BaseThrottled):
     """Async rate limiter that provides throttling functionality."""
 
-    _REGISTRY_CLASS: type[RateLimiterRegistry] = RateLimiterRegistry
-
-    _DEFAULT_GLOBAL_STORE: types.AsyncStoreP = MemoryStore()
-
     async def __aenter__(self) -> RateLimitResult:
         result: RateLimitResult = await self.limit()
         if result.limited:
-            raise LimitedError(rate_limit_result=result)
+            raise exceptions.LimitedError(rate_limit_result=result)
         return result
 
     async def _wait(self, timeout: float, retry_after: float) -> None:
         if retry_after <= 0:
             return
 
-        start_time: float = now_mono_f()
+        start_time: float = utils.now_mono_f()
         while True:
             # Sleep for the specified time.
             wait_time = self._get_wait_time(retry_after)
@@ -130,7 +208,7 @@ class Throttled(BaseThrottled):
             return result
 
         # TODO: When cost > limit, return early instead of waiting.
-        start_time: float = now_mono_f()
+        start_time: float = utils.now_mono_f()
         while True:
             if result.state.retry_after > timeout:
                 break
@@ -142,7 +220,7 @@ class Throttled(BaseThrottled):
             if not result.limited:
                 break
 
-            elapsed: float = now_mono_f() - start_time
+            elapsed: float = utils.now_mono_f() - start_time
             if elapsed >= timeout:
                 break
 
@@ -194,13 +272,15 @@ class Throttled(BaseThrottled):
             f: AsyncFunc[types.P, types.R],
         ) -> AsyncFunc[types.P, types.R]:
             if not self.key:
-                raise DataError(f"Invalid key: {self.key}, must be a non-empty key.")
+                raise exceptions.DataError(
+                    f"Invalid key: {self.key}, must be a non-empty key."
+                )
 
             @wraps(f)
             async def _inner(*args: types.P.args, **kwargs: types.P.kwargs) -> types.R:
                 result: RateLimitResult = await self.limit(cost=self._cost)
                 if result.limited:
-                    raise LimitedError(rate_limit_result=result)
+                    raise exceptions.LimitedError(rate_limit_result=result)
                 return await f(*args, **kwargs)
 
             return _inner

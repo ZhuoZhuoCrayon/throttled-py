@@ -1,18 +1,22 @@
 """Async store exports."""
 
-from ...store import BaseAtomicActionMixin, BaseStoreBackend, BaseStoreMixin
+from ...store import BaseStoreBackend
 from .base import BaseAtomicAction, BaseStore
-from .memory import MemoryStore, MemoryStoreBackend
-from .redis import RedisStore, RedisStoreBackend
+from .memory import BaseMemoryAtomicAction, MemoryStore, MemoryStoreBackend
+from .redis import (
+    BaseRedisAtomicAction,
+    RedisStore,
+    RedisStoreBackend,
+)
 
 __all__ = [
     "BaseStoreBackend",
     "BaseAtomicAction",
-    "BaseAtomicActionMixin",
     "BaseStore",
-    "BaseStoreMixin",
+    "BaseMemoryAtomicAction",
     "MemoryStoreBackend",
     "MemoryStore",
+    "BaseRedisAtomicAction",
     "RedisStoreBackend",
     "RedisStore",
 ]

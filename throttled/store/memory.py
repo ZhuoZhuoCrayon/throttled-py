@@ -1,19 +1,17 @@
+import abc
 import math
 import threading
 from collections import OrderedDict
-from collections import OrderedDict as OrderedDictT
+from collections.abc import Sequence
 from typing import Any, cast
 
-from .. import types
-from ..constants import STORE_TTL_STATE_NOT_EXIST, STORE_TTL_STATE_NOT_TTL, StoreType
-from ..exceptions import DataError, SetUpError
-from ..utils import now_mono_f
-from .base import BaseStore, BaseStoreBackend
+from .. import constants, exceptions, types, utils
+from .base import BaseAtomicAction, BaseStore, BaseStoreBackend
 
-_ClientT = OrderedDictT[types.KeyT, types.StoreBucketValueT]
+_ClientT = OrderedDict[types.KeyT, types.StoreBucketValueT]
 
 
-class BaseMemoryStoreBackend(BaseStoreBackend[_ClientT]):
+class BaseMemoryStoreBackend(BaseStoreBackend):
     """Base backend for Memory Store."""
 
     def __init__(
@@ -23,7 +21,7 @@ class BaseMemoryStoreBackend(BaseStoreBackend[_ClientT]):
 
         max_size: int = self.options.get("MAX_SIZE", 1024)
         if not (isinstance(max_size, int) and max_size > 0):
-            raise SetUpError("MAX_SIZE must be a positive integer")
+            raise exceptions.SetUpError("MAX_SIZE must be a positive integer")
 
         self.max_size: int = max_size
         self.expire_info: dict[str, float] = {}
@@ -36,18 +34,18 @@ class BaseMemoryStoreBackend(BaseStoreBackend[_ClientT]):
         return key in self._client
 
     def has_expired(self, key: types.KeyT) -> bool:
-        return self.ttl(key) == STORE_TTL_STATE_NOT_EXIST
+        return self.ttl(key) == constants.STORE_TTL_STATE_NOT_EXIST
 
     def ttl(self, key: types.KeyT) -> int:
         exp: float | None = self.expire_info.get(key)
         if exp is None:
             if not self.exists(key):
-                return STORE_TTL_STATE_NOT_EXIST
-            return STORE_TTL_STATE_NOT_TTL
+                return constants.STORE_TTL_STATE_NOT_EXIST
+            return constants.STORE_TTL_STATE_NOT_TTL
 
-        ttl: float = exp - now_mono_f()
+        ttl: float = exp - utils.now_mono_f()
         if ttl <= 0:
-            return STORE_TTL_STATE_NOT_EXIST
+            return constants.STORE_TTL_STATE_NOT_EXIST
         return math.ceil(ttl)
 
     def check_and_evict(self, key: types.KeyT) -> None:
@@ -57,7 +55,7 @@ class BaseMemoryStoreBackend(BaseStoreBackend[_ClientT]):
             self.expire_info.pop(pop_key, None)
 
     def expire(self, key: types.KeyT, timeout: int) -> None:
-        self.expire_info[key] = now_mono_f() + timeout
+        self.expire_info[key] = utils.now_mono_f() + timeout
 
     def get(self, key: types.KeyT) -> types.StoreValueT | None:
         if self.has_expired(key):
@@ -66,7 +64,7 @@ class BaseMemoryStoreBackend(BaseStoreBackend[_ClientT]):
 
         bucket_value: types.StoreBucketValueT | None = self._client.get(key)
         if bucket_value is not None and isinstance(bucket_value, dict):
-            raise DataError("dict value does not support get")
+            raise exceptions.DataError("dict value does not support get")
         value: types.StoreValueT | None = bucket_value
         if value is not None:
             self._client.move_to_end(key)
@@ -86,12 +84,12 @@ class BaseMemoryStoreBackend(BaseStoreBackend[_ClientT]):
         mapping: types.StoreDictValueT | None = None,
     ) -> None:
         if key is None and not mapping:
-            raise DataError("hset must with key value pairs")
+            raise exceptions.DataError("hset must with key value pairs")
 
         kv: types.StoreDictValueT = {}
         if key is not None:
             if value is None:
-                raise DataError("hset with key requires non-empty value")
+                raise exceptions.DataError("hset with key requires non-empty value")
             kv[key] = value
         if mapping:
             kv.update(mapping)
@@ -99,7 +97,7 @@ class BaseMemoryStoreBackend(BaseStoreBackend[_ClientT]):
         origin: types.StoreBucketValueT | None = self._client.get(name)
         if origin is not None:
             if not isinstance(origin, dict):
-                raise DataError("origin must be a dict")
+                raise exceptions.DataError("origin must be a dict")
             origin.update(kv)
         else:
             self.check_and_evict(name)
@@ -114,7 +112,7 @@ class BaseMemoryStoreBackend(BaseStoreBackend[_ClientT]):
 
         kv: types.StoreBucketValueT | None = self._client.get(name)
         if not (kv is None or isinstance(kv, dict)):
-            raise DataError("NumberLike value does not support hgetall")
+            raise exceptions.DataError("NumberLike value does not support hgetall")
 
         if kv is not None:
             self._client.move_to_end(name)
@@ -130,6 +128,22 @@ class BaseMemoryStoreBackend(BaseStoreBackend[_ClientT]):
         return True
 
 
+class BaseMemoryAtomicActionSpec(abc.ABC):
+    """Base class for sync memory atomic action specifications."""
+
+    STORE_TYPE: str = constants.StoreType.MEMORY.value
+
+    @classmethod
+    @abc.abstractmethod
+    def _do(
+        cls,
+        backend: BaseMemoryStoreBackend,
+        keys: Sequence[types.KeyT],
+        args: Sequence[types.StoreValueT] | None,
+    ) -> tuple[int | float, ...]:
+        raise NotImplementedError
+
+
 class MemoryStoreBackend(BaseMemoryStoreBackend):
     """Backend for sync Memory Store."""
 
@@ -142,7 +156,21 @@ class MemoryStoreBackend(BaseMemoryStoreBackend):
         self.lock = cast("types.SyncLockP", cast("object", threading.Lock()))
 
 
-class MemoryStore(BaseStore[MemoryStoreBackend]):
+class BaseMemoryAtomicAction(BaseMemoryAtomicActionSpec, BaseAtomicAction, abc.ABC):
+    """Base class for sync memory atomic actions bound to MemoryStoreBackend."""
+
+    _backend: MemoryStoreBackend
+
+    def do(
+        self,
+        keys: Sequence[types.KeyT],
+        args: Sequence[types.StoreValueT] | None,
+    ) -> tuple[int | float, ...]:
+        with self._backend.lock:
+            return self._do(self._backend, keys, args)
+
+
+class MemoryStore(BaseStore):
     """Concrete implementation of BaseStore using Memory as backend.
 
     :class:`throttled.store.MemoryStore` is essentially a memory-based
@@ -159,19 +187,10 @@ class MemoryStore(BaseStore[MemoryStoreBackend]):
     # * LRU only                  -> 103 ms, 76.8 MB  (Beat 92.77% of submissions)
     # * LRU implemented in Golang -> 86 ms,  76.43 MB (Beat 52.98% of submissions)
 
-    TYPE: str = StoreType.MEMORY.value
+    TYPE: str = constants.StoreType.MEMORY.value
 
     _BACKEND_CLASS: type[MemoryStoreBackend] = MemoryStoreBackend
-
-    def __init__(
-        self, server: str | None = None, options: dict[str, Any] | None = None
-    ) -> None:
-        """Initialize MemoryStore.
-
-        :ref:`MemoryStore Arguments <store-configuration-memory-store-arguments>`.
-        """
-        super().__init__(server, options)
-        self._backend: MemoryStoreBackend = self._BACKEND_CLASS(server, options)
+    _backend: MemoryStoreBackend
 
     def exists(self, key: types.KeyT) -> bool:
         return self._backend.exists(key)

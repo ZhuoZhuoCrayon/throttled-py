@@ -1,17 +1,13 @@
 import abc
 import threading
 import time
-from _thread import LockType
 from collections.abc import Callable, Sequence
 from functools import wraps
 from types import TracebackType
-from typing import Generic, TypeVar, cast
+from typing import TYPE_CHECKING
 
-from . import types
-from .asyncio.hooks import Hook as AsyncHook
-from .asyncio.rate_limiter import BaseRateLimiter as AsyncBaseRateLimiter
-from .constants import RateLimiterType
-from .exceptions import DataError, LimitedError
+from . import exceptions, types, utils
+from ._throttled.logic import ThrottledLogic
 from .hooks import Hook, HookContext, build_hook_chain
 from .rate_limiter import (
     BaseRateLimiter,
@@ -19,48 +15,34 @@ from .rate_limiter import (
     RateLimiterRegistry,
     RateLimitResult,
     RateLimitState,
-    per_min,
 )
-from .rate_limiter.quota_parser import parse as parse_quota
-from .store import MemoryStore
-from .utils import now_mono_f
+from .store import BaseStore, MemoryStore
 
-HookP = Hook | AsyncHook
 Func = Callable[types.P, types.R]
 
-_LimiterT = TypeVar("_LimiterT", bound=BaseRateLimiter | AsyncBaseRateLimiter)
-_HookT = TypeVar("_HookT", bound=HookP)
-_StoreT = TypeVar("_StoreT", bound=types.StoreP)
+
+if TYPE_CHECKING:
+    from _thread import LockType
 
 
-class BaseThrottledMixin(Generic[_LimiterT, _HookT, _StoreT]):
-    """Mixin class for async / sync BaseThrottled."""
+class BaseThrottled(ThrottledLogic, abc.ABC):
+    """Abstract class for all throttled classes."""
 
     __slots__ = (
         "key",
         "timeout",
         "_quota",
+        "_cost",
         "_store",
         "_limiter_cls",
         "_limiter",
         "_lock",
-        "_cost",
         "_hooks",
     )
 
-    _REGISTRY_CLASS: type[RateLimiterRegistry] | None = None
-    _ALLOWED_HOOK_TYPES: tuple[type[HookP], ...] = ()
-
-    # Default store for the rate limiter.
-    # By default, the global shared MemoryStore is used, when no store is specified.
-    _DEFAULT_GLOBAL_STORE: types.StoreP | None = None
-
-    # Non-blocking mode constant
-    _NON_BLOCKING: float = -1
-    # Interval between retries in seconds
-    _WAIT_INTERVAL: float = 0.5
-    # Minimum interval between retries in seconds
-    _WAIT_MIN_INTERVAL: float = 0.2
+    _REGISTRY_CLASS: type[RateLimiterRegistry] = RateLimiterRegistry
+    _ALLOWED_HOOK_TYPES = (Hook,)
+    _DEFAULT_GLOBAL_STORE: BaseStore = MemoryStore()
 
     def __init__(
         self,
@@ -68,9 +50,9 @@ class BaseThrottledMixin(Generic[_LimiterT, _HookT, _StoreT]):
         timeout: float | None = None,
         using: types.RateLimiterTypeT | None = None,
         quota: Quota | str | None = None,
-        store: _StoreT | None = None,
+        store: BaseStore | None = None,
         cost: int = 1,
-        hooks: Sequence[_HookT] | None = None,
+        hooks: Sequence[Hook] | None = None,
     ) -> None:
         """Initializes the Throttled class.
 
@@ -104,44 +86,26 @@ class BaseThrottledMixin(Generic[_LimiterT, _HookT, _StoreT]):
         self._validate_timeout(self.timeout)
 
         self._quota: Quota = self._parse_quota(quota)
-        default_store: _StoreT | None = store or cast(
-            "_StoreT | None", self._DEFAULT_GLOBAL_STORE
-        )
-        if default_store is None:
-            raise DataError("Invalid store: store is required for current throttler.")
-        self._store: _StoreT = default_store
-
-        if self._REGISTRY_CLASS is None:
-            raise DataError(
-                "Invalid throttler setup: rate limiter registry is not configured."
-            )
-        self._limiter_cls: type[_LimiterT] = cast(
-            "type[_LimiterT]",
-            self._REGISTRY_CLASS.get(using or RateLimiterType.TOKEN_BUCKET.value),
+        self._store: BaseStore = store or self._DEFAULT_GLOBAL_STORE
+        self._limiter_cls: type[BaseRateLimiter] = self._REGISTRY_CLASS.get(
+            using or self._DEFAULT_RATE_LIMITER_TYPE
         )
 
         self._lock: LockType = self._get_lock()
-        self._limiter: _LimiterT | None = None
-        self._hooks: tuple[_HookT, ...] = self._validate_hooks(hooks)
+        self._limiter: BaseRateLimiter | None = None
+        self._hooks: tuple[Hook, ...] = self._validate_hooks(hooks)
 
         self._validate_cost(cost)
         self._cost: int = cost
 
     @classmethod
-    def _get_lock(cls) -> LockType:
+    def _get_lock(cls) -> "LockType":
         return threading.Lock()
 
-    def _make_limiter(self) -> _LimiterT:
-        """Create a typed limiter instance from the registry-selected class."""
-        limiter_factory: Callable[[Quota, _StoreT], _LimiterT] = cast(
-            "Callable[[Quota, _StoreT], _LimiterT]", self._limiter_cls
-        )
-        return limiter_factory(self._quota, self._store)
-
     @property
-    def limiter(self) -> _LimiterT:
+    def limiter(self) -> BaseRateLimiter:
         """Lazily initializes and returns the rate limiter instance."""
-        limiter: _LimiterT | None = self._limiter
+        limiter: BaseRateLimiter | None = self._limiter
         if limiter is not None:
             return limiter
 
@@ -151,11 +115,13 @@ class BaseThrottledMixin(Generic[_LimiterT, _HookT, _StoreT]):
             if limiter is not None:
                 return limiter
 
-            created_limiter: _LimiterT = self._make_limiter()
+            created_limiter: BaseRateLimiter = self._limiter_cls(
+                self._quota, self._store
+            )
             self._limiter = created_limiter
             return created_limiter
 
-    def _validate_hooks(self, hooks: Sequence[_HookT] | None) -> tuple[_HookT, ...]:
+    def _validate_hooks(self, hooks: Sequence[Hook] | None) -> tuple[Hook, ...]:
         """Validate that all hooks are of the expected type and return as tuple."""
         if not hooks:
             return ()
@@ -166,99 +132,6 @@ class BaseThrottledMixin(Generic[_LimiterT, _HookT, _StoreT]):
                     f"Invalid hook type: {type(hook).__name__}. Expected: {expected}"
                 )
         return tuple(hooks)
-
-    @classmethod
-    def _validate_cost(cls, cost: int) -> None:
-        """Validate the cost of the current request.
-
-        :param cost: The cost of the current request in terms of how much of
-            the rate limit quota it consumes.
-            It must be an integer greater than or equal to 0.
-        :raise: :class:`throttled.exceptions.DataError` if the cost is
-            not a non-negative integer.
-        """
-        if isinstance(cost, int) and cost >= 0:
-            return
-
-        raise DataError(
-            f"Invalid cost: {cost}, must be an integer greater than or equal to 0."
-        )
-
-    @classmethod
-    def _validate_timeout(cls, timeout: float) -> None:
-        """Validate the timeout value.
-
-        :param timeout: Maximum wait time in seconds when rate limit is exceeded.
-        :raise: DataError if the timeout is not a positive float or -1(non-blocking).
-        """
-        if timeout == cls._NON_BLOCKING:
-            return
-
-        if isinstance(timeout, (int, float)) and timeout > 0:
-            return
-
-        raise DataError(
-            f"Invalid timeout: {timeout}, must be a positive float or -1(non-blocking)."
-        )
-
-    @classmethod
-    def _parse_quota(cls, quota: Quota | str | None) -> Quota:
-        if quota is None:
-            return per_min(60)
-
-        if isinstance(quota, Quota):
-            return quota
-
-        parsed_quotas = parse_quota(quota)
-        if len(parsed_quotas) > 1:
-            raise DataError(
-                "Invalid quota: multiple quota rules are not supported in "
-                "Throttled(quota=...) yet."
-            )
-        return parsed_quotas[0]
-
-    def _get_key(self, key: types.KeyT | None = None) -> types.KeyT:
-        # Use the provided key if available.
-        if key:
-            return key
-
-        if self.key:
-            return self.key
-
-        raise DataError(f"Invalid key: {key}, must be a non-empty key.")
-
-    def _get_timeout(self, timeout: float | None = None) -> float:
-        if timeout is not None:
-            self._validate_timeout(timeout)
-            return timeout
-
-        return self.timeout
-
-    def _get_wait_time(self, retry_after: float) -> float:
-        """Calculate the wait time based on the retry_after value."""
-        # WAIT_INTERVAL: Chunked waiting interval to avoid long blocking periods.
-        # Also helps reduce actual wait time considering thread context switches.
-        # WAIT_MIN_INTERVAL: Minimum wait interval to prevent busy-waiting.
-        return max(min(retry_after, self._WAIT_INTERVAL), self._WAIT_MIN_INTERVAL)
-
-    @classmethod
-    def _is_exit_waiting(
-        cls, start_time: float, retry_after: float, timeout: float
-    ) -> bool:
-        # Calculate the elapsed time since the start time.
-        # Due to additional context switching overhead in multithread contexts,
-        # we don't directly use sleep_time to calculate elapsed time.
-        # Instead, we re-fetch the current time and subtract it from the start time.
-        elapsed: float = now_mono_f() - start_time
-        return elapsed >= retry_after or elapsed >= timeout
-
-
-class BaseThrottled(
-    BaseThrottledMixin[BaseRateLimiter, Hook, types.SyncStoreP], abc.ABC
-):
-    """Abstract class for all throttled classes."""
-
-    _ALLOWED_HOOK_TYPES = (Hook,)
 
     @abc.abstractmethod
     def __enter__(self) -> RateLimitResult:
@@ -334,12 +207,10 @@ class Throttled(BaseThrottled):
 
     _REGISTRY_CLASS: type[RateLimiterRegistry] = RateLimiterRegistry
 
-    _DEFAULT_GLOBAL_STORE: types.SyncStoreP = MemoryStore()
-
     def __enter__(self) -> RateLimitResult:
         result: RateLimitResult = self.limit()
         if result.limited:
-            raise LimitedError(rate_limit_result=result)
+            raise exceptions.LimitedError(rate_limit_result=result)
         return result
 
     def __call__(self, func: Func[types.P, types.R]) -> Func[types.P, types.R]:
@@ -364,14 +235,16 @@ class Throttled(BaseThrottled):
 
         def decorator(f: Func[types.P, types.R]) -> Func[types.P, types.R]:
             if not self.key:
-                raise DataError(f"Invalid key: {self.key}, must be a non-empty key.")
+                raise exceptions.DataError(
+                    f"Invalid key: {self.key}, must be a non-empty key."
+                )
 
             @wraps(f)
             def _inner(*args: types.P.args, **kwargs: types.P.kwargs) -> types.R:
                 # TODO Add options to ignore state.
                 result: RateLimitResult = self.limit(cost=self._cost)
                 if result.limited:
-                    raise LimitedError(rate_limit_result=result)
+                    raise exceptions.LimitedError(rate_limit_result=result)
                 return f(*args, **kwargs)
 
             return _inner
@@ -382,7 +255,7 @@ class Throttled(BaseThrottled):
         if retry_after <= 0:
             return
 
-        start_time: float = now_mono_f()
+        start_time: float = utils.now_mono_f()
         while True:
             # Sleep for the specified time.
             wait_time = self._get_wait_time(retry_after)
@@ -403,7 +276,7 @@ class Throttled(BaseThrottled):
             return result
 
         # TODO: When cost > limit, return early instead of waiting.
-        start_time: float = now_mono_f()
+        start_time: float = utils.now_mono_f()
         while True:
             if result.state.retry_after > timeout:
                 break
@@ -415,7 +288,7 @@ class Throttled(BaseThrottled):
             if not result.limited:
                 break
 
-            elapsed: float = now_mono_f() - start_time
+            elapsed: float = utils.now_mono_f() - start_time
             if elapsed >= timeout:
                 break
 

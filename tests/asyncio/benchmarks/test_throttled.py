@@ -1,6 +1,6 @@
 import asyncio
 from collections.abc import AsyncGenerator
-from typing import Any
+from typing import Any, cast
 
 import pytest
 import pytest_asyncio
@@ -17,18 +17,19 @@ from throttled.asyncio import (
     types,
     utils,
 )
+from throttled.types import AsyncRedisClientP
 
 REDIS_URL: str = "redis://127.0.0.1:6379/0"
 
 WORKERS: int = 8
 
 
-async def clear_redis(client: Redis) -> None:
+async def clear_redis(client: AsyncRedisClientP) -> None:
     keys: list[str] = await client.keys("throttled*")
     await client.delete(*keys)
 
 
-async def redis_baseline(client: Redis):
+async def redis_baseline(client: AsyncRedisClientP):
     await client.incrby("throttled:v2", 1)
 
 
@@ -46,23 +47,23 @@ async def call_api(throttle: Throttled) -> bool:
 
 
 @pytest_asyncio.fixture(params=constants.StoreType.choice())
-async def store(request) -> AsyncGenerator[BaseStore[Any], Any]:
-    def _create_store(store_type: str) -> BaseStore[Any]:
+async def store(request) -> AsyncGenerator[BaseStore, Any]:
+    def _create_store(store_type: str) -> BaseStore:
         if store_type == constants.StoreType.MEMORY.value:
             return MemoryStore()
         return RedisStore(server=REDIS_URL)
 
-    store: BaseStore[Any] = _create_store(request.param)
+    store: BaseStore = _create_store(request.param)
 
     yield store
 
     if request.param == constants.StoreType.REDIS.value:
-        await clear_redis(store._backend.get_client())
+        await clear_redis(cast("RedisStore", store)._backend.get_client())
 
 
 @pytest_asyncio.fixture
-async def redis_client() -> AsyncGenerator[Redis, Any]:
-    client: Redis = Redis.from_url(REDIS_URL)
+async def redis_client() -> AsyncGenerator[AsyncRedisClientP, Any]:
+    client: AsyncRedisClientP = Redis.from_url(REDIS_URL)
 
     yield client
 
@@ -88,13 +89,13 @@ class TestBenchmarkThrottled:
 
     @classmethod
     async def test_redis_baseline__serial(
-        cls, benchmark: utils.Benchmark, redis_client: Redis
+        cls, benchmark: utils.Benchmark, redis_client: AsyncRedisClientP
     ):
         await benchmark.async_serial(redis_baseline, batch=100_000, client=redis_client)
 
     @classmethod
     async def test_redis_baseline__concurrent(
-        cls, benchmark: utils.Benchmark, redis_client: Redis
+        cls, benchmark: utils.Benchmark, redis_client: AsyncRedisClientP
     ):
         await benchmark.async_concurrent(
             redis_baseline, batch=100_000, workers=WORKERS, client=redis_client
@@ -106,7 +107,7 @@ class TestBenchmarkThrottled:
     async def test_limit__serial(
         cls,
         benchmark: utils.Benchmark,
-        store: BaseStore[Any],
+        store: BaseStore,
         using: types.RateLimiterTypeT,
         quota: Quota,
     ):
@@ -119,7 +120,7 @@ class TestBenchmarkThrottled:
     async def test_limit__concurrent(
         cls,
         benchmark: utils.Benchmark,
-        store: BaseStore[Any],
+        store: BaseStore,
         using: types.RateLimiterTypeT,
         quota: Quota,
     ):

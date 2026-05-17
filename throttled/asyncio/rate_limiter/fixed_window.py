@@ -1,28 +1,17 @@
 from collections.abc import Sequence
 from typing import cast
 
-from ... import types
-from ...constants import ATOMIC_ACTION_TYPE_LIMIT
+from ... import constants, types
 from ...rate_limiter.fixed_window import (
     FixedWindowRateLimiterCoreMixin,
-    MemoryLimitAtomicActionCoreMixin,
-    RedisLimitAtomicActionConstants,
+    MemoryLimitActionLogic,
+    RedisLimitAtomicActionSpec,
 )
 from .. import store
 from . import BaseRateLimiter, RateLimitResult, RateLimitState
 
 
-class RedisLimitAtomicActionCoreMixin(
-    RedisLimitAtomicActionConstants,
-    store.BaseAtomicActionMixin[store.RedisStoreBackend],
-):
-    """Core mixin for async RedisLimitAtomicAction."""
-
-
-class RedisLimitAtomicAction(
-    RedisLimitAtomicActionCoreMixin,
-    store.BaseAtomicAction[store.RedisStoreBackend],
-):
+class RedisLimitAtomicAction(RedisLimitAtomicActionSpec, store.BaseRedisAtomicAction):
     """Redis-based implementation of AtomicAction for Async FixedWindowRateLimiter."""
 
     async def do(
@@ -43,28 +32,16 @@ class RedisLimitAtomicAction(
         return limited, current
 
 
-class MemoryLimitAtomicAction(
-    MemoryLimitAtomicActionCoreMixin[store.MemoryStoreBackend],
-    store.BaseAtomicAction[store.MemoryStoreBackend],
-):
+class MemoryLimitAtomicAction(MemoryLimitActionLogic, store.BaseMemoryAtomicAction):
     """Memory-based implementation of AtomicAction for Async FixedWindowRateLimiter."""
 
-    async def do(
-        self,
-        keys: Sequence[types.KeyT],
-        args: Sequence[types.StoreValueT] | None,
-    ) -> tuple[int, int]:
-        async with self._backend.lock:
-            return self._do(self._backend, keys, args)
+    TYPE: types.AtomicActionTypeT = constants.ATOMIC_ACTION_TYPE_LIMIT
 
 
-class FixedWindowRateLimiter(
-    FixedWindowRateLimiterCoreMixin[types.AsyncStoreP, types.AsyncAtomicActionP],
-    BaseRateLimiter,
-):
+class FixedWindowRateLimiter(FixedWindowRateLimiterCoreMixin, BaseRateLimiter):
     """Concrete implementation of BaseRateLimiter using fixed window as algorithm."""
 
-    _DEFAULT_ATOMIC_ACTION_CLASSES: Sequence[type[types.AsyncAtomicActionP]] = (
+    _DEFAULT_ATOMIC_ACTION_CLASSES: Sequence[type[store.BaseAtomicAction]] = (
         RedisLimitAtomicAction,
         MemoryLimitAtomicAction,
     )
@@ -73,7 +50,7 @@ class FixedWindowRateLimiter(
         period_key, period, limit, now = self._prepare(key)
         limited, current = cast(
             "tuple[int, int]",
-            await self._atomic_actions[ATOMIC_ACTION_TYPE_LIMIT].do(
+            await self._atomic_actions[constants.ATOMIC_ACTION_TYPE_LIMIT].do(
                 [period_key], [period, limit, cost]
             ),
         )

@@ -1,4 +1,3 @@
-from collections.abc import MutableMapping, Sequence
 from types import TracebackType
 from typing import TYPE_CHECKING, ParamSpec, Protocol, TypeVar
 
@@ -55,121 +54,6 @@ class AsyncLockP(Protocol):
     ) -> None: ...
 
 
-class StoreBackendP(Protocol):
-    """Protocol for store backends."""
-
-    base_exceptions: tuple[type[Exception], ...]
-
-    def get_client(self) -> object: ...
-
-
-class AtomicActionIdentityP(Protocol):
-    """Identity surface (``TYPE`` / ``STORE_TYPE``) shared by every AtomicAction."""
-
-    TYPE: AtomicActionTypeT
-    STORE_TYPE: str
-
-
-class SyncAtomicActionP(AtomicActionIdentityP, Protocol):
-    """Protocol for all sync atomic actions."""
-
-    def do(
-        self,
-        keys: Sequence[KeyT],
-        args: Sequence[StoreValueT] | None,
-    ) -> tuple[int | float, ...]: ...
-
-
-class AsyncAtomicActionP(AtomicActionIdentityP, Protocol):
-    """Protocol for all async atomic actions."""
-
-    async def do(
-        self,
-        keys: Sequence[KeyT],
-        args: Sequence[StoreValueT] | None,
-    ) -> tuple[int | float, ...]: ...
-
-
-_MakeAtomicT = TypeVar("_MakeAtomicT")
-
-
-class StoreForLimiterP(Protocol):
-    """Minimum store surface required by ``BaseRateLimiterMixin``.
-
-    Both sync ``throttled.store.BaseStore`` and async
-    ``throttled.asyncio.store.BaseStore`` satisfy this structurally. Runtime
-    pairing between a backend and an AtomicAction is enforced by the
-    ``STORE_TYPE`` filter inside ``_register_atomic_actions``.
-    """
-
-    TYPE: str
-
-    def make_atomic(self, action_cls: type[_MakeAtomicT]) -> _MakeAtomicT: ...
-
-
-class SyncStoreP(StoreForLimiterP, Protocol):
-    """Protocol for all sync store backends."""
-
-    def exists(self, key: KeyT) -> bool: ...
-    def ttl(self, key: KeyT) -> int: ...
-    def expire(self, key: KeyT, timeout: int) -> None: ...
-    def set(self, key: KeyT, value: StoreValueT, timeout: int) -> None: ...
-    def get(self, key: KeyT) -> StoreValueT | None: ...
-    def hgetall(self, name: KeyT) -> StoreDictValueT: ...
-
-    def hset(
-        self,
-        name: KeyT,
-        key: KeyT | None = None,
-        value: StoreValueT | None = None,
-        mapping: StoreDictValueT | None = None,
-    ) -> None: ...
-
-
-class AsyncStoreP(StoreForLimiterP, Protocol):
-    """Protocol for all async store backends."""
-
-    async def exists(self, key: KeyT) -> bool: ...
-    async def ttl(self, key: KeyT) -> int: ...
-    async def expire(self, key: KeyT, timeout: int) -> None: ...
-    async def set(self, key: KeyT, value: StoreValueT, timeout: int) -> None: ...
-    async def get(self, key: KeyT) -> StoreValueT | None: ...
-    async def hgetall(self, name: KeyT) -> StoreDictValueT: ...
-
-    async def hset(
-        self,
-        name: KeyT,
-        key: KeyT | None = None,
-        value: StoreValueT | None = None,
-        mapping: StoreDictValueT | None = None,
-    ) -> None: ...
-
-
-#: Deprecated compatibility alias; prefer :class:`SyncStoreP` /
-#: :class:`AsyncStoreP` or the shared :class:`StoreForLimiterP`.
-StoreP = SyncStoreP | AsyncStoreP
-
-
-class MemoryStoreBackendP(StoreBackendP, Protocol):
-    """Protocol for memory-like backend surface used by rate limit algorithms."""
-
-    def get_client(self) -> MutableMapping[KeyT, StoreBucketValueT]: ...
-    def exists(self, key: KeyT) -> bool: ...
-    def ttl(self, key: KeyT) -> int: ...
-    def expire(self, key: KeyT, timeout: int) -> None: ...
-    def set(self, key: KeyT, value: StoreValueT, timeout: int) -> None: ...
-    def get(self, key: KeyT) -> StoreValueT | None: ...
-    def hgetall(self, name: KeyT) -> StoreDictValueT: ...
-
-    def hset(
-        self,
-        name: KeyT,
-        key: KeyT | None = None,
-        value: StoreValueT | None = None,
-        mapping: StoreDictValueT | None = None,
-    ) -> None: ...
-
-
 class SyncRedisClientP(Protocol):
     """Protocol declaring Redis methods used by sync RedisStore.
 
@@ -183,6 +67,9 @@ class SyncRedisClientP(Protocol):
     def set(self, name: str, value: StoreValueT, ex: int | None = ...) -> object: ...
     def get(self, name: str) -> StoreValueT | None: ...
     def incrby(self, name: str, amount: int = 1) -> int: ...
+    def delete(self, *names: str) -> int: ...
+    def keys(self, pattern: str) -> list[str]: ...
+    def flushall(self) -> bool: ...
     def register_script(self, script: str) -> "SyncScript": ...
 
     def hset(
@@ -209,6 +96,9 @@ class AsyncRedisClientP(Protocol):
     async def get(self, name: str) -> StoreValueT | None: ...
     async def hgetall(self, name: str) -> StoreDictValueT: ...
     async def incrby(self, name: str, amount: int = 1) -> int: ...
+    async def delete(self, *names: str) -> int: ...
+    async def keys(self, pattern: str) -> list[str]: ...
+    async def flushall(self) -> bool: ...
     def register_script(self, script: str) -> "AsyncScript": ...
 
     async def set(
@@ -227,12 +117,3 @@ class AsyncRedisClientP(Protocol):
 RedisP = SyncRedisClientP | AsyncRedisClientP
 
 RedisClientT = TypeVar("RedisClientT", bound=RedisP)
-
-MemoryStoreBackendT = TypeVar(
-    "MemoryStoreBackendT",
-    bound=MemoryStoreBackendP,
-)
-
-StoreT = TypeVar("StoreT", bound=StoreForLimiterP)
-
-ActionT = TypeVar("ActionT", bound=AtomicActionIdentityP)

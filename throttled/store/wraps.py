@@ -1,10 +1,12 @@
 import inspect
 from collections.abc import Callable
 from functools import wraps
-from typing import Any, Final, NoReturn, Protocol, TypeAlias, cast
+from typing import TYPE_CHECKING, Any, Final, NoReturn, Protocol, TypeAlias, cast
 
-from .. import types
 from ..exceptions import StoreUnavailableError
+
+if TYPE_CHECKING:
+    from ..store import BaseStoreBackend
 
 StoreBaseExceptions: TypeAlias = tuple[type[Exception], ...]
 WrapperFactory: TypeAlias = Callable[[Callable[..., Any]], Callable[..., Any]]
@@ -13,13 +15,23 @@ _STORE_WRAPPED_ATTR: Final = "__store_unavailable_wrapped__"
 
 
 class _HasStoreBackendP(Protocol):
-    _backend: types.StoreBackendP
+    _backend: "BaseStoreBackend"
 
 
-def wrap_class_methods(cls: type[object], method_names: tuple[str, ...]) -> None:
-    """Wrap specified methods declared by concrete subclasses."""
-    for method_name in method_names:
-        _wrap_class_method(cls, method_name, _wrap_method)
+class AutoWrapMethodsMixin:
+    """Mixin class for auto-wrapping subclass-declared methods.
+
+    Subclasses declare ``_WRAPPED_METHOD_NAMES`` to describe which methods should
+    be wrapped once the class becomes concrete.
+    """
+
+    # List of method names to wrap, declared by concrete subclasses.
+    _WRAPPED_METHOD_NAMES: tuple[str, ...] = ()
+
+    def __init_subclass__(cls, **kwargs: object) -> None:
+        super().__init_subclass__(**kwargs)
+        for method_name in cls._WRAPPED_METHOD_NAMES:
+            _wrap_class_method(cls, method_name, _wrap_method)
 
 
 def _wrap_class_method(

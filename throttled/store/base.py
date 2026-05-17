@@ -1,20 +1,13 @@
 import abc
-from collections.abc import Callable, Sequence
-from typing import Any, Generic, TypeVar
+from collections.abc import Sequence
+from typing import Any
 
-from .. import types
-from ..exceptions import DataError
-from ._wrapping import wrap_class_methods
-
-_ClientT = TypeVar("_ClientT", bound=object)
-
-_BackendT = TypeVar("_BackendT", bound=types.StoreBackendP)
-
-_ActionT = TypeVar("_ActionT")
+from .. import exceptions, types
+from .wraps import AutoWrapMethodsMixin
 
 
-class BaseStoreBackend(abc.ABC, Generic[_ClientT]):
-    """Abstract class for all store backends."""
+class BaseStoreBackend:
+    """Base class for store backends with shared configuration state."""
 
     # Base exceptions that may be raised by the backend,
     # used for error handling in stores.
@@ -26,43 +19,17 @@ class BaseStoreBackend(abc.ABC, Generic[_ClientT]):
         self.server: str | None = server
         self.options: dict[str, Any] = options or {}
 
-    @abc.abstractmethod
-    def get_client(self) -> _ClientT:
-        """Return the underlying client."""
-        raise NotImplementedError
 
+class BaseAtomicAction(AutoWrapMethodsMixin, abc.ABC):
+    """Abstract class for all atomic actions performed by a store backend."""
 
-class AutoWrapMethodsMixin:
-    """Mixin class for auto-wrapping subclass-declared methods.
-
-    Subclasses declare ``_WRAPPED_METHOD_NAMES`` to describe which methods should
-    be wrapped once the class becomes concrete.
-    """
-
-    # List of method names to wrap, declared by concrete subclasses.
-    _WRAPPED_METHOD_NAMES: tuple[str, ...] = ()
-
-    def __init_subclass__(cls, **kwargs: object) -> None:
-        super().__init_subclass__(**kwargs)
-        wrap_class_methods(cls, cls._WRAPPED_METHOD_NAMES)
-
-
-class BaseAtomicActionMixin(AutoWrapMethodsMixin, Generic[_BackendT]):
-    """Mixin class for AtomicAction."""
-
-    # Identifier of AtomicAction, must be unique under STORE_TYPE.
     TYPE: types.AtomicActionTypeT = ""
-    # Expected store type with which AtomicAction is compatible.
     STORE_TYPE: str = ""
 
     _WRAPPED_METHOD_NAMES: tuple[str, ...] = ("do",)
 
-    def __init__(self, backend: _BackendT) -> None:
-        self._backend: _BackendT = backend
-
-
-class BaseAtomicAction(BaseAtomicActionMixin[_BackendT], abc.ABC, Generic[_BackendT]):
-    """Abstract class for all atomic actions performed by a store backend."""
+    def __init__(self, backend: BaseStoreBackend) -> None:
+        self._backend = backend
 
     @abc.abstractmethod
     def do(
@@ -79,8 +46,8 @@ class BaseAtomicAction(BaseAtomicActionMixin[_BackendT], abc.ABC, Generic[_Backe
         raise NotImplementedError
 
 
-class BaseStoreMixin(AutoWrapMethodsMixin):
-    """Mixin class for async / sync BaseStore."""
+class StoreSpec:
+    """Shared identity and wrapped-command declaration for stores."""
 
     # Unique identifier for the type of store.
     TYPE: str = ""
@@ -96,6 +63,10 @@ class BaseStoreMixin(AutoWrapMethodsMixin):
         "make_atomic",
     )
 
+
+class StoreValidationLogic:
+    """Pure validation helpers shared by sync and async stores."""
+
     @classmethod
     def _validate_timeout(cls, timeout: int) -> None:
         """Validate the timeout.
@@ -106,21 +77,36 @@ class BaseStoreMixin(AutoWrapMethodsMixin):
         if isinstance(timeout, int) and timeout > 0:
             return
 
-        raise DataError(
+        raise exceptions.DataError(
             f"Invalid timeout: {timeout}, Must be an integer greater than 0."
         )
 
-    def __init__(
-        self, server: str | None = None, options: dict[str, Any] | None = None
-    ) -> None:
-        self.server: str | None = server
-        self.options: dict[str, Any] = options or {}
 
-
-class BaseStore(BaseStoreMixin, abc.ABC, Generic[_BackendT]):
+class BaseStore(StoreSpec, StoreValidationLogic, AutoWrapMethodsMixin, abc.ABC):
     """Abstract class for all stores."""
 
-    _backend: _BackendT
+    _BACKEND_CLASS: type[BaseStoreBackend] = BaseStoreBackend
+    _backend: BaseStoreBackend
+
+    def __init__(
+        self,
+        server: str | None = None,
+        options: dict[str, Any] | None = None,
+    ) -> None:
+        """Initialize the store and its backend.
+
+        :param server: Store backend connection string.
+        :param options: Store backend options.
+            For backend-specific configuration details, see
+            :doc:`/advance_usage/store-configuration`.
+        """
+        self.server: str | None = server
+        self.options: dict[str, Any] = options or {}
+        self._backend = self._BACKEND_CLASS(server, options)
+
+    def make_atomic(self, action_cls: type[BaseAtomicAction]) -> BaseAtomicAction:
+        """Create an AtomicAction instance bound to the concrete store backend."""
+        return action_cls(backend=self._backend)
 
     @abc.abstractmethod
     def exists(self, key: types.KeyT) -> bool:
@@ -189,8 +175,3 @@ class BaseStore(BaseStoreMixin, abc.ABC, Generic[_BackendT]):
     @abc.abstractmethod
     def hgetall(self, name: types.KeyT) -> types.StoreDictValueT:
         raise NotImplementedError
-
-    def make_atomic(self, action_cls: type[_ActionT]) -> _ActionT:
-        """Create an instance of an AtomicAction bound to this store's backend."""
-        factory: Callable[..., _ActionT] = action_cls
-        return factory(backend=self._backend)

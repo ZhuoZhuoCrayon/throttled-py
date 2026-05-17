@@ -2,13 +2,21 @@
 
 from .base import (
     BaseAtomicAction,
-    BaseAtomicActionMixin,
     BaseStore,
     BaseStoreBackend,
-    BaseStoreMixin,
 )
-from .memory import BaseMemoryStoreBackend, MemoryStore, MemoryStoreBackend
-from .redis import BaseRedisStoreBackend, RedisStore, RedisStoreBackend
+from .memory import (
+    BaseMemoryAtomicAction,
+    BaseMemoryStoreBackend,
+    MemoryStore,
+    MemoryStoreBackend,
+)
+from .redis import (
+    BaseRedisAtomicAction,
+    BaseRedisStoreBackend,
+    RedisStore,
+    RedisStoreBackend,
+)
 from .redis_pool import (
     BaseConnectionFactory,
     ClusterConnectionFactory,
@@ -20,13 +28,13 @@ from .redis_pool import (
 __all__ = [
     "BaseStoreBackend",
     "BaseAtomicAction",
-    "BaseAtomicActionMixin",
     "BaseStore",
     "BaseMemoryStoreBackend",
-    "BaseStoreMixin",
+    "BaseMemoryAtomicAction",
     "MemoryStoreBackend",
     "MemoryStore",
     "BaseRedisStoreBackend",
+    "BaseRedisAtomicAction",
     "RedisStoreBackend",
     "RedisStore",
     "BaseConnectionFactory",

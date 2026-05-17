@@ -1,6 +1,5 @@
 from collections.abc import Callable
 from datetime import timedelta
-from typing import Any
 
 import pytest
 from throttled import (
@@ -21,7 +20,7 @@ from . import parametrizes
 
 @pytest.fixture
 def rate_limiter_constructor(
-    store: BaseStore[Any],
+    store: BaseStore,
 ) -> Callable[[Quota], BaseRateLimiter]:
     def _create_rate_limiter(quota: Quota) -> BaseRateLimiter:
         return RateLimiterRegistry.get(RateLimiterType.FIXED_WINDOW.value)(quota, store)
