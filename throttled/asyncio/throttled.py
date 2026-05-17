@@ -63,9 +63,10 @@ class BaseThrottled(ThrottledLogic, abc.ABC):
             - :class:`throttled.rate_limiter.Quota`
             - A quota DSL string, e.g. ``"100/s burst 200"``
         :param store: The store to use for the rate limiter. By default, it uses
-            the global shared :class:`throttled.store.MemoryStore` instance with
-            maximum capacity of 1024, so you don't usually need to create it manually.
-        :type store: :class:`throttled.store.BaseStore`
+            the global shared :class:`throttled.asyncio.store.MemoryStore` instance
+            with maximum capacity of 1024, so you don't usually need to create it
+            manually.
+        :type store: :class:`throttled.asyncio.store.BaseStore`
         :param cost: The cost of each request in terms of how much of the rate limit
             quota it consumes, default: 1.
         :param hooks: A sequence of hooks invoked by the middleware before and/or after

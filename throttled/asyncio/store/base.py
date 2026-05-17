@@ -48,6 +48,8 @@ class BaseStore(StoreSpec, StoreValidationLogic, AutoWrapMethodsMixin, abc.ABC):
 
         :param server: Store backend connection string.
         :param options: Store backend options.
+            For backend-specific configuration details, see
+            :doc:`/advance_usage/store-configuration`.
         """
         self.server: str | None = server
         self.options: dict[str, Any] = options or {}
