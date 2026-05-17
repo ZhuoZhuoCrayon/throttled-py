@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from redis.commands.core import Script as SyncScript
 
 
-class RedisLimitAtomActionSpec:
+class RedisLimitAtomicActionSpec:
     """Identity and Lua script shared by sync / async Redis GCRA limit actions."""
 
     TYPE: types.AtomicActionTypeT = constants.ATOMIC_ACTION_TYPE_LIMIT
@@ -55,7 +55,7 @@ class RedisLimitAtomActionSpec:
     """
 
 
-class RedisPeekAtomActionSpec:
+class RedisPeekAtomicActionSpec:
     """Identity and Lua script shared by sync / async Redis GCRA peek actions."""
 
     TYPE: types.AtomicActionTypeT = constants.ATOMIC_ACTION_TYPE_PEEK
@@ -93,7 +93,7 @@ class RedisPeekAtomActionSpec:
     """
 
 
-class RedisLimitAtomicAction(RedisLimitAtomActionSpec, store.BaseRedisAtomicAction):
+class RedisLimitAtomicAction(RedisLimitAtomicActionSpec, store.BaseRedisAtomicAction):
     """Redis-based implementation of AtomicAction for GCRARateLimiter's limit operation.
 
     Inspire by [Rate Limiting, Cells, and GCRA](https://brandur.org/rate-limiting).
@@ -114,7 +114,7 @@ class RedisLimitAtomicAction(RedisLimitAtomActionSpec, store.BaseRedisAtomicActi
         return limited, remaining, float(reset_after), float(retry_after)
 
 
-class RedisPeekAtomicAction(RedisPeekAtomActionSpec, store.BaseRedisAtomicAction):
+class RedisPeekAtomicAction(RedisPeekAtomicActionSpec, store.BaseRedisAtomicAction):
     """Redis-based AtomicAction for GCRARateLimiter's peek operation."""
 
     def __init__(self, backend: store.RedisStoreBackend) -> None:

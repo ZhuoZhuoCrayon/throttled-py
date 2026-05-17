@@ -5,13 +5,13 @@ from ... import constants, types
 from ...rate_limiter.fixed_window import (
     FixedWindowRateLimiterCoreMixin,
     MemoryLimitActionLogic,
-    RedisLimitAtomActionSpec,
+    RedisLimitAtomicActionSpec,
 )
 from .. import store
 from . import BaseRateLimiter, RateLimitResult, RateLimitState
 
 
-class RedisLimitAtomicAction(RedisLimitAtomActionSpec, store.BaseRedisAtomicAction):
+class RedisLimitAtomicAction(RedisLimitAtomicActionSpec, store.BaseRedisAtomicAction):
     """Redis-based implementation of AtomicAction for Async FixedWindowRateLimiter."""
 
     async def do(

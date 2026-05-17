@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, cast
 from ... import constants, types, utils
 from ...rate_limiter.sliding_window import (
     MemoryLimitActionLogic,
-    RedisLimitAtomActionSpec,
+    RedisLimitAtomicActionSpec,
     SlidingWindowRateLimiterCoreMixin,
 )
 from .. import store
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from redis.commands.core import AsyncScript
 
 
-class RedisLimitAtomicAction(RedisLimitAtomActionSpec, store.BaseRedisAtomicAction):
+class RedisLimitAtomicAction(RedisLimitAtomicActionSpec, store.BaseRedisAtomicAction):
     """Redis-based implementation of AtomicAction for Async SlidingWindowRateLimiter."""
 
     def __init__(self, backend: store.RedisStoreBackend) -> None:

@@ -2,7 +2,7 @@ import abc
 from abc import ABC
 from typing import TYPE_CHECKING
 
-from ... import exceptions, rate_limiter
+from ... import rate_limiter
 from ...rate_limiter.base import BaseRateLimiterRegistry
 
 if TYPE_CHECKING:
@@ -59,23 +59,11 @@ class BaseRateLimiter(
         self._register_atomic_actions(additional_atomic_actions or ())
 
     @classmethod
-    def _default_atomic_action_classes(
-        cls,
-    ) -> "Sequence[type[BaseAtomicAction]]":
+    def _default_atomic_action_classes(cls) -> "Sequence[type[BaseAtomicAction]]":
         return cls._DEFAULT_ATOMIC_ACTION_CLASSES
 
     def _validate_registered_atomic_actions(self) -> None:
-        supported_types = set(self._supported_atomic_action_types())
-        registered_types = set(self._atomic_actions.keys())
-        missing_types = supported_types - registered_types
-        if missing_types:
-            raise exceptions.SetUpError(
-                "Missing AtomicActionTypes: expected [{expected}] but missing "
-                "[{missing}].".format(
-                    expected=",".join(sorted(supported_types)),
-                    missing=",".join(sorted(missing_types)),
-                )
-            )
+        self._check_supported_atomic_action_types(list(self._atomic_actions.keys()))
 
     def _register_atomic_actions(
         self, classes: "Sequence[type[BaseAtomicAction]]"

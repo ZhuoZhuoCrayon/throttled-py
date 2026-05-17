@@ -33,12 +33,15 @@ be comma-separated):
 2) Extras
 ==========
 
-+------------+--------------------------------------------------------------------------------------+
-| Extra      | Description                                                                          |
-+============+======================================================================================+
-| ``memory`` | In-Memory backend is available by default (``memory`` extra installs no dependencies). |
-+------------+--------------------------------------------------------------------------------------+
-| ``redis``  | Use Redis as storage backend.                                                        |
-+------------+--------------------------------------------------------------------------------------+
-| ``otel``   | OpenTelemetry metrics integration.                                                   |
-+------------+--------------------------------------------------------------------------------------+
+.. list-table::
+   :header-rows: 1
+
+   * - Extra
+     - Description
+   * - ``memory``
+     - In-memory backend is available by default (the ``memory`` extra
+       installs no dependencies).
+   * - ``redis``
+     - Use Redis as storage backend.
+   * - ``otel``
+     - OpenTelemetry metrics integration.

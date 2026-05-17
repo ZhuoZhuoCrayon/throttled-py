@@ -91,12 +91,16 @@ class BaseThrottled(ThrottledLogic, abc.ABC):
             using or self._DEFAULT_RATE_LIMITER_TYPE
         )
 
-        self._lock: LockType = threading.Lock()
+        self._lock: LockType = self._get_lock()
         self._limiter: BaseRateLimiter | None = None
         self._hooks: tuple[Hook, ...] = self._validate_hooks(hooks)
 
         self._validate_cost(cost)
         self._cost: int = cost
+
+    @classmethod
+    def _get_lock(cls) -> "LockType":
+        return threading.Lock()
 
     @property
     def limiter(self) -> BaseRateLimiter:

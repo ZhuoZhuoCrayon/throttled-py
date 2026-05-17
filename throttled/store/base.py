@@ -7,7 +7,7 @@ from .wraps import AutoWrapMethodsMixin
 
 
 class BaseStoreBackend:
-    """Abstract class for all store backends."""
+    """Base class for store backends with shared configuration state."""
 
     # Base exceptions that may be raised by the backend,
     # used for error handling in stores.

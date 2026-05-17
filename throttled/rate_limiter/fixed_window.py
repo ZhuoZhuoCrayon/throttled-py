@@ -5,13 +5,13 @@ from .. import constants, store, types, utils
 from . import BaseRateLimiter, BaseRateLimiterMixin, RateLimitResult, RateLimitState
 
 
-class RedisLimitAtomActionSpec:
+class RedisLimitAtomicActionSpec:
     """Identity shared by sync / async Redis fixed-window atomic actions."""
 
     TYPE: types.AtomicActionTypeT = constants.ATOMIC_ACTION_TYPE_LIMIT
 
 
-class RedisLimitAtomicAction(RedisLimitAtomActionSpec, store.BaseRedisAtomicAction):
+class RedisLimitAtomicAction(RedisLimitAtomicActionSpec, store.BaseRedisAtomicAction):
     """Redis-based implementation of AtomicAction for FixedWindowRateLimiter."""
 
     def do(

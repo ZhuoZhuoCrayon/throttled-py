@@ -6,8 +6,8 @@ from ...rate_limiter.gcra import (
     GCRARateLimiterCoreMixin,
     MemoryLimitActionLogic,
     MemoryPeekActionLogic,
-    RedisLimitAtomActionSpec,
-    RedisPeekAtomActionSpec,
+    RedisLimitAtomicActionSpec,
+    RedisPeekAtomicActionSpec,
 )
 from .. import store
 from . import BaseRateLimiter, RateLimitResult, RateLimitState
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from redis.commands.core import AsyncScript
 
 
-class RedisLimitAtomicAction(RedisLimitAtomActionSpec, store.BaseRedisAtomicAction):
+class RedisLimitAtomicAction(RedisLimitAtomicActionSpec, store.BaseRedisAtomicAction):
     """Redis-based implementation of AtomicAction for Async GCRARateLimiter."""
 
     def __init__(self, backend: store.RedisStoreBackend) -> None:
@@ -34,7 +34,7 @@ class RedisLimitAtomicAction(RedisLimitAtomActionSpec, store.BaseRedisAtomicActi
         return limited, remaining, float(reset_after), float(retry_after)
 
 
-class RedisPeekAtomicAction(RedisPeekAtomActionSpec, store.BaseRedisAtomicAction):
+class RedisPeekAtomicAction(RedisPeekAtomicActionSpec, store.BaseRedisAtomicAction):
     """Redis-based AtomicAction for GCRARateLimiter's peek operation."""
 
     def __init__(self, backend: store.RedisStoreBackend) -> None:

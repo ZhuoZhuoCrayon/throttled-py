@@ -173,7 +173,7 @@ class BaseMemoryAtomicAction(BaseMemoryAtomicActionSpec, BaseAtomicAction, abc.A
 class MemoryStore(BaseStore):
     """Concrete implementation of BaseStore using Memory as backend.
 
-    :class:`throttled.MemoryStore` is essentially a memory-based
+    :class:`throttled.store.MemoryStore` is essentially a memory-based
     `LRU Cache <https://en.wikipedia.org/wiki/Cache_replacement_policies#LRU>`_
     with expiration time, it is thread-safe and can be used for rate limiting
     in a single process.

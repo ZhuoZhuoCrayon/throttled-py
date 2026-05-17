@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from redis.commands.core import Script as SyncScript
 
 
-class RedisLimitAtomActionSpec:
+class RedisLimitAtomicActionSpec:
     """Identity and Lua script shared by sync / async Redis leaking-bucket actions."""
 
     TYPE: types.AtomicActionTypeT = constants.ATOMIC_ACTION_TYPE_LIMIT
@@ -44,7 +44,7 @@ class RedisLimitAtomActionSpec:
     """
 
 
-class RedisLimitAtomicAction(RedisLimitAtomActionSpec, store.BaseRedisAtomicAction):
+class RedisLimitAtomicAction(RedisLimitAtomicActionSpec, store.BaseRedisAtomicAction):
     """Redis-based implementation of AtomicAction for LeakingBucketRateLimiter."""
 
     def __init__(self, backend: store.RedisStoreBackend) -> None:

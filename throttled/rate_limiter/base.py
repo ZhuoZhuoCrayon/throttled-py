@@ -1,6 +1,5 @@
 import abc
 import logging
-from abc import ABC
 from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Generic, Protocol, TypeVar
@@ -206,7 +205,7 @@ class RateLimiterMeta(abc.ABCMeta):
         return new_cls
 
 
-class BaseRateLimiterMixin(ABC):
+class BaseRateLimiterMixin(abc.ABC):
     """Mixin class for RateLimiter."""
 
     KEY_PREFIX: str = "throttled:v1:"
@@ -221,6 +220,28 @@ class BaseRateLimiterMixin(ABC):
     def _supported_atomic_action_types(cls) -> "Sequence[types.AtomicActionTypeT]":
         """Define the supported AtomicAction types for RateLimiter."""
         raise NotImplementedError
+
+    @classmethod
+    def _check_supported_atomic_action_types(
+        cls, registered_types: "Sequence[types.AtomicActionTypeT]"
+    ) -> None:
+        """Check if the provided AtomicAction types are supported.
+
+        :param registered_types: A sequence of AtomicAction types to check.
+        :raise: SetUpError if any of the provided types are not supported.
+        """
+        supported_types: set[types.AtomicActionTypeT] = set(
+            cls._supported_atomic_action_types()
+        )
+        missing_types: set[str] = supported_types - set(registered_types)
+        if missing_types:
+            raise exceptions.SetUpError(
+                "Missing AtomicActionTypes: expected [{expected}] but missing "
+                "[{missing}].".format(
+                    expected=",".join(sorted(supported_types)),
+                    missing=",".join(sorted(missing_types)),
+                )
+            )
 
     def _prepare_key(self, key: str) -> str:
         """Prepare the key by adding the prefix.
@@ -249,7 +270,7 @@ class BaseRateLimiterMixin(ABC):
         return f"{self.KEY_PREFIX}{self.Meta.type}:{key}"
 
 
-class BaseRateLimiter(BaseRateLimiterMixin, ABC, metaclass=RateLimiterMeta):
+class BaseRateLimiter(BaseRateLimiterMixin, abc.ABC, metaclass=RateLimiterMeta):
     """Base class for RateLimiter."""
 
     _store: "BaseStore"
@@ -274,24 +295,7 @@ class BaseRateLimiter(BaseRateLimiterMixin, ABC, metaclass=RateLimiterMeta):
         return cls._DEFAULT_ATOMIC_ACTION_CLASSES
 
     def _validate_registered_atomic_actions(self) -> None:
-        """Validate that all required AtomicAction types have been registered.
-
-        :raise: SetUpError
-        """
-        supported_types: set[types.AtomicActionTypeT] = set(
-            self._supported_atomic_action_types()
-        )
-        registered_types: set[types.AtomicActionTypeT] = set(self._atomic_actions.keys())
-
-        missing_types: set[str] = supported_types - registered_types
-        if missing_types:
-            raise exceptions.SetUpError(
-                "Missing AtomicActionTypes: expected [{expected}] but missing "
-                "[{missing}].".format(
-                    expected=",".join(sorted(supported_types)),
-                    missing=",".join(sorted(missing_types)),
-                )
-            )
+        self._check_supported_atomic_action_types(list(self._atomic_actions.keys()))
 
     def _register_atomic_actions(
         self, classes: "Sequence[type[BaseAtomicAction]]"
