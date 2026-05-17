@@ -40,6 +40,7 @@ Changes = "https://github.com/ZhuoZhuoCrayon/throttled-py/releases"
 memory = []
 redis = ["redis>3,!=4.5.2,!=4.5.3,<8.0.0"]
 otel = ["opentelemetry-api>=1.30.0"]
+fastapi = ["fastapi>=0.100.0,<1.0.0"]
 
 [dependency-groups]
 dev = [
@@ -57,6 +58,8 @@ dev = [
     "opentelemetry-api>=1.30.0",
     "opentelemetry-sdk>=1.30.0",
     "mypy>=1.15",
+    "httpx>=0.28.1",
+    "fastapi>=0.100.0,<1.0.0",
 ]
 docs = [
     "sphinx",

@@ -51,6 +51,7 @@ Contents
    quickstart/index
    advance_usage/index
    observability/index
+   contrib/index
    changelog
    benchmarks
    api
