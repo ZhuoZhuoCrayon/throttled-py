@@ -1,15 +1,21 @@
 import abc
 import logging
 from abc import ABC
-from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import timedelta
-from typing import Any, Generic
+from typing import TYPE_CHECKING, Any, Generic, Protocol, TypeVar
 
-from .. import types
-from ..exceptions import SetUpError
+from .. import exceptions, types
 
 logger: logging.Logger = logging.getLogger(__name__)
+
+_RateLimiterT = TypeVar("_RateLimiterT", bound="BaseRateLimiterMixin")
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from typing import ClassVar
+
+    from ..store import BaseAtomicAction, BaseStore
 
 
 @dataclass
@@ -132,48 +138,65 @@ class RateLimitResult:
         return self._state
 
 
-class RateLimiterRegistry:
-    """Registry for RateLimiter classes."""
+class _RateLimiterRegistryP(Protocol):
+    """Erased registry view used by the metaclass registration hook."""
 
-    # The namespace for the RateLimiter classes.
-    _NAMESPACE: str = "sync"
+    def register(self, new_cls: type[Any]) -> None:
+        """Register a dynamically created RateLimiter class."""
+        ...
 
-    # A dictionary to hold the registered RateLimiter classes.
-    # Value type is ``type[Any]`` because sync/async registries share the
-    # metaclass hook; sync/async subclasses redeclare ``_RATE_LIMITERS`` to
-    # restore type safety on the call site.
-    _RATE_LIMITERS: dict[types.RateLimiterTypeT, type[Any]] = {}
+
+class BaseRateLimiterRegistry(Generic[_RateLimiterT]):
+    """Typed base registry for RateLimiter classes."""
+
+    _NAMESPACE: "ClassVar[str]" = ""
 
     @classmethod
-    def get_register_key(cls, _type: str) -> str:
+    def _rate_limiters(cls) -> dict[types.RateLimiterTypeT, type[_RateLimiterT]]:
+        """Return the concrete RateLimiter class table."""
+        raise NotImplementedError
+
+    @classmethod
+    def get_register_key(cls, _type: types.RateLimiterTypeT) -> str:
         """Get the register key for the RateLimiter classes."""
         return f"{cls._NAMESPACE}:{_type}"
 
     @classmethod
-    def register(cls, new_cls: type[Any]) -> None:
+    def register(cls, new_cls: type[_RateLimiterT]) -> None:
+        """Register a RateLimiter class."""
         try:
-            cls._RATE_LIMITERS[cls.get_register_key(new_cls.Meta.type)] = new_cls
+            cls._rate_limiters()[cls.get_register_key(new_cls.Meta.type)] = new_cls
         except AttributeError as e:
-            raise SetUpError(f"failed to register RateLimiter: {e}") from e
+            raise exceptions.SetUpError(f"failed to register RateLimiter: {e}") from e
 
     @classmethod
-    def get(cls, _type: types.RateLimiterTypeT) -> type[Any]:
+    def get(cls, _type: types.RateLimiterTypeT) -> type[_RateLimiterT]:
+        """Get a registered RateLimiter class."""
         try:
-            return cls._RATE_LIMITERS[cls.get_register_key(_type)]
+            return cls._rate_limiters()[cls.get_register_key(_type)]
         except KeyError:
-            raise SetUpError(f"{_type} not found") from None
+            raise exceptions.SetUpError(f"{_type} not found") from None
+
+
+class RateLimiterRegistry(BaseRateLimiterRegistry["BaseRateLimiter"]):
+    """Registry for sync RateLimiter classes."""
+
+    _NAMESPACE: "ClassVar[str]" = "sync"
+    _RATE_LIMITERS: "ClassVar[dict[types.RateLimiterTypeT, type[BaseRateLimiter]]]" = {}
+
+    @classmethod
+    def _rate_limiters(cls) -> "dict[types.RateLimiterTypeT, type[BaseRateLimiter]]":
+        """Return the sync RateLimiter class table."""
+        return cls._RATE_LIMITERS
 
 
 class RateLimiterMeta(abc.ABCMeta):
     """Metaclass for RateLimiter classes."""
 
-    _REGISTRY_CLASS: type[RateLimiterRegistry] = RateLimiterRegistry
+    _REGISTRY_CLASS: _RateLimiterRegistryP = RateLimiterRegistry
 
     def __new__(
-        cls,
-        name: str,
-        bases: tuple[type[Any], ...],
-        attrs: dict[str, Any],
+        cls, name: str, bases: tuple[type[Any], ...], attrs: dict[str, Any]
     ) -> "RateLimiterMeta":
         new_cls = super().__new__(cls, name, bases, attrs)
         if not [b for b in bases if isinstance(b, cls)]:
@@ -183,73 +206,21 @@ class RateLimiterMeta(abc.ABCMeta):
         return new_cls
 
 
-class BaseRateLimiterMixin(ABC, Generic[types.StoreT, types.ActionT]):
+class BaseRateLimiterMixin(ABC):
     """Mixin class for RateLimiter."""
 
     KEY_PREFIX: str = "throttled:v1:"
 
+    quota: Quota
+
     class Meta:
         type: types.RateLimiterTypeT = ""
 
-    _store: types.StoreT
-    _atomic_actions: dict[types.AtomicActionTypeT, types.ActionT]
-
-    #: Default AtomicAction classes; concrete subclasses override the tuple.
-    _DEFAULT_ATOMIC_ACTION_CLASSES: Sequence[type[types.ActionT]] = ()
-
-    def __init__(
-        self,
-        quota: Quota,
-        store: types.StoreT,
-        additional_atomic_actions: Sequence[type[types.ActionT]] | None = None,
-    ) -> None:
-        self.quota: Quota = quota
-        self._store = store
-        self._atomic_actions = {}
-        self._register_atomic_actions(additional_atomic_actions or [])
-
-    @classmethod
-    def _default_atomic_action_classes(cls) -> Sequence[type[types.ActionT]]:
-        """Return the default AtomicAction classes for RateLimiter."""
-        return cls._DEFAULT_ATOMIC_ACTION_CLASSES
-
     @classmethod
     @abc.abstractmethod
-    def _supported_atomic_action_types(cls) -> Sequence[types.AtomicActionTypeT]:
+    def _supported_atomic_action_types(cls) -> "Sequence[types.AtomicActionTypeT]":
         """Define the supported AtomicAction types for RateLimiter."""
         raise NotImplementedError
-
-    def _validate_registered_atomic_actions(self) -> None:
-        """Validate that all required AtomicAction types have been registered.
-
-        :raise: SetUpError
-        """
-        supported_types: set[types.AtomicActionTypeT] = set(
-            self._supported_atomic_action_types()
-        )
-        registered_types: set[types.AtomicActionTypeT] = set(self._atomic_actions.keys())
-
-        missing_types: set[str] = supported_types - registered_types
-        if missing_types:
-            raise SetUpError(
-                "Missing AtomicActionTypes: expected [{expected}] but missing "
-                "[{missing}].".format(
-                    expected=",".join(sorted(supported_types)),
-                    missing=",".join(sorted(missing_types)),
-                )
-            )
-
-    def _register_atomic_actions(self, classes: Sequence[type[types.ActionT]]) -> None:
-        """Register AtomicAction classes for default and additional classes."""
-        all_classes: list[type[types.ActionT]] = list(
-            self._default_atomic_action_classes()
-        ) + list(classes)
-        for action_cls in all_classes:
-            if action_cls.STORE_TYPE != self._store.TYPE:
-                continue
-            self._atomic_actions[action_cls.TYPE] = self._store.make_atomic(action_cls)
-
-        self._validate_registered_atomic_actions()
 
     def _prepare_key(self, key: str) -> str:
         """Prepare the key by adding the prefix.
@@ -278,12 +249,63 @@ class BaseRateLimiterMixin(ABC, Generic[types.StoreT, types.ActionT]):
         return f"{self.KEY_PREFIX}{self.Meta.type}:{key}"
 
 
-class BaseRateLimiter(
-    BaseRateLimiterMixin[types.SyncStoreP, types.SyncAtomicActionP],
-    ABC,
-    metaclass=RateLimiterMeta,
-):
+class BaseRateLimiter(BaseRateLimiterMixin, ABC, metaclass=RateLimiterMeta):
     """Base class for RateLimiter."""
+
+    _store: "BaseStore"
+    _atomic_actions: "dict[types.AtomicActionTypeT, BaseAtomicAction]"
+
+    _DEFAULT_ATOMIC_ACTION_CLASSES: "Sequence[type[BaseAtomicAction]]" = ()
+
+    def __init__(
+        self,
+        quota: Quota,
+        store: "BaseStore",
+        additional_atomic_actions: "Sequence[type[BaseAtomicAction]] | None" = None,
+    ) -> None:
+        self.quota: Quota = quota
+        self._store = store
+        self._atomic_actions = {}
+        self._register_atomic_actions(additional_atomic_actions or [])
+
+    @classmethod
+    def _default_atomic_action_classes(cls) -> "Sequence[type[BaseAtomicAction]]":
+        """Return the default AtomicAction classes for RateLimiter."""
+        return cls._DEFAULT_ATOMIC_ACTION_CLASSES
+
+    def _validate_registered_atomic_actions(self) -> None:
+        """Validate that all required AtomicAction types have been registered.
+
+        :raise: SetUpError
+        """
+        supported_types: set[types.AtomicActionTypeT] = set(
+            self._supported_atomic_action_types()
+        )
+        registered_types: set[types.AtomicActionTypeT] = set(self._atomic_actions.keys())
+
+        missing_types: set[str] = supported_types - registered_types
+        if missing_types:
+            raise exceptions.SetUpError(
+                "Missing AtomicActionTypes: expected [{expected}] but missing "
+                "[{missing}].".format(
+                    expected=",".join(sorted(supported_types)),
+                    missing=",".join(sorted(missing_types)),
+                )
+            )
+
+    def _register_atomic_actions(
+        self, classes: "Sequence[type[BaseAtomicAction]]"
+    ) -> None:
+        """Register AtomicAction classes for default and additional classes."""
+        all_classes: list[type[BaseAtomicAction]] = list(
+            self._default_atomic_action_classes()
+        ) + list(classes)
+        for action_cls in all_classes:
+            if action_cls.STORE_TYPE != self._store.TYPE:
+                continue
+            self._atomic_actions[action_cls.TYPE] = self._store.make_atomic(action_cls)
+
+        self._validate_registered_atomic_actions()
 
     @abc.abstractmethod
     def _limit(self, key: str, cost: int) -> RateLimitResult:

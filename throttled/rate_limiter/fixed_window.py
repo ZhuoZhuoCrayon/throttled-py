@@ -1,47 +1,17 @@
 from collections.abc import Sequence
-from typing import Generic, cast
+from typing import cast
 
-from .. import store, types
-from ..constants import ATOMIC_ACTION_TYPE_LIMIT, RateLimiterType, StoreType
-from ..utils import now_sec
+from .. import constants, store, types, utils
 from . import BaseRateLimiter, BaseRateLimiterMixin, RateLimitResult, RateLimitState
 
 
-class RedisLimitAtomicActionConstants:
+class RedisLimitAtomActionSpec:
     """Identity shared by sync / async Redis fixed-window atomic actions."""
 
-    TYPE: types.AtomicActionTypeT = ATOMIC_ACTION_TYPE_LIMIT
-    STORE_TYPE: str = StoreType.REDIS.value
+    TYPE: types.AtomicActionTypeT = constants.ATOMIC_ACTION_TYPE_LIMIT
 
 
-class RedisLimitAtomicActionCoreMixin(
-    RedisLimitAtomicActionConstants,
-    store.BaseAtomicActionMixin[store.RedisStoreBackend],
-):
-    """Core mixin for RedisLimitAtomicAction."""
-
-    def __init__(self, backend: store.RedisStoreBackend) -> None:
-        # In single command scenario, lua has no performance advantage, and even causes
-        # a decrease in performance due to the increase in transmission content.
-        # Benchmarks(Python 3.8, Darwin 23.6.0, Arm)
-        # >> Redis baseline
-        # command    -> set key value
-        # serial     -> 🕒Latency: 0.0609 ms/op, 🚀Throughput: 16271 req/s
-        # concurrent -> 🕒Latency: 0.4515 ms/op, 💤Throughput: 12100 req/s
-        # >> Lua
-        # serial     -> 🕒Latency: 0.0805 ms/op, 🚀Throughput: 12319 req/s
-        # concurrent -> 🕒Latency: 0.6959 ms/op, 💤Throughput: 10301 req/s
-        # >> 👍 Single Command
-        # serial     -> 🕒Latency: 0.0659 ms/op, 🚀Throughput: 15040 req/s
-        # concurrent -> 🕒Latency: 0.9084 ms/op, 💤Throughput: 11539 req/s
-        # self._script: Script = backend.get_client().register_script(self.SCRIPTS)
-        super().__init__(backend)
-
-
-class RedisLimitAtomicAction(
-    RedisLimitAtomicActionCoreMixin,
-    store.BaseAtomicAction[store.RedisStoreBackend],
-):
+class RedisLimitAtomicAction(RedisLimitAtomActionSpec, store.BaseRedisAtomicAction):
     """Redis-based implementation of AtomicAction for FixedWindowRateLimiter."""
 
     def do(
@@ -62,19 +32,13 @@ class RedisLimitAtomicAction(
         return limited, current
 
 
-class MemoryLimitAtomicActionCoreMixin(
-    store.BaseAtomicActionMixin[types.MemoryStoreBackendT],
-    Generic[types.MemoryStoreBackendT],
-):
-    """Core mixin for MemoryLimitAtomicAction."""
-
-    TYPE: types.AtomicActionTypeT = ATOMIC_ACTION_TYPE_LIMIT
-    STORE_TYPE: str = StoreType.MEMORY.value
+class MemoryLimitActionLogic:
+    """Pure logic shared by sync / async memory limit actions."""
 
     @classmethod
     def _do(
         cls,
-        backend: types.MemoryStoreBackendP,
+        backend: store.BaseMemoryStoreBackend,
         keys: Sequence[types.KeyT],
         args: Sequence[types.StoreValueT] | None,
     ) -> tuple[int, int]:
@@ -97,48 +61,33 @@ class MemoryLimitAtomicActionCoreMixin(
         return limited, current
 
 
-class MemoryLimitAtomicAction(
-    MemoryLimitAtomicActionCoreMixin[store.MemoryStoreBackend],
-    store.BaseAtomicAction[store.MemoryStoreBackend],
-):
+class MemoryLimitAtomicAction(MemoryLimitActionLogic, store.BaseMemoryAtomicAction):
     """Memory-based implementation of AtomicAction for FixedWindowRateLimiter."""
 
-    def do(
-        self,
-        keys: Sequence[types.KeyT],
-        args: Sequence[types.StoreValueT] | None,
-    ) -> tuple[int, int]:
-        with self._backend.lock:
-            return self._do(self._backend, keys, args)
+    TYPE: types.AtomicActionTypeT = constants.ATOMIC_ACTION_TYPE_LIMIT
 
 
-class FixedWindowRateLimiterCoreMixin(
-    BaseRateLimiterMixin[types.StoreT, types.ActionT],
-    Generic[types.StoreT, types.ActionT],
-):
+class FixedWindowRateLimiterCoreMixin(BaseRateLimiterMixin):
     """Core mixin for FixedWindowRateLimiter."""
 
     class Meta(BaseRateLimiterMixin.Meta):
-        type: types.RateLimiterTypeT = RateLimiterType.FIXED_WINDOW.value
+        type: types.RateLimiterTypeT = constants.RateLimiterType.FIXED_WINDOW.value
 
     @classmethod
     def _supported_atomic_action_types(cls) -> Sequence[types.AtomicActionTypeT]:
-        return [ATOMIC_ACTION_TYPE_LIMIT]
+        return [constants.ATOMIC_ACTION_TYPE_LIMIT]
 
     def _prepare(self, key: str) -> tuple[str, int, int, int]:
-        now: int = now_sec()
+        now: int = utils.now_sec()
         period: int = self.quota.get_period_sec()
         period_key: str = f"{key}:period:{now // period}"
         return self._prepare_key(period_key), period, self.quota.get_limit(), now
 
 
-class FixedWindowRateLimiter(
-    FixedWindowRateLimiterCoreMixin[types.SyncStoreP, types.SyncAtomicActionP],
-    BaseRateLimiter,
-):
+class FixedWindowRateLimiter(FixedWindowRateLimiterCoreMixin, BaseRateLimiter):
     """Concrete implementation of BaseRateLimiter using fixed window as algorithm."""
 
-    _DEFAULT_ATOMIC_ACTION_CLASSES: Sequence[type[types.SyncAtomicActionP]] = (
+    _DEFAULT_ATOMIC_ACTION_CLASSES: Sequence[type[store.BaseAtomicAction]] = (
         RedisLimitAtomicAction,
         MemoryLimitAtomicAction,
     )
@@ -147,7 +96,7 @@ class FixedWindowRateLimiter(
         period_key, period, limit, now = self._prepare(key)
         limited, current = cast(
             "tuple[int, int]",
-            self._atomic_actions[ATOMIC_ACTION_TYPE_LIMIT].do(
+            self._atomic_actions[constants.ATOMIC_ACTION_TYPE_LIMIT].do(
                 [period_key], [period, limit, cost]
             ),
         )

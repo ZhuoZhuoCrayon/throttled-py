@@ -4,12 +4,7 @@ import pytest
 from throttled.asyncio import BaseStore, RedisStore, constants, exceptions, types
 
 from ...store import parametrizes
-
-
-def _replace_store_backend(store: BaseStore[Any], backend: Any) -> Any:
-    original_backend = store._backend
-    store._backend = backend
-    return original_backend
+from .unavailable import OpError, UnavailableStore
 
 
 @pytest.mark.asyncio
@@ -19,7 +14,7 @@ class TestStore:
     @parametrizes.STORE_EXISTS_KV
     async def test_exists(
         cls,
-        store: BaseStore[Any],
+        store: BaseStore,
         set_before: bool,
         key: types.KeyT,
         value: types.StoreValueT,
@@ -33,22 +28,22 @@ class TestStore:
     @classmethod
     @parametrizes.STORE_TTL_KEY
     @parametrizes.STORE_TTL_TIMEOUT
-    async def test_ttl(cls, store: BaseStore[Any], key: types.KeyT, timeout: int):
+    async def test_ttl(cls, store: BaseStore, key: types.KeyT, timeout: int):
         await store.set(key, 1, timeout)
         assert timeout == await store.ttl(key)
 
     @classmethod
-    async def test_ttl__not_exist(cls, store: BaseStore[Any]):
+    async def test_ttl__not_exist(cls, store: BaseStore):
         assert await store.ttl("key") == constants.STORE_TTL_STATE_NOT_EXIST
 
     @classmethod
-    async def test_ttl__not_ttl(cls, store: BaseStore[Any]):
+    async def test_ttl__not_ttl(cls, store: BaseStore):
         await store.hset("name", "key", 1)
         assert await store.ttl("name") == constants.STORE_TTL_STATE_NOT_TTL
 
     @classmethod
     @parametrizes.STORE_SET_KEY_TIMEOUT
-    async def test_set(cls, store: BaseStore[Any], key: types.KeyT, timeout: int):
+    async def test_set(cls, store: BaseStore, key: types.KeyT, timeout: int):
         await store.set(key, 1, timeout)
         assert timeout == await store.ttl(key)
 
@@ -56,7 +51,7 @@ class TestStore:
     @parametrizes.store_set_raise_parametrize(exceptions.DataError)
     async def test_set__raise(
         cls,
-        store: BaseStore[Any],
+        store: BaseStore,
         key: types.KeyT,
         timeout: Any,
         exc: type[exceptions.BaseThrottledError],
@@ -70,7 +65,7 @@ class TestStore:
     @parametrizes.STORE_GET_KV
     async def test_get(
         cls,
-        store: BaseStore[Any],
+        store: BaseStore,
         set_before: bool,
         key: types.KeyT,
         value: types.StoreValueT,
@@ -83,7 +78,7 @@ class TestStore:
     @parametrizes.STORE_HSET_PARAMETRIZE
     async def test_hset(
         cls,
-        store: BaseStore[Any],
+        store: BaseStore,
         name: types.KeyT,
         expect: dict[types.KeyT, types.StoreValueT],
         key: types.KeyT | None,
@@ -105,7 +100,7 @@ class TestStore:
     @parametrizes.store_hset_raise_parametrize(exceptions.DataError)
     async def test_hset__raise(
         cls,
-        store: BaseStore[Any],
+        store: BaseStore,
         params: dict[str, Any],
         exc: type[exceptions.BaseThrottledError],
         match: str,
@@ -117,7 +112,7 @@ class TestStore:
     @parametrizes.STORE_HSET_OVERWRITE_PARAMETRIZE
     async def test_hset__overwrite(
         cls,
-        store: BaseStore[Any],
+        store: BaseStore,
         params_list: list[dict[str, Any]],
         expected_results: list[dict[types.KeyT, types.StoreValueT]],
     ):
@@ -130,7 +125,7 @@ class TestStore:
     @parametrizes.STORE_HGETALL_PARAMETRIZE
     async def test_hgetall(
         cls,
-        store: BaseStore[Any],
+        store: BaseStore,
         params_list: list[dict[str, Any]],
         expected_results: list[dict[types.KeyT, types.StoreValueT]],
     ):
@@ -141,31 +136,20 @@ class TestStore:
     @classmethod
     @parametrizes.STORE_UNAVAILABLE_METHOD_PARAMETRIZE
     async def test_store_unavailable__wrap_backend_error(
-        cls, store: BaseStore[Any], method_name: str, params: dict[str, Any]
+        cls, method_name: str, params: dict[str, Any]
     ) -> None:
-        base_exceptions: tuple[type[Exception], ...] = store._backend.base_exceptions
-        if not base_exceptions:
-            pytest.skip(
-                f"{store._backend.__class__.__name__} "
-                f"does not define unavailable exceptions"
-            )
+        unavailable_store: BaseStore = UnavailableStore()
 
         async def _call():
             if method_name == "make_atomic":
-                getattr(store, method_name)(**params)
+                getattr(unavailable_store, method_name)(**params)
             else:
-                await getattr(store, method_name)(**params)
+                await getattr(unavailable_store, method_name)(**params)
 
-        original_backend = _replace_store_backend(
-            store, parametrizes.BrokenStoreBackend(base_exceptions)
-        )
-        try:
-            with pytest.raises(exceptions.StoreUnavailableError) as exc_info:
-                await _call()
-        finally:
-            store._backend = original_backend
+        with pytest.raises(exceptions.StoreUnavailableError) as exc_info:
+            await _call()
 
-        assert isinstance(exc_info.value.__cause__, base_exceptions)
+        assert isinstance(exc_info.value.__cause__, OpError)
 
 
 _REDIS_STORE_PARSE_COMMON_OPTIONS: dict[str, Any] = {

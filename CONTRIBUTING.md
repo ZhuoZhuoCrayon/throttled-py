@@ -96,6 +96,11 @@ from typing import List, Dict
 result: List[str] = []
 ```
 
+- Do not add `from __future__ import annotations`.
+- Use explicit string forward references when an annotation needs a name that is unavailable at runtime.
+- Move imports used only by annotations into `if TYPE_CHECKING:` because Ruff `TCH` enforces this.
+- Choose quote scope by runtime availability: use partial quotes when only the inner name is missing (`type["BaseRateLimiter"]`), and quote the whole expression when the outer name is also missing (`"ClassVar[dict[str, type[BaseRateLimiter]]]"`).
+
 ### Docstrings
 
 Use [**reStructuredText (rst)** style](https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html) because Sphinx `autodoc` parses rst fields from docstrings.

@@ -1,25 +1,28 @@
 import abc
-from collections.abc import Callable, Sequence
-from typing import Any, Generic, TypeVar
+from collections.abc import Sequence
+from typing import Any
 
-from ... import store, types
+from ... import types
+from ...store.base import BaseStoreBackend, StoreSpec, StoreValidationLogic
+from ...store.wraps import AutoWrapMethodsMixin
 
 __all__ = ["BaseAtomicAction", "BaseStore"]
 
-_BackendT = TypeVar("_BackendT", bound=store.BaseStoreBackend[Any])
-_ActionT = TypeVar("_ActionT")
 
-
-class BaseAtomicAction(
-    store.BaseAtomicActionMixin[_BackendT], abc.ABC, Generic[_BackendT]
-):
+class BaseAtomicAction(AutoWrapMethodsMixin, abc.ABC):
     """Abstract class for all async atomic actions performed by a store backend."""
+
+    TYPE: types.AtomicActionTypeT = ""
+    STORE_TYPE: str = ""
+
+    _WRAPPED_METHOD_NAMES: tuple[str, ...] = ("do",)
+
+    def __init__(self, backend: BaseStoreBackend) -> None:
+        self._backend = backend
 
     @abc.abstractmethod
     async def do(
-        self,
-        keys: Sequence[types.KeyT],
-        args: Sequence[types.StoreValueT] | None,
+        self, keys: Sequence[types.KeyT], args: Sequence[types.StoreValueT] | None
     ) -> tuple[int | float, ...]:
         """Execute the AtomicAction on the specified keys with optional arguments.
 
@@ -30,10 +33,29 @@ class BaseAtomicAction(
         raise NotImplementedError
 
 
-class BaseStore(store.BaseStoreMixin, abc.ABC, Generic[_BackendT]):
+class BaseStore(StoreSpec, StoreValidationLogic, AutoWrapMethodsMixin, abc.ABC):
     """Abstract class for all async stores."""
 
-    _backend: _BackendT
+    _BACKEND_CLASS: type[BaseStoreBackend] = BaseStoreBackend
+    _backend: BaseStoreBackend
+
+    def __init__(
+        self,
+        server: str | None = None,
+        options: dict[str, Any] | None = None,
+    ) -> None:
+        """Initialize the async store and its backend.
+
+        :param server: Store backend connection string.
+        :param options: Store backend options.
+        """
+        self.server: str | None = server
+        self.options: dict[str, Any] = options or {}
+        self._backend = self._BACKEND_CLASS(server, options)
+
+    def make_atomic(self, action_cls: type[BaseAtomicAction]) -> BaseAtomicAction:
+        """Create an async AtomicAction instance bound to the concrete backend."""
+        return action_cls(backend=self._backend)
 
     @abc.abstractmethod
     async def exists(self, key: types.KeyT) -> bool:
@@ -96,8 +118,3 @@ class BaseStore(store.BaseStoreMixin, abc.ABC, Generic[_BackendT]):
     @abc.abstractmethod
     async def hgetall(self, name: types.KeyT) -> types.StoreDictValueT:
         raise NotImplementedError
-
-    def make_atomic(self, action_cls: type[_ActionT]) -> _ActionT:
-        """Create an instance of an async AtomicAction bound to the backend."""
-        factory: Callable[..., _ActionT] = action_cls
-        return factory(backend=self._backend)

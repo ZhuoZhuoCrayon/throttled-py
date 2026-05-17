@@ -1,7 +1,6 @@
 import math
 from collections.abc import Callable
 from datetime import timedelta
-from typing import Any
 
 import pytest
 from throttled.asyncio import (
@@ -24,7 +23,7 @@ from ...rate_limiter.test_sliding_window import assert_rate_limit_result
 
 @pytest.fixture
 def rate_limiter_constructor(
-    store: BaseStore[Any],
+    store: BaseStore,
 ) -> Callable[[Quota], BaseRateLimiter]:
     def _create_rate_limiter(quota: Quota) -> BaseRateLimiter:
         return RateLimiterRegistry.get(constants.RateLimiterType.SLIDING_WINDOW.value)(

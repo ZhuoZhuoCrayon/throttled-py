@@ -4,7 +4,6 @@ from typing import Any, cast
 
 import pytest
 import redis
-from redis import Redis
 from throttled import (
     BaseStore,
     MemoryStore,
@@ -47,22 +46,22 @@ def call_api(throttle: Throttled) -> bool:
 
 
 @pytest.fixture(params=StoreType.choice())
-def store(request) -> Generator[BaseStore[Any], Any, None]:
-    def _create_store(store_type: str) -> BaseStore[Any]:
+def store(request) -> Generator[BaseStore, Any, None]:
+    def _create_store(store_type: str) -> BaseStore:
         if store_type == StoreType.MEMORY.value:
             return MemoryStore()
         return RedisStore(server=REDIS_URL)
 
-    store: BaseStore[Any] = _create_store(request.param)
+    store: BaseStore = _create_store(request.param)
 
     yield store
 
     if request.param == StoreType.REDIS.value:
-        clear_redis(store._backend.get_client())
+        clear_redis(cast("redis.Redis", cast("RedisStore", store)._backend.get_client()))
 
 
 @pytest.fixture
-def redis_client() -> Generator[Redis, Any, None]:
+def redis_client() -> Generator[redis.Redis, Any, None]:
     client: redis.Redis = redis.Redis.from_url(REDIS_URL)
 
     yield client
@@ -106,7 +105,7 @@ class TestBenchmarkThrottled:
     def test_limit__serial(
         cls,
         benchmark: Benchmark,
-        store: BaseStore[Any],
+        store: BaseStore,
         using: RateLimiterTypeT,
         quota: Quota,
     ):
@@ -119,7 +118,7 @@ class TestBenchmarkThrottled:
     def test_limit__concurrent(
         cls,
         benchmark: Benchmark,
-        store: BaseStore[Any],
+        store: BaseStore,
         using: RateLimiterTypeT,
         quota: Quota,
     ):

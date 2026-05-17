@@ -1,8 +1,11 @@
-from typing import Any
+import abc
+from typing import TYPE_CHECKING, Any
 
-from ... import constants, store, types, utils
-from ...exceptions import DataError
-from . import BaseStore
+from ... import constants, exceptions, store, types, utils
+from .base import BaseAtomicAction, BaseStore
+
+if TYPE_CHECKING:
+    from redis.commands.core import AsyncScript
 
 
 class RedisStoreBackend(store.BaseRedisStoreBackend[types.AsyncRedisClientP]):
@@ -40,18 +43,23 @@ class RedisStoreBackend(store.BaseRedisStoreBackend[types.AsyncRedisClientP]):
         )
 
 
-class RedisStore(BaseStore[RedisStoreBackend]):
+class BaseRedisAtomicAction(BaseAtomicAction, abc.ABC):
+    """Base class for async Redis atomic actions bound to RedisStoreBackend."""
+
+    STORE_TYPE: str = constants.StoreType.REDIS.value
+    _backend: RedisStoreBackend
+
+    def _register_script(self, scripts: str) -> "AsyncScript":
+        return self._backend.get_client().register_script(scripts)
+
+
+class RedisStore(BaseStore):
     """Concrete implementation of BaseStore using Redis as backend."""
 
     TYPE: str = constants.StoreType.REDIS.value
 
     _BACKEND_CLASS: type[RedisStoreBackend] = RedisStoreBackend
-
-    def __init__(
-        self, server: str | None = None, options: dict[str, Any] | None = None
-    ) -> None:
-        super().__init__(server, options)
-        self._backend: RedisStoreBackend = self._BACKEND_CLASS(server, options)
+    _backend: RedisStoreBackend
 
     async def exists(self, key: types.KeyT) -> bool:
         return bool(await self._backend.get_client().exists(key))
@@ -82,7 +90,7 @@ class RedisStore(BaseStore[RedisStoreBackend]):
         mapping: types.StoreDictValueT | None = None,
     ) -> None:
         if key is None and not mapping:
-            raise DataError("hset must with key value pairs")
+            raise exceptions.DataError("hset must with key value pairs")
         await self._backend.get_client().hset(name, key, value, mapping)
 
     async def hgetall(self, name: types.KeyT) -> types.StoreDictValueT:

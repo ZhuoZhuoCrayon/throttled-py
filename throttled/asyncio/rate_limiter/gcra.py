@@ -1,14 +1,13 @@
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, cast
 
-from ... import types
-from ...constants import ATOMIC_ACTION_TYPE_LIMIT, ATOMIC_ACTION_TYPE_PEEK
+from ... import constants, types
 from ...rate_limiter.gcra import (
     GCRARateLimiterCoreMixin,
-    MemoryLimitAtomicActionCoreMixin,
-    MemoryPeekAtomicActionCoreMixin,
-    RedisLimitAtomicActionConstants,
-    RedisPeekAtomicActionConstants,
+    MemoryLimitActionLogic,
+    MemoryPeekActionLogic,
+    RedisLimitAtomActionSpec,
+    RedisPeekAtomActionSpec,
 )
 from .. import store
 from . import BaseRateLimiter, RateLimitResult, RateLimitState
@@ -17,23 +16,13 @@ if TYPE_CHECKING:
     from redis.commands.core import AsyncScript
 
 
-class RedisLimitAtomicActionCoreMixin(
-    RedisLimitAtomicActionConstants,
-    store.BaseAtomicActionMixin[store.RedisStoreBackend],
-):
-    """Core mixin for async RedisLimitAtomicAction."""
-
-    def __init__(self, backend: store.RedisStoreBackend) -> None:
-        super().__init__(backend)
-        self._script: AsyncScript = backend.get_client().register_script(self.SCRIPTS)
-
-
-class RedisLimitAtomicAction(
-    RedisLimitAtomicActionCoreMixin,
-    store.BaseAtomicAction[store.RedisStoreBackend],
-):
+class RedisLimitAtomicAction(RedisLimitAtomActionSpec, store.BaseRedisAtomicAction):
     """Redis-based implementation of AtomicAction for Async GCRARateLimiter."""
 
+    def __init__(self, backend: store.RedisStoreBackend) -> None:
+        super().__init__(backend)
+        self._script: AsyncScript = self._register_script(self.SCRIPTS)
+
     async def do(
         self,
         keys: Sequence[types.KeyT],
@@ -45,22 +34,12 @@ class RedisLimitAtomicAction(
         return limited, remaining, float(reset_after), float(retry_after)
 
 
-class RedisPeekAtomicActionCoreMixin(
-    RedisPeekAtomicActionConstants,
-    store.BaseAtomicActionMixin[store.RedisStoreBackend],
-):
-    """Core mixin for async RedisPeekAtomicAction."""
+class RedisPeekAtomicAction(RedisPeekAtomActionSpec, store.BaseRedisAtomicAction):
+    """Redis-based AtomicAction for GCRARateLimiter's peek operation."""
 
     def __init__(self, backend: store.RedisStoreBackend) -> None:
         super().__init__(backend)
-        self._script: AsyncScript = backend.get_client().register_script(self.SCRIPTS)
-
-
-class RedisPeekAtomicAction(
-    RedisPeekAtomicActionCoreMixin,
-    store.BaseAtomicAction[store.RedisStoreBackend],
-):
-    """Redis-based AtomicAction for GCRARateLimiter's peek operation."""
+        self._script: AsyncScript = self._register_script(self.SCRIPTS)
 
     async def do(
         self,
@@ -73,43 +52,25 @@ class RedisPeekAtomicAction(
         return limited, remaining, float(reset_after), float(retry_after)
 
 
-class MemoryLimitAtomicAction(
-    MemoryLimitAtomicActionCoreMixin[store.MemoryStoreBackend],
-    store.BaseAtomicAction[store.MemoryStoreBackend],
-):
+class MemoryLimitAtomicAction(MemoryLimitActionLogic, store.BaseMemoryAtomicAction):
     """Memory-based implementation of AtomicAction for Async LeakingBucketRateLimiter."""
 
-    async def do(
-        self,
-        keys: Sequence[types.KeyT],
-        args: Sequence[types.StoreValueT] | None,
-    ) -> tuple[int, int, float, float]:
-        async with self._backend.lock:
-            return self._do(self._backend, keys, args)
+    TYPE: types.AtomicActionTypeT = constants.ATOMIC_ACTION_TYPE_LIMIT
 
 
-class MemoryPeekAtomicAction(
-    MemoryPeekAtomicActionCoreMixin[store.MemoryStoreBackend],
-    store.BaseAtomicAction[store.MemoryStoreBackend],
-):
+class MemoryPeekAtomicAction(MemoryPeekActionLogic, store.BaseMemoryAtomicAction):
     """Memory-based AtomicAction for GCRARateLimiter's peek operation."""
 
-    async def do(
-        self,
-        keys: Sequence[types.KeyT],
-        args: Sequence[types.StoreValueT] | None,
-    ) -> tuple[int, int, float, float]:
-        async with self._backend.lock:
-            return self._do(self._backend, keys, args)
+    TYPE: types.AtomicActionTypeT = constants.ATOMIC_ACTION_TYPE_PEEK
 
 
 class GCRARateLimiter(
-    GCRARateLimiterCoreMixin[types.AsyncStoreP, types.AsyncAtomicActionP],
+    GCRARateLimiterCoreMixin,
     BaseRateLimiter,
 ):
     """Concrete implementation of BaseRateLimiter using GCRA as algorithm."""
 
-    _DEFAULT_ATOMIC_ACTION_CLASSES: Sequence[type[types.AsyncAtomicActionP]] = (
+    _DEFAULT_ATOMIC_ACTION_CLASSES: Sequence[type[store.BaseAtomicAction]] = (
         RedisPeekAtomicAction,
         RedisLimitAtomicAction,
         MemoryLimitAtomicAction,
@@ -120,7 +81,7 @@ class GCRARateLimiter(
         formatted_key, emission_interval, capacity = self._prepare(key)
         limited, remaining, reset_after, retry_after = cast(
             "tuple[int, int, float, float]",
-            await self._atomic_actions[ATOMIC_ACTION_TYPE_LIMIT].do(
+            await self._atomic_actions[constants.ATOMIC_ACTION_TYPE_LIMIT].do(
                 [formatted_key], [emission_interval, capacity, cost]
             ),
         )
@@ -134,7 +95,7 @@ class GCRARateLimiter(
         formatted_key, emission_interval, capacity = self._prepare(key)
         _limited, remaining, reset_after, retry_after = cast(
             "tuple[int, int, float, float]",
-            await self._atomic_actions[ATOMIC_ACTION_TYPE_PEEK].do(
+            await self._atomic_actions[constants.ATOMIC_ACTION_TYPE_PEEK].do(
                 [formatted_key], [emission_interval, capacity]
             ),
         )

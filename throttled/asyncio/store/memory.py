@@ -1,8 +1,11 @@
+import abc
 import asyncio
+from collections.abc import Sequence
 from typing import Any, cast
 
 from ... import constants, store, types
-from . import BaseStore
+from ...store.memory import BaseMemoryAtomicActionSpec
+from . import BaseAtomicAction, BaseStore
 
 
 class MemoryStoreBackend(store.BaseMemoryStoreBackend):
@@ -17,18 +20,25 @@ class MemoryStoreBackend(store.BaseMemoryStoreBackend):
         self.lock = cast("types.AsyncLockP", cast("object", asyncio.Lock()))
 
 
-class MemoryStore(BaseStore[MemoryStoreBackend]):
+class BaseMemoryAtomicAction(BaseMemoryAtomicActionSpec, BaseAtomicAction, abc.ABC):
+    """Base class for async memory atomic actions bound to MemoryStoreBackend."""
+
+    _backend: MemoryStoreBackend
+
+    async def do(
+        self, keys: Sequence[types.KeyT], args: Sequence[types.StoreValueT] | None
+    ) -> tuple[int | float, ...]:
+        async with self._backend.lock:
+            return self._do(self._backend, keys, args)
+
+
+class MemoryStore(BaseStore):
     """Concrete implementation of BaseStore using Memory as backend."""
 
     TYPE: str = constants.StoreType.MEMORY.value
 
     _BACKEND_CLASS: type[MemoryStoreBackend] = MemoryStoreBackend
-
-    def __init__(
-        self, server: str | None = None, options: dict[str, Any] | None = None
-    ) -> None:
-        super().__init__(server, options)
-        self._backend: MemoryStoreBackend = self._BACKEND_CLASS(server, options)
+    _backend: MemoryStoreBackend
 
     async def exists(self, key: types.KeyT) -> bool:
         return self._backend.exists(key)

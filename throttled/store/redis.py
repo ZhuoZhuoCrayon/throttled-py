@@ -1,14 +1,15 @@
+import abc
 import copy
 import urllib.parse
 from types import ModuleType
-from typing import Any, Generic, cast
+from typing import TYPE_CHECKING, Any, Generic, cast
 
-from .. import types
-from ..constants import StoreType
-from ..exceptions import DataError
-from ..utils import format_kv, format_value
-from .base import BaseStore, BaseStoreBackend
+from .. import constants, exceptions, types, utils
+from .base import BaseAtomicAction, BaseStore, BaseStoreBackend
 from .redis_pool import BaseConnectionFactory, get_connection_factory
+
+if TYPE_CHECKING:
+    from redis.commands.core import Script as SyncScript
 
 redis_exceptions: ModuleType | None
 
@@ -31,9 +32,7 @@ def _build_base_exceptions() -> tuple[type[Exception], ...]:
     return tuple(base_exceptions)
 
 
-class BaseRedisStoreBackend(
-    BaseStoreBackend[types.RedisClientT], Generic[types.RedisClientT]
-):
+class BaseRedisStoreBackend(BaseStoreBackend, Generic[types.RedisClientT]):
     """Base backend for Redis store."""
 
     # Older redis-py versions do not expose ``RedisClusterException``.
@@ -161,7 +160,17 @@ class RedisStoreBackend(BaseRedisStoreBackend[types.SyncRedisClientP]):
     """Backend for sync Redis store."""
 
 
-class RedisStore(BaseStore[RedisStoreBackend]):
+class BaseRedisAtomicAction(BaseAtomicAction, abc.ABC):
+    """Base class for sync Redis atomic actions bound to RedisStoreBackend."""
+
+    STORE_TYPE: str = constants.StoreType.REDIS.value
+    _backend: RedisStoreBackend
+
+    def _register_script(self, scripts: str) -> "SyncScript":
+        return self._backend.get_client().register_script(scripts)
+
+
+class RedisStore(BaseStore):
     """Concrete implementation of BaseStore using Redis as backend.
 
     :class:`throttled.store.RedisStore` is implemented based on
@@ -169,24 +178,10 @@ class RedisStore(BaseStore[RedisStoreBackend]):
     rate limiting in a distributed environment.
     """
 
-    TYPE: str = StoreType.REDIS.value
+    TYPE: str = constants.StoreType.REDIS.value
 
     _BACKEND_CLASS: type[RedisStoreBackend] = RedisStoreBackend
-
-    def __init__(
-        self, server: str | None = None, options: dict[str, Any] | None = None
-    ) -> None:
-        """Initialize RedisStore.
-
-        :param server: Redis Standard Redis URL, you can use it
-            to connect to Redis in any deployment mode,
-            see :ref:`Store Backends <store-backend-redis-standalone>`.
-        :param options: Redis connection configuration, supports all
-            configuration item of `redis-py <https://github.com/redis/redis-py>`_,
-            see :ref:`RedisStore Options <store-configuration-redis-store-options>`.
-        """
-        super().__init__(server, options)
-        self._backend: RedisStoreBackend = self._BACKEND_CLASS(server, options)
+    _backend: RedisStoreBackend
 
     def exists(self, key: types.KeyT) -> bool:
         return bool(self._backend.get_client().exists(key))
@@ -206,7 +201,7 @@ class RedisStore(BaseStore[RedisStoreBackend]):
         value: types.StoreValueT | None = self._backend.get_client().get(key)
         if value is None:
             return None
-        return format_value(value)
+        return utils.format_value(value)
 
     def hset(
         self,
@@ -216,8 +211,8 @@ class RedisStore(BaseStore[RedisStoreBackend]):
         mapping: types.StoreDictValueT | None = None,
     ) -> None:
         if key is None and not mapping:
-            raise DataError("hset must with key value pairs")
+            raise exceptions.DataError("hset must with key value pairs")
         self._backend.get_client().hset(name, key, value, mapping)
 
     def hgetall(self, name: types.KeyT) -> types.StoreDictValueT:
-        return format_kv(self._backend.get_client().hgetall(name))
+        return utils.format_kv(self._backend.get_client().hgetall(name))
