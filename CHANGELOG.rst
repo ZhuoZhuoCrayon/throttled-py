@@ -1,6 +1,28 @@
 Version History
 =================
 
+v3.3.1 - 2026-05-17
+---------------------
+
+`English Documents Available (v3.3.1) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.rst#v331---2026-05-17>`_ | 简体中文
+
+**✨ 优化**
+
+- refactor: 简化继承链 @ZhuoZhuoCrayon (#164)
+- perf: 统一 store unavailable 错误处理 @ZhuoZhuoCrayon (#163)
+
+**📦 依赖项更新**
+
+- build(deps): 将 urllib3 从 2.6.3 升级到 2.7.0 @dependabot[bot] (#165)
+- build(deps-dev): 将 pytest 从 8.4.2 升级到 9.0.3 @dependabot[bot] (#161)
+
+**🍃 维护工作**
+
+- docs: 完善 Agent 与贡献指南 @ZhuoZhuoCrayon (#162)
+
+**完整更新日志**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v3.3.0...v3.3.1
+
+
 v3.3.0 - 2026-05-01
 ---------------------
 

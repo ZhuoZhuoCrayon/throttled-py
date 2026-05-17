@@ -1,6 +1,28 @@
 Version History
 ================
 
+v3.3.1 - 2026-05-17
+---------------------
+
+`简体中文 (v3.3.1) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.rst#v331---2026-05-17>`_ | English
+
+**✨ Improvements**
+
+- refactor: simplify inheritance chain @ZhuoZhuoCrayon (#164)
+- perf: standardize store unavailable error handling @ZhuoZhuoCrayon (#163)
+
+**📦 Dependencies**
+
+- build(deps): bump urllib3 from 2.6.3 to 2.7.0 @dependabot[bot] (#165)
+- build(deps-dev): bump pytest from 8.4.2 to 9.0.3 @dependabot[bot] (#161)
+
+**🍃 Maintenance**
+
+- docs: refine agent and contribution guidance @ZhuoZhuoCrayon (#162)
+
+**Full Changelog**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v3.3.0...v3.3.1
+
+
 v3.3.0 - 2026-05-01
 ---------------------
 
