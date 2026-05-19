@@ -1,7 +1,7 @@
 """Internal rate-limit header policy and shared renderer.
 
 This module is internal to the FastAPI contrib. The decorator builds a
-:class:`RateLimitContext`, the success-path middleware and the 429
+:class:`RateLimitContext`, the checked-response middleware and the 429
 exception handler render headers through the same
 :func:`_inject_rate_limit_headers` helper. Header names live on
 :class:`RateLimitHeaderPolicy`, so middleware and handler do not know
@@ -84,7 +84,7 @@ def _inject_rate_limit_headers(
         result and the header-name policy.
     :param include_retry_after: ``True`` when called from the 429
         handler so the ``Retry-After`` header is set; ``False`` for the
-        success-path middleware.
+        checked-response middleware.
     """
     if context.result.state is None:
         return

@@ -15,7 +15,7 @@ class KeyParts(NamedTuple):
     :param route: The matched route template (``"/users/{id}"``).
         Producers must populate this from FastAPI route metadata; this
         module does not fall back to a concrete URL path.
-    :param principal: Result of the user-provided ``key_func``.
+    :param principal: Resolved principal used for the rate-limit key.
     """
 
     method: str

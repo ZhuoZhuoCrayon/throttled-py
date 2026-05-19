@@ -1,4 +1,4 @@
-"""ASGI middleware for rate-limit header injection on successful responses."""
+"""ASGI middleware for ``RateLimit-*`` headers on checked routes."""
 
 from __future__ import annotations
 
@@ -18,16 +18,16 @@ if TYPE_CHECKING:
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
-    """Inject ``RateLimit-*`` headers on successful responses.
+    """Add ``RateLimit-*`` headers to responses from rate-limit-checked routes.
 
     Reads the :class:`RateLimitContext` stored on ``request.state`` by
     the :meth:`Limiter.limit` decorator wrapper and applies the
-    decorator's header policy to the final response. Header names are
-    not known here; they live on the policy carried by the context.
+    decorator's header policy to the response. Header names live on
+    the policy carried by the context.
 
-    The decorator raises :class:`RateLimitExceededError` on quota
-    exhaustion, which is handled by a separately registered exception
-    handler. This middleware only handles the success path.
+    The exception handler renders quota exhaustion as HTTP 429 and adds
+    ``Retry-After``. This middleware only applies headers from the
+    decorator-produced context after ``call_next()`` returns.
     """
 
     async def dispatch(  # noqa: PLR6301
@@ -39,8 +39,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
         :param request: Incoming HTTP request.
         :param call_next: Calls the next middleware or the route.
-        :returns: The response with ``RateLimit-*`` headers when
-            a rate-limit context is available.
+        :returns: The response, with ``RateLimit-*`` headers added
+            when the route ran under a rate-limit check.
         """
         response: Response = await call_next(request)
         context: RateLimitContext | None = getattr(request.state, _STATE_KEY, None)
