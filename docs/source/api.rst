@@ -29,6 +29,24 @@ Observability
     :show-inheritance:
 
 
+FastAPI Integration
+===================
+
+.. autoclass:: throttled.asyncio.contrib.fastapi.Limiter
+    :members:
+    :special-members: __init__
+
+.. autoclass:: throttled.asyncio.contrib.fastapi.RateLimitMiddleware
+    :members:
+
+.. autoexception:: throttled.asyncio.contrib.fastapi.RateLimitExceededError
+    :members:
+
+.. autofunction:: throttled.asyncio.contrib.fastapi.rate_limit_exceeded_handler
+
+.. autofunction:: throttled.asyncio.contrib.fastapi.get_remote_address
+
+
 Store
 =================
 
