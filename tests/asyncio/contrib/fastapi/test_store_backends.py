@@ -8,7 +8,7 @@ behavior is consistent across backends.
 from __future__ import annotations
 
 from http import HTTPStatus
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import pytest
 from fastapi import (
@@ -26,9 +26,7 @@ if TYPE_CHECKING:
 @pytest.mark.asyncio
 class TestStoreBackends:
     @classmethod
-    async def test_backend__below_quota__allows_requests(
-        cls, store: BaseStore[Any]
-    ) -> None:
+    async def test_backend__below_quota__allows_requests(cls, store: BaseStore) -> None:
         """Both Memory and Redis backends allow under-quota requests."""
         limiter = Limiter("5/s", store=store)
         app = FastAPI()
@@ -48,9 +46,7 @@ class TestStoreBackends:
         assert r2.headers["RateLimit-Remaining"] == "3"
 
     @classmethod
-    async def test_backend__quota_exhausted__returns_429(
-        cls, store: BaseStore[Any]
-    ) -> None:
+    async def test_backend__quota_exhausted__returns_429(cls, store: BaseStore) -> None:
         """Both backends produce 429 with IETF headers on exhaustion."""
         limiter = Limiter("1/s", store=store)
         app = FastAPI()

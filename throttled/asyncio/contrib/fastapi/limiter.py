@@ -22,7 +22,8 @@ if TYPE_CHECKING:
 
     from throttled.asyncio.hooks import Hook
     from throttled.asyncio.rate_limiter import Quota, RateLimitResult
-    from throttled.types import AsyncStoreP, RateLimiterTypeT
+    from throttled.asyncio.store import BaseStore
+    from throttled.types import RateLimiterTypeT
 
 
 P = ParamSpec("P")
@@ -58,7 +59,7 @@ class Limiter:
         self,
         quota: Quota | str,
         *,
-        store: AsyncStoreP | None = None,
+        store: BaseStore | None = None,
         using: RateLimiterTypeT = RateLimiterType.TOKEN_BUCKET.value,
         key_func: KeyFunc | None = None,
         hooks: Sequence[Hook] | None = None,
@@ -66,7 +67,7 @@ class Limiter:
         if quota is None:
             raise TypeError("Limiter requires an explicit quota.")
         self._default_quota: Quota | str = quota
-        self._store: AsyncStoreP = store or MemoryStore()
+        self._store: BaseStore = store or MemoryStore()
         self._using: RateLimiterTypeT = using
         self._key_func: KeyFunc = key_func or _default_key_func
         self._hooks: Sequence[Hook] | None = hooks
