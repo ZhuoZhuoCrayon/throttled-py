@@ -11,7 +11,7 @@ from fastapi import (
     Request,  # noqa: TCH002 (runtime use: FastAPI signature inspection)
 )
 from starlette.staticfiles import StaticFiles
-from throttled.asyncio.contrib.fastapi import Limiter
+from throttled.asyncio.contrib.fastapi import Limiter, get_remote_address
 from throttled.asyncio.store import MemoryStore
 
 from .conftest import ALGORITHMS, asgi_client, setup_app
@@ -33,6 +33,52 @@ class TestLimiterInit:
         """A missing quota must fail loudly."""
         with pytest.raises(TypeError, match=r"requires an explicit quota"):
             Limiter(None)  # type: ignore[arg-type]
+
+
+@pytest.mark.asyncio
+class TestDefaultKeyFunc:
+    @classmethod
+    async def test_limit__default_key_func__shares_bucket_across_clients(
+        cls,
+    ) -> None:
+        """The omitted key_func is a shared route bucket, not client IP."""
+        limiter = Limiter("1/m", store=MemoryStore())
+        app = FastAPI()
+        setup_app(app)
+
+        @app.get("/x")
+        @limiter.limit()
+        async def x(request: Request) -> dict[str, bool]:
+            return {"ok": True}
+
+        async with asgi_client(app, client_addr=("198.51.100.1", 123)) as client_a:
+            assert (await client_a.get("/x")).status_code == HTTPStatus.OK
+
+        async with asgi_client(app, client_addr=("198.51.100.2", 123)) as client_b:
+            assert (await client_b.get("/x")).status_code == HTTPStatus.TOO_MANY_REQUESTS
+
+    @classmethod
+    async def test_limit__remote_address_key_func__separates_clients(
+        cls,
+    ) -> None:
+        """IP-based limiting remains available as an explicit opt-in."""
+        limiter = Limiter("1/m", store=MemoryStore(), key_func=get_remote_address)
+        app = FastAPI()
+        setup_app(app)
+
+        @app.get("/x")
+        @limiter.limit()
+        async def x(request: Request) -> dict[str, bool]:
+            return {"ok": True}
+
+        async with asgi_client(app, client_addr=("198.51.100.1", 123)) as client_a:
+            assert (await client_a.get("/x")).status_code == HTTPStatus.OK
+
+        async with asgi_client(app, client_addr=("198.51.100.2", 123)) as client_b:
+            assert (await client_b.get("/x")).status_code == HTTPStatus.OK
+
+        async with asgi_client(app, client_addr=("198.51.100.1", 123)) as client_a:
+            assert (await client_a.get("/x")).status_code == HTTPStatus.TOO_MANY_REQUESTS
 
 
 @pytest.mark.asyncio

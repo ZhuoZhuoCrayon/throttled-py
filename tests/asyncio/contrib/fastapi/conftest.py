@@ -50,16 +50,20 @@ def build_app() -> Callable[..., tuple[FastAPI, Limiter]]:
 @asynccontextmanager
 async def asgi_client(
     app: FastAPI,
+    *,
+    client_addr: tuple[str, int] = ("127.0.0.1", 123),
 ) -> AsyncIterator[httpx.AsyncClient]:
     """Async context manager yielding an HTTPX client bound to the
     app's ASGI transport.
+
+    ``client_addr`` is the simulated ``(host, port)`` of the caller.
 
     Usage::
 
         async with asgi_client(app) as client:
             await client.get("/x")
     """
-    transport = httpx.ASGITransport(app=app)
+    transport = httpx.ASGITransport(app=app, client=client_addr)
     async with httpx.AsyncClient(
         transport=transport,
         base_url="http://testserver",

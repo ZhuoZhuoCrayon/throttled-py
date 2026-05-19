@@ -15,7 +15,6 @@ from throttled.constants import RateLimiterType
 
 from .exceptions import RateLimitExceededError
 from .headers import _DEFAULT_HEADER_POLICY, _STATE_KEY, RateLimitContext
-from .key_funcs import get_remote_address
 from .keys import KeyParts, compose_key
 
 if TYPE_CHECKING:
@@ -34,6 +33,8 @@ logger = logging.getLogger(__name__)
 #: Sync or async callable that returns the principal key for a request.
 KeyFunc: TypeAlias = Callable[[Request], str | Awaitable[str]]
 
+_DEFAULT_PRINCIPAL = "__throttled_global_principal__"
+
 
 class Limiter:
     """Async decorator-based rate limiter for FastAPI routes.
@@ -46,8 +47,9 @@ class Limiter:
         :class:`~throttled.asyncio.store.MemoryStore` when ``None``.
     :param using: Rate-limit algorithm. Defaults to ``token_bucket`` to
         match :class:`throttled.asyncio.throttled.Throttled`.
-    :param key_func: Sync or async callable that returns the principal
-        key. Defaults to :func:`.key_funcs.get_remote_address`.
+    :param key_func: Optional sync or async callable that returns the
+        principal key. When ``None``, all callers share one quota bucket
+        per method and route.
     :param hooks: Optional async hooks forwarded to the internal
         :class:`~throttled.asyncio.throttled.Throttled` instances.
     """
@@ -58,7 +60,7 @@ class Limiter:
         *,
         store: AsyncStoreP | None = None,
         using: RateLimiterTypeT = RateLimiterType.TOKEN_BUCKET.value,
-        key_func: KeyFunc = get_remote_address,
+        key_func: KeyFunc | None = None,
         hooks: Sequence[Hook] | None = None,
     ) -> None:
         if quota is None:
@@ -66,7 +68,7 @@ class Limiter:
         self._default_quota: Quota | str = quota
         self._store: AsyncStoreP = store or MemoryStore()
         self._using: RateLimiterTypeT = using
-        self._key_func: KeyFunc = key_func
+        self._key_func: KeyFunc = key_func or _default_key_func
         self._hooks: Sequence[Hook] | None = hooks
 
     def limit(
@@ -176,6 +178,11 @@ async def _resolve_principal(key_func: KeyFunc, request: Request) -> str:
     if inspect.isawaitable(key_value):
         return await key_value
     return key_value
+
+
+def _default_key_func(request: Request) -> str:  # noqa: ARG001
+    """Return the built-in shared principal for omitted ``key_func``."""
+    return _DEFAULT_PRINCIPAL
 
 
 def _route_template(request: Request) -> str:
