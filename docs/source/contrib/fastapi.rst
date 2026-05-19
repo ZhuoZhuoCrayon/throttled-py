@@ -17,30 +17,43 @@ Installation
 This installs ``fastapi`` as a dependency. You also need an ASGI server
 (e.g., ``uvicorn``) to run the application.
 
-.. note::
 
-   This integration is **async-only**. All decorated route functions must be
-   ``async def``. There is no synchronous variant. The module lives under
-   ``throttled.asyncio.contrib.fastapi`` and requires an async ASGI server.
+.. _fastapi-examples:
 
+Examples
+========
 
-1) Quick Start
-==============
+The examples below use the same FastAPI integration pieces with different
+quota choices.
 
-Application
------------
+.. tab-set::
 
-A minimal FastAPI app with rate limiting on a single route:
+    .. tab-item:: Shared route quota
 
-.. literalinclude:: ../../../examples/contrib/fastapi/basic_example.py
-   :language: python
+        .. literalinclude:: ../../../examples/contrib/fastapi/basic_example.py
+           :language: python
 
-Three components are required:
+    .. tab-item:: API key quota
 
-1. **Limiter**: Decorator that checks rate limits and raises on quota exhaustion.
-2. **RateLimitMiddleware**: Injects ``RateLimit-*`` headers on responses from
-   routes that passed the rate-limit check.
-3. **rate_limit_exceeded_handler**: Renders HTTP 429 with ``Retry-After`` header.
+        .. literalinclude:: ../../../examples/contrib/fastapi/custom_key_func_example.py
+           :language: python
+
+    .. tab-item:: Client IP quota
+
+        .. literalinclude:: ../../../examples/contrib/fastapi/remote_address_example.py
+           :language: python
+
+    .. tab-item:: Per-route quotas
+
+        .. literalinclude:: ../../../examples/contrib/fastapi/multi_route_example.py
+           :language: python
+
+The setup has three parts:
+
+1. **Limiter**: Checks decorated routes against a quota.
+2. **RateLimitMiddleware**: Adds ``RateLimit-*`` headers to checked responses.
+3. **rate_limit_exceeded_handler**: Renders quota exhaustion as HTTP 429 with
+   ``Retry-After``.
 
 .. note::
 
@@ -49,43 +62,22 @@ Three components are required:
    disables rate limiting; see :ref:`fastapi-decorator-order` for the failure
    mode and stacking with other decorators.
 
-.. warning::
+The following sections explain when to use each example. Return to
+:ref:`fastapi-examples` to see the runnable app code.
 
-   **All three components are required.** Skipping
-   ``app.add_exception_handler(RateLimitExceededError, rate_limit_exceeded_handler)``
-   is the most common pitfall: quota exhaustion then surfaces as ``HTTP 500
-   Internal Server Error`` (not ``429``), because Starlette has no handler for
-   ``RateLimitExceededError`` and falls back to the default 500 path.
 
-.. note::
+1) Basic Usage
+==============
 
-   Every decorated route **must** declare a ``Request`` parameter (any name is fine).
-   The decorator finds it by type, not by name.
-
-Run
----
-
-If you are using throttled-py from your own project, save the snippet as
-``basic_example.py`` and start the server with
-`uvicorn <https://www.uvicorn.dev/>`_:
-
-.. code-block:: bash
-
-   pip install 'throttled-py[fastapi]' uvicorn
-   uvicorn basic_example:app
-
-If you are running the checked-in example from the repository, use the full
-module path from the repo root:
-
-.. code-block:: bash
-
-   uvicorn examples.contrib.fastapi.basic_example:app
+By default, calls to the same method and route share one quota bucket. See the
+``Shared route quota`` example in :ref:`fastapi-examples`.
 
 Test
 ----
 
-The default quota is ``2/m`` (two requests per minute). Send three requests in
-quick succession to observe each phase of the rate limit:
+The default quota is ``2/m`` (two requests per minute). Run the matching
+example with an ASGI server, then send three requests in quick succession to
+observe each phase of the rate limit:
 
 .. code-block:: bash
 
@@ -125,18 +117,22 @@ quick succession to observe each phase of the rate limit:
    requires lowercase header names on the wire). The bytes sent to clients are
    therefore ``ratelimit-limit``, ``ratelimit-remaining``, etc.
 
-2) Custom Key Function
-======================
+2) Choosing a Key Function
+==========================
 
-By default, rate limiting uses the client IP address (``get_remote_address``).
-You can supply a custom ``key_func`` to identify clients by API key, user ID,
-or any other request attribute.
+Use an explicit ``key_func`` when the quota should be tied to a caller or
+application identity. For the default shared-route behavior, see the
+``Shared route quota`` tab in :ref:`fastapi-examples`.
 
-Application
------------
+For direct client-IP limiting, pass ``get_remote_address`` explicitly. See the
+``Client IP quota`` tab in :ref:`fastapi-examples` for a runnable app.
+``get_remote_address`` reads ``request.client.host`` from the ASGI scope. In
+reverse-proxy or load-balancer deployments, make sure that value is the client
+address you intend to trust before using it as a rate-limit principal.
 
-.. literalinclude:: ../../../examples/contrib/fastapi/custom_key_func_example.py
-   :language: python
+For authenticated APIs, prefer an application principal such as user ID, tenant
+ID, or API key. See the ``API key quota`` tab in :ref:`fastapi-examples`
+for a runnable app.
 
 ``key_func`` accepts both sync and async callables:
 
@@ -151,21 +147,6 @@ Application
        token = request.headers.get("Authorization", "")
        user = await verify_token(token)
        return user.id
-
-Run
----
-
-From your own project, save the snippet as ``custom_key_func_example.py`` and run:
-
-.. code-block:: bash
-
-   uvicorn custom_key_func_example:app
-
-From the repository root:
-
-.. code-block:: bash
-
-   uvicorn examples.contrib.fastapi.custom_key_func_example:app
 
 Test
 ----
@@ -203,36 +184,18 @@ Each API key gets its own quota. ``user-a`` and ``user-b`` are tracked separatel
 The ``Limiter`` constructor sets a default quota for all decorated routes.
 Individual routes can override it via ``.limit(quota)``.
 
-Application
------------
-
-.. literalinclude:: ../../../examples/contrib/fastapi/multi_route_example.py
-   :language: python
-
 Each ``.limit()`` call creates an independent ``Throttled`` instance. Routes share
 a counter only when they share the same ``store`` object **and** the same composed
 storage key (method + route template + principal).
 
-Run
----
-
-From your own project, save the snippet as ``multi_route_example.py`` and run:
-
-.. code-block:: bash
-
-   uvicorn multi_route_example:app
-
-From the repository root:
-
-.. code-block:: bash
-
-   uvicorn examples.contrib.fastapi.multi_route_example:app
+See the ``Per-route quotas`` tab in :ref:`fastapi-examples` for a
+runnable app with a stricter ``/admin`` quota.
 
 Test
 ----
 
-``/items`` allows 10 requests/minute, ``/admin`` only 1/minute. Each route has
-its own counter:
+Run the per-route example with an ASGI server. ``/items`` allows 10
+requests/minute, ``/admin`` only 1/minute. Each route has its own counter:
 
 .. code-block:: bash
 
@@ -318,99 +281,7 @@ The body matches FastAPI's ``HTTPException`` shape:
    {"detail": "Rate limit exceeded"}
 
 
-5) API Reference
-================
-
-Limiter
--------
-
-.. list-table::
-   :header-rows: 1
-   :widths: 20 30 50
-
-   * - Parameter
-     - Type
-     - Description
-   * - ``quota`` *(required)*
-     - ``Quota | str``
-     - Default quota for all decorated routes. Accepts a ``Quota`` instance or
-       a DSL string such as ``"100/m"`` or ``"10/s burst 20"``.
-   * - ``store``
-     - ``AsyncStoreP | None``
-     - Storage backend. Defaults to ``MemoryStore`` when ``None``.
-   * - ``using``
-     - ``str``
-     - Rate-limit algorithm. Defaults to ``"token_bucket"`` to match
-       :class:`~throttled.asyncio.throttled.Throttled`.
-   * - ``key_func``
-     - ``KeyFunc``
-     - Sync or async callable ``(Request) -> str``. Defaults to
-       ``get_remote_address`` (client IP).
-   * - ``hooks``
-     - ``Sequence[Hook] | None``
-     - Optional async hooks forwarded to the internal ``Throttled`` instances.
-
-Limiter.limit()
-~~~~~~~~~~~~~~~
-
-.. list-table::
-   :header-rows: 1
-   :widths: 20 30 50
-
-   * - Parameter
-     - Type
-     - Description
-   * - ``quota``
-     - ``Quota | str | None``
-     - Per-route quota override. Falls back to the instance default when ``None``.
-   * - ``key_func``
-     - ``KeyFunc | None``
-     - Per-route key function override. Falls back to the instance default when ``None``.
-
-RateLimitMiddleware
--------------------
-
-ASGI middleware (``BaseHTTPMiddleware`` subclass). No constructor parameters.
-Register it on each ``FastAPI`` app that uses rate-limited routes:
-
-.. code-block:: python
-
-   app.add_middleware(RateLimitMiddleware)
-
-The middleware reads the ``RateLimitContext`` that the decorator stored on
-``request.state`` and applies the rendered headers to the final response.
-If no context is found (e.g., undecorated routes), the response passes through
-unchanged.
-
-rate_limit_exceeded_handler
----------------------------
-
-Async exception handler. Register it for ``RateLimitExceededError``:
-
-.. code-block:: python
-
-   app.add_exception_handler(RateLimitExceededError, rate_limit_exceeded_handler)
-
-Returns a 429 ``JSONResponse`` with ``RateLimit-*`` and ``Retry-After`` headers.
-
-RateLimitExceededError
-----------------------
-
-Subclass of ``throttled.exceptions.LimitedError``. User code that catches
-``LimitedError`` will also catch this exception:
-
-.. code-block:: python
-
-   from throttled.exceptions import LimitedError
-
-   try:
-       await throttle.limit()
-   except LimitedError:
-       # Catches both core LimitedError and RateLimitExceededError.
-       ...
-
-
-6) Constraints and Known Limitations
+5) Constraints and Known Limitations
 =====================================
 
 Async-only
@@ -418,6 +289,12 @@ Async-only
 
 All decorated route functions must be ``async def``. Applying ``@limiter.limit()``
 to a sync function raises ``TypeError`` at decoration time.
+
+Request parameter
+-----------------
+
+Every decorated route must declare a ``Request`` parameter. The decorator finds
+it by type, not by name, and raises ``TypeError`` if none is available.
 
 Route metadata dependency
 -------------------------

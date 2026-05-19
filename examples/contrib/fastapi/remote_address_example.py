@@ -3,11 +3,12 @@ from throttled.asyncio.contrib.fastapi import (
     Limiter,
     RateLimitExceededError,
     RateLimitMiddleware,
+    get_remote_address,
     rate_limit_exceeded_handler,
 )
 
-# 1) Create a limiter with the default shared route quota.
-limiter = Limiter("2/m")
+# 1) Create a limiter that uses the direct client IP as the quota key.
+limiter = Limiter("100/m", key_func=get_remote_address)
 
 # 2) Wire FastAPI integration hooks:
 #    middleware adds RateLimit-* headers
