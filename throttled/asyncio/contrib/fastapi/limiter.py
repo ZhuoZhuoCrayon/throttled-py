@@ -8,10 +8,12 @@ from collections.abc import Awaitable, Callable
 from functools import wraps
 from typing import TYPE_CHECKING, ParamSpec, TypeAlias, TypeVar
 
+from fastapi import HTTPException
 from starlette.requests import Request
 from throttled.asyncio.store import MemoryStore
 from throttled.asyncio.throttled import Throttled
 from throttled.constants import RateLimiterType
+from throttled.exceptions import StoreUnavailableError
 
 from .exceptions import RateLimitExceededError
 from .headers import _DEFAULT_HEADER_POLICY, _STATE_KEY, RateLimitContext
@@ -35,6 +37,10 @@ logger = logging.getLogger(__name__)
 KeyFunc: TypeAlias = Callable[[Request], str | Awaitable[str]]
 
 _DEFAULT_PRINCIPAL = "__throttled_global_principal__"
+
+_STORE_UNAVAILABLE_STATUS = 503
+_STORE_UNAVAILABLE_DETAIL = "Rate limit store unavailable"
+_STORE_UNAVAILABLE_LOG_MSG = "rate limit store unavailable"
 
 
 class Limiter:
@@ -108,11 +114,20 @@ class Limiter:
             @wraps(func)
             async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
                 request: Request = _extract_request(func, tuple(args), kwargs)
-                result: RateLimitResult = await _check(
-                    request=request,
-                    throttled=throttled,
-                    key_func=resolved_key_func,
-                )
+                try:
+                    result: RateLimitResult = await _check(
+                        request=request,
+                        throttled=throttled,
+                        key_func=resolved_key_func,
+                    )
+                except StoreUnavailableError as exc:
+                    if StoreUnavailableError in request.app.exception_handlers:
+                        raise
+                    logger.exception(_STORE_UNAVAILABLE_LOG_MSG)
+                    raise HTTPException(
+                        status_code=_STORE_UNAVAILABLE_STATUS,
+                        detail=_STORE_UNAVAILABLE_DETAIL,
+                    ) from exc
                 context: RateLimitContext = RateLimitContext(
                     result=result,
                     headers=_DEFAULT_HEADER_POLICY,
