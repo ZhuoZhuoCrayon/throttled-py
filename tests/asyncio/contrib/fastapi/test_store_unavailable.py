@@ -1,15 +1,3 @@
-"""Tests for FastAPI contrib ``StoreUnavailableError`` HTTP 503 mapping.
-
-Covers the v3 design contract:
-
-- Default path raises ``HTTPException(503)`` with a JSON detail body and
-  emits one log record.
-- A user-registered ``StoreUnavailableError`` handler preempts the default,
-  and the library emits no store-unavailable log.
-- No ``RateLimit-*`` or ``Retry-After`` headers are returned on the 503
-  path because no reliable rate-limit state exists.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -27,152 +15,195 @@ from ...store.unavailable import OperationUnavailableStore
 from .conftest import asgi_client, setup_app
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
+    import httpx
     from starlette.requests import Request as StarletteRequest
 
 
 _LIMITER_LOGGER_NAME = "throttled.asyncio.contrib.fastapi.limiter"
 
 
+class _CustomStoreUnavailableError(StoreUnavailableError):
+    """A downstream store's finer-grained outage exception."""
+
+
+async def _custom_503_override(
+    request: StarletteRequest, exc: Exception
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=HTTPStatus.BAD_GATEWAY,
+        content={"detail": "store down"},
+    )
+
+
+def build_unavailable_app(
+    *,
+    handler_type: type[Exception] | None = None,
+    handler: Callable[..., Awaitable[JSONResponse]] | None = None,
+) -> FastAPI:
+    """Build a FastAPI app whose only route is rate-limited by a store
+    that always raises ``StoreUnavailableError``.
+    """
+    limiter = Limiter("5/s", store=OperationUnavailableStore())
+    app = FastAPI()
+    setup_app(app)
+    if handler_type is not None and handler is not None:
+        app.add_exception_handler(handler_type, handler)
+
+    @app.get("/")
+    @limiter.limit()
+    async def endpoint(request: Request) -> dict[str, bool]:
+        return {"ok": True}
+
+    return app
+
+
+async def call_route(app: FastAPI, caplog: pytest.LogCaptureFixture) -> httpx.Response:
+    """Call the app's rate-limited route with the limiter logger captured
+    at ERROR level."""
+    with caplog.at_level(logging.ERROR, logger=_LIMITER_LOGGER_NAME):
+        async with asgi_client(app) as client:
+            return await client.get("/")
+
+
+def _store_unavailable_records(
+    caplog: pytest.LogCaptureFixture,
+) -> list[logging.LogRecord]:
+    # Scope to the limiter logger so unrelated records don't skew the count.
+    return [r for r in caplog.records if r.name == _LIMITER_LOGGER_NAME]
+
+
+def assert_store_unavailable_logged_once(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    records = _store_unavailable_records(caplog)
+    assert len(records) == 1
+    record = records[0]
+    assert record.getMessage() == limiter_module._STORE_UNAVAILABLE_LOG_MSG
+    assert record.levelno == logging.ERROR
+    assert record.exc_info is not None
+    assert record.exc_info[0] is StoreUnavailableError
+
+
+def assert_no_store_unavailable_log(caplog: pytest.LogCaptureFixture) -> None:
+    assert _store_unavailable_records(caplog) == []
+
+
 @pytest.mark.asyncio
-class TestStoreUnavailableDefault:
+class TestStoreUnavailable:
     @classmethod
-    async def test_default__returns_503_json(
+    async def test_default__returns_503_without_rate_limit_headers(
         cls,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
-        """No handler registered: 503 JSON body + one ERROR log record."""
-        limiter = Limiter("5/s", store=OperationUnavailableStore())
-        app = FastAPI()
-        setup_app(app)
-
-        @app.get("/x")
-        @limiter.limit()
-        async def x(request: Request) -> dict[str, bool]:
-            return {"ok": True}
-
-        with caplog.at_level(logging.ERROR, logger=_LIMITER_LOGGER_NAME):
-            async with asgi_client(app) as client:
-                response = await client.get("/x")
+        """No handler registered: 503 JSON body, one ERROR log record,
+        and no ``RateLimit-*`` / ``Retry-After`` headers."""
+        app = build_unavailable_app()
+        response = await call_route(app, caplog)
 
         assert response.status_code == HTTPStatus.SERVICE_UNAVAILABLE
         assert response.headers["content-type"].startswith("application/json")
         assert response.json() == {"detail": "Rate limit store unavailable"}
-
-        store_records = [r for r in caplog.records if r.name == _LIMITER_LOGGER_NAME]
-        assert len(store_records) == 1
-        assert store_records[0].getMessage() == limiter_module._STORE_UNAVAILABLE_LOG_MSG
-        assert store_records[0].levelno == logging.ERROR
-        assert store_records[0].exc_info is not None
-        assert store_records[0].exc_info[0] is StoreUnavailableError
-
-    @classmethod
-    async def test_default__omits_rate_limit_and_retry_after_headers(cls) -> None:
-        """No ``RateLimit-*`` or ``Retry-After`` headers on the 503 path."""
-        limiter = Limiter("5/s", store=OperationUnavailableStore())
-        app = FastAPI()
-        setup_app(app)
-
-        @app.get("/x")
-        @limiter.limit()
-        async def x(request: Request) -> dict[str, bool]:
-            return {"ok": True}
-
-        async with asgi_client(app) as client:
-            response = await client.get("/x")
-
-        assert response.status_code == HTTPStatus.SERVICE_UNAVAILABLE
         assert "ratelimit-limit" not in response.headers
         assert "ratelimit-remaining" not in response.headers
         assert "ratelimit-reset" not in response.headers
         assert "retry-after" not in response.headers
 
+        assert_store_unavailable_logged_once(caplog)
 
-@pytest.mark.asyncio
-class TestStoreUnavailableOverride:
     @classmethod
-    async def test_override__user_handler_runs_and_library_emits_no_log(
+    @pytest.mark.parametrize(
+        "handler_type",
+        [
+            pytest.param(StoreUnavailableError, id="exact-handler"),
+            pytest.param(BaseThrottledError, id="base-class-handler"),
+        ],
+    )
+    async def test_handler__preempts_default_503(
         cls,
+        handler_type: type[Exception],
         caplog: pytest.LogCaptureFixture,
     ) -> None:
-        """Registering an exact handler preempts the default and
-        suppresses the library's store-unavailable log record."""
-
-        async def custom_handler(
-            request: StarletteRequest, exc: Exception
-        ) -> JSONResponse:
-            return JSONResponse(
-                status_code=HTTPStatus.BAD_GATEWAY,
-                content={"detail": "store down"},
-            )
-
-        limiter = Limiter("5/s", store=OperationUnavailableStore())
-        app = FastAPI()
-        setup_app(app)
-        app.add_exception_handler(StoreUnavailableError, custom_handler)
-
-        @app.get("/x")
-        @limiter.limit()
-        async def x(request: Request) -> dict[str, bool]:
-            return {"ok": True}
-
-        with caplog.at_level(logging.ERROR, logger=_LIMITER_LOGGER_NAME):
-            async with asgi_client(app) as client:
-                response = await client.get("/x")
+        """A handler whose class is in the raised exception's MRO
+        (exact ``StoreUnavailableError`` or a base such as
+        ``BaseThrottledError``) preempts the default 503 and suppresses
+        the library's store-unavailable log.
+        """
+        app = build_unavailable_app(
+            handler_type=handler_type,
+            handler=_custom_503_override,
+        )
+        response = await call_route(app, caplog)
 
         assert response.status_code == HTTPStatus.BAD_GATEWAY
         assert response.json() == {"detail": "store down"}
+        assert_no_store_unavailable_log(caplog)
 
-        store_records = [r for r in caplog.records if r.name == _LIMITER_LOGGER_NAME]
-        assert store_records == []
-
-
-@pytest.mark.asyncio
-class TestStoreUnavailableLimitations:
     @classmethod
-    async def test_broader_handler__does_not_preempt_default_503(
+    async def test_global_exception_handler__does_not_preempt_default_503(
         cls,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
-        """A broader catch (e.g. ``BaseThrottledError``) does not preempt
-        the default 503. The wrapper catches ``StoreUnavailableError``
-        before Starlette's MRO-based dispatch can run, so only an exact
-        ``StoreUnavailableError`` registration is consulted.
+        """Starlette routes ``Exception``/500 handlers through
+        ``ServerErrorMiddleware``, which re-raises after handling, so a
+        global handler must NOT preempt the default 503. Doing so would
+        surface raw ``StoreUnavailableError`` to the transport and
+        suppress the library's outage log.
         """
-        broader_called: dict[str, bool] = {"hit": False}
+        global_called: dict[str, bool] = {"hit": False}
 
-        async def broader_handler(
+        async def global_handler(
             request: StarletteRequest, exc: Exception
         ) -> JSONResponse:
-            broader_called["hit"] = True
+            global_called["hit"] = True
             return JSONResponse(
-                status_code=HTTPStatus.BAD_GATEWAY,
-                content={"detail": "broader handler ran"},
+                status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+                content={"detail": "global handler ran"},
             )
 
-        limiter = Limiter("5/s", store=OperationUnavailableStore())
-        app = FastAPI()
-        setup_app(app)
-        app.add_exception_handler(BaseThrottledError, broader_handler)
+        app = build_unavailable_app(handler_type=Exception, handler=global_handler)
+        response = await call_route(app, caplog)
 
-        @app.get("/x")
-        @limiter.limit()
-        async def x(request: Request) -> dict[str, bool]:
-            return {"ok": True}
-
-        with caplog.at_level(logging.ERROR, logger=_LIMITER_LOGGER_NAME):
-            async with asgi_client(app) as client:
-                response = await client.get("/x")
-
-        # Default 503 path still wins, broader handler never runs.
         assert response.status_code == HTTPStatus.SERVICE_UNAVAILABLE
         assert response.json() == {"detail": "Rate limit store unavailable"}
-        assert broader_called["hit"] is False
+        assert global_called["hit"] is False
+        assert_store_unavailable_logged_once(caplog)
 
-        # The library still emits its store-unavailable log on this path
-        # because the broader handler did not preempt the default.
-        store_records = [r for r in caplog.records if r.name == _LIMITER_LOGGER_NAME]
-        assert len(store_records) == 1
-        assert store_records[0].getMessage() == limiter_module._STORE_UNAVAILABLE_LOG_MSG
-        assert store_records[0].levelno == logging.ERROR
-        assert store_records[0].exc_info is not None
-        assert store_records[0].exc_info[0] is StoreUnavailableError
+
+@pytest.mark.parametrize(
+    ("registered", "raised", "expected"),
+    [
+        pytest.param(
+            StoreUnavailableError, StoreUnavailableError, True, id="exact-match"
+        ),
+        pytest.param(BaseThrottledError, StoreUnavailableError, True, id="base-via-mro"),
+        pytest.param(
+            _CustomStoreUnavailableError,
+            _CustomStoreUnavailableError,
+            True,
+            id="subclass-via-mro",
+        ),
+        pytest.param(Exception, StoreUnavailableError, False, id="exception-excluded"),
+        pytest.param(None, StoreUnavailableError, False, id="no-handler"),
+    ],
+)
+def test_has_exception_handler__matches_via_mro_excluding_exception(
+    registered: type[Exception] | None,
+    raised: type[Exception],
+    expected: bool,
+) -> None:
+    """``_has_exception_handler`` walks the raised type's MRO so exact,
+    base-class, and subclass handlers all match, while a global
+    ``Exception`` handler and the no-handler case do not.
+
+    This is the unit-level counterpart to the request-path tests: a
+    subclass outage cannot reach the wrapper through a real store
+    (``store/wraps.py`` always raises the base ``StoreUnavailableError``),
+    so the subclass contract is verified directly here.
+    """
+    app = FastAPI()
+    if registered is not None:
+        app.add_exception_handler(registered, _custom_503_override)
+
+    assert limiter_module._has_exception_handler(app, raised) is expected

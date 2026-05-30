@@ -22,6 +22,7 @@ from .keys import KeyParts, compose_key
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
 
+    from fastapi import FastAPI
     from throttled.asyncio.hooks import Hook
     from throttled.asyncio.rate_limiter import Quota, RateLimitResult
     from throttled.asyncio.store import BaseStore
@@ -41,6 +42,19 @@ _DEFAULT_PRINCIPAL = "__throttled_global_principal__"
 _STORE_UNAVAILABLE_STATUS = 503
 _STORE_UNAVAILABLE_DETAIL = "Rate limit store unavailable"
 _STORE_UNAVAILABLE_LOG_MSG = "rate limit store unavailable"
+
+
+def _has_exception_handler(app: FastAPI, exc_type: type[Exception]) -> bool:
+    """Mirror Starlette's MRO-based handler dispatch, excluding ``Exception``.
+
+    ``Exception`` /500 handlers go through ``ServerErrorMiddleware`` and
+    re-raise after handling, so they do not preempt our default 503.
+
+    """
+    return any(
+        cls is not Exception and cls in app.exception_handlers
+        for cls in exc_type.__mro__
+    )
 
 
 class Limiter:
@@ -121,7 +135,7 @@ class Limiter:
                         key_func=resolved_key_func,
                     )
                 except StoreUnavailableError as exc:
-                    if StoreUnavailableError in request.app.exception_handlers:
+                    if _has_exception_handler(request.app, type(exc)):
                         raise
                     logger.exception(_STORE_UNAVAILABLE_LOG_MSG)
                     raise HTTPException(
