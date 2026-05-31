@@ -8,10 +8,12 @@ from collections.abc import Awaitable, Callable
 from functools import wraps
 from typing import TYPE_CHECKING, ParamSpec, TypeAlias, TypeVar
 
+from fastapi import HTTPException
 from starlette.requests import Request
 from throttled.asyncio.store import MemoryStore
 from throttled.asyncio.throttled import Throttled
 from throttled.constants import RateLimiterType
+from throttled.exceptions import StoreUnavailableError
 
 from .exceptions import RateLimitExceededError
 from .headers import _DEFAULT_HEADER_POLICY, _STATE_KEY, RateLimitContext
@@ -20,6 +22,7 @@ from .keys import KeyParts, compose_key
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
 
+    from fastapi import FastAPI
     from throttled.asyncio.hooks import Hook
     from throttled.asyncio.rate_limiter import Quota, RateLimitResult
     from throttled.asyncio.store import BaseStore
@@ -35,6 +38,23 @@ logger = logging.getLogger(__name__)
 KeyFunc: TypeAlias = Callable[[Request], str | Awaitable[str]]
 
 _DEFAULT_PRINCIPAL = "__throttled_global_principal__"
+
+_STORE_UNAVAILABLE_STATUS = 503
+_STORE_UNAVAILABLE_DETAIL = "Rate limit store unavailable"
+_STORE_UNAVAILABLE_LOG_MSG = "rate limit store unavailable"
+
+
+def _has_exception_handler(app: FastAPI, exc_type: type[Exception]) -> bool:
+    """Mirror Starlette's MRO-based handler dispatch, excluding ``Exception``.
+
+    ``Exception`` /500 handlers go through ``ServerErrorMiddleware`` and
+    re-raise after handling, so they do not preempt our default 503.
+
+    """
+    return any(
+        cls is not Exception and cls in app.exception_handlers
+        for cls in exc_type.__mro__
+    )
 
 
 class Limiter:
@@ -108,11 +128,20 @@ class Limiter:
             @wraps(func)
             async def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
                 request: Request = _extract_request(func, tuple(args), kwargs)
-                result: RateLimitResult = await _check(
-                    request=request,
-                    throttled=throttled,
-                    key_func=resolved_key_func,
-                )
+                try:
+                    result: RateLimitResult = await _check(
+                        request=request,
+                        throttled=throttled,
+                        key_func=resolved_key_func,
+                    )
+                except StoreUnavailableError as exc:
+                    if _has_exception_handler(request.app, type(exc)):
+                        raise
+                    logger.exception(_STORE_UNAVAILABLE_LOG_MSG)
+                    raise HTTPException(
+                        status_code=_STORE_UNAVAILABLE_STATUS,
+                        detail=_STORE_UNAVAILABLE_DETAIL,
+                    ) from exc
                 context: RateLimitContext = RateLimitContext(
                     result=result,
                     headers=_DEFAULT_HEADER_POLICY,
