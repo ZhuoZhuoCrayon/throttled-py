@@ -61,7 +61,7 @@ dev = [
     "mypy>=1.15",
     "httpx>=0.28.1",
     "fastapi>=0.100.0,<1.0.0",
-    "flask>=2.2,<4.0",
+    "flask[async]>=2.2,<4.0",
 ]
 docs = [
     "sphinx",

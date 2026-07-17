@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from functools import wraps
-from typing import TYPE_CHECKING, ParamSpec, TypeAlias, TypeVar
+from typing import TYPE_CHECKING, ParamSpec, TypeAlias, TypeVar, cast
 
 from flask import current_app, g, request
 from throttled.constants import RateLimiterType
@@ -244,7 +244,9 @@ class Limiter:
                     result.state.remaining if result.state else "unknown",
                 )
                 setattr(g, _G_KEY, context)
-                return func(*args, **kwargs)
+                # ensure_sync returns Any; the wrapped view still
+                # produces R on the sync path Flask executes.
+                return cast("R", current_app.ensure_sync(func)(*args, **kwargs))
 
             return wrapper
 

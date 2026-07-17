@@ -339,6 +339,41 @@ class TestSuccessHeaders:
         assert "RateLimit-Limit" not in response.headers
 
 
+class TestAsyncViews:
+    """Flask-native ``async def`` view coverage.
+
+    This is NOT async rate-limiting support: the check inside
+    ``@limiter.limit()`` stays fully synchronous and
+    ``throttled.asyncio`` remains the only async API. Flask itself
+    runs ``async def`` views synchronously on WSGI (``flask[async]``),
+    so the wrapper must delegate through ``current_app.ensure_sync``
+    — as flask-limiter does — instead of silently leaking the
+    coroutine out of the sync wrapper.
+    """
+
+    @classmethod
+    def test_limit__async_view__enforced_and_awaited(
+        cls,
+        build_app: Callable[..., tuple[Flask, Limiter]],
+    ) -> None:
+        """An ``async def`` view under ``@limiter.limit()`` must behave
+        exactly like a sync one: awaited on success, 429 on exhaustion.
+        """
+        app, limiter = build_app(quota="1/s")
+
+        @app.get("/async")
+        @limiter.limit()
+        async def async_view() -> dict[str, bool]:
+            return {"ok": True}
+
+        client = app.test_client()
+        first = client.get("/async")
+        assert first.status_code == HTTPStatus.OK
+        assert first.get_json() == {"ok": True}
+        assert first.headers["RateLimit-Limit"] == "1"
+        assert client.get("/async").status_code == HTTPStatus.TOO_MANY_REQUESTS
+
+
 class TestRequestContextLifetime:
     @classmethod
     def test_limit__held_open_app_context__no_header_leak_across_requests(

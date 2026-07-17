@@ -60,6 +60,18 @@ wheels = [
 ]
 
 [[package]]
+name = "asgiref"
+version = "3.12.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e6/26/3b59f2bdae5f640389becb1f673cded775287f5fc4f816309d9ca9a3f93d/asgiref-3.12.1.tar.gz", hash = "sha256:59dcb51c272ad209d59bed5708a64a333083e86017d7fcdd67498eeab7784340", size = 42378, upload-time = "2026-07-14T09:56:18.087Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c0/1b/54f4ad77cd8a584fa70746c47df988e002cf1ee1eba43364d46f87803647/asgiref-3.12.1-py3-none-any.whl", hash = "sha256:fe386d1c2bff7259ea95929266d12a8cf9a8b5a1c2598402967d8792e7a7c094", size = 25478, upload-time = "2026-07-14T09:56:16.926Z" },
+]
+
+[[package]]
 name = "asttokens"
 version = "3.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -565,6 +577,11 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/26/00/35d85dcce6c57fdc871f3867d465d780f302a175ea360f62533f12b27e2b/flask-3.1.3.tar.gz", hash = "sha256:0ef0e52b8a9cd932855379197dd8f94047b359ca0a78695144304cb45f87c9eb", size = 759004, upload-time = "2026-02-19T05:00:57.678Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7f/9c/34f6962f9b9e9c71f6e5ed806e0d0ff03c9d1b0b2340088a0cf4bce09b18/flask-3.1.3-py3-none-any.whl", hash = "sha256:f4bcbefc124291925f1a26446da31a5178f9483862233b23c0c96a20701f670c", size = 103424, upload-time = "2026-02-19T05:00:56.027Z" },
+]
+
+[package.optional-dependencies]
+async = [
+    { name = "asgiref" },
 ]
 
 [[package]]
@@ -2005,7 +2022,7 @@ all = [
     { name = "build" },
     { name = "fakeredis", extra = ["lua"] },
     { name = "fastapi" },
-    { name = "flask" },
+    { name = "flask", extra = ["async"] },
     { name = "hatchling" },
     { name = "httpx" },
     { name = "ipython", version = "8.37.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -2033,7 +2050,7 @@ dev = [
     { name = "build" },
     { name = "fakeredis", extra = ["lua"] },
     { name = "fastapi" },
-    { name = "flask" },
+    { name = "flask", extra = ["async"] },
     { name = "hatchling" },
     { name = "httpx" },
     { name = "ipython", version = "8.37.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -2074,7 +2091,7 @@ all = [
     { name = "build", specifier = ">=1.2.1" },
     { name = "fakeredis", extras = ["lua"], specifier = ">=2.20.0" },
     { name = "fastapi", specifier = ">=0.100.0,<1.0.0" },
-    { name = "flask", specifier = ">=2.2,<4.0" },
+    { name = "flask", extras = ["async"], specifier = ">=2.2,<4.0" },
     { name = "hatchling" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "ipython", specifier = ">=8.0" },
@@ -2099,7 +2116,7 @@ dev = [
     { name = "build", specifier = ">=1.2.1" },
     { name = "fakeredis", extras = ["lua"], specifier = ">=2.20.0" },
     { name = "fastapi", specifier = ">=0.100.0,<1.0.0" },
-    { name = "flask", specifier = ">=2.2,<4.0" },
+    { name = "flask", extras = ["async"], specifier = ">=2.2,<4.0" },
     { name = "hatchling" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "ipython", specifier = ">=8.0" },
