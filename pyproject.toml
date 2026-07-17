@@ -41,6 +41,7 @@ memory = []
 redis = ["redis>3,!=4.5.2,!=4.5.3,<8.0.0"]
 otel = ["opentelemetry-api>=1.30.0"]
 fastapi = ["fastapi>=0.100.0,<1.0.0"]
+flask = ["flask>=2.2,<4.0"]
 
 [dependency-groups]
 dev = [
@@ -60,6 +61,7 @@ dev = [
     "mypy>=1.15",
     "httpx>=0.28.1",
     "fastapi>=0.100.0,<1.0.0",
+    "flask>=2.2,<4.0",
 ]
 docs = [
     "sphinx",
@@ -142,6 +144,8 @@ known-third-party = ["throttled", "tests"]
 "throttled.py" = ["PLR0913", "PLR0917", "UP038"]
 # T201 - Benchmark utility intentionally prints runtime output.
 "throttled/utils.py" = ["T201"]
+# PLR0913 - the Flask extension convention adds an ``app`` kwarg for eager init.
+"throttled/contrib/flask/limiter.py" = ["PLR0913"]
 # D- Ignore docstring related rules in examples.
 # PLR0913 / PLR0917 - Ignore too many arguments in tests.
 "tests/**/*.py" = [
