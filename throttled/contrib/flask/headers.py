@@ -1,0 +1,100 @@
+"""Internal rate-limit header policy and shared renderer.
+
+This module is internal to the Flask contrib. The decorator builds a
+:class:`RateLimitContext`, the ``after_request`` hook and the 429
+exception render headers through the same
+:func:`_inject_rate_limit_headers` helper. Header names live on
+:class:`RateLimitHeaderPolicy`, so the hook and the exception do not
+know the literal strings.
+"""
+
+from __future__ import annotations
+
+import math
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from throttled.rate_limiter import RateLimitResult
+
+
+#: ``flask.g`` attribute name used by the decorator and the
+#: ``after_request`` hook to share the per-request context.
+_G_KEY: str = "_throttled_rate_limit_context"
+
+
+@dataclass(frozen=True)
+class RateLimitHeaderPolicy:
+    """Header names used when rendering rate-limit metadata.
+
+    Defaults follow draft-ietf-httpapi-ratelimit-headers and RFC 9110
+    section 10.2.3 for ``Retry-After``.
+    """
+
+    #: Header name for the request quota in the current window.
+    limit: str = "RateLimit-Limit"
+
+    #: Header name for the remaining requests in the current window.
+    remaining: str = "RateLimit-Remaining"
+
+    #: Header name for the second
+    reset: str = "RateLimit-Reset"
+
+    #: Header name for the seconds the client should wait before retrying.
+    retry_after: str = "Retry-After"
+
+
+@dataclass(frozen=True)
+class RateLimitContext:
+    """Per-request rate-limit decision and the policy used to render it.
+
+    Built by :class:`Limiter` after a rate-limit check, attached to
+    ``flask.g`` for the success p
+    :class:`RateLimitExceededError` for the 429 path.
+    """
+
+    #: The rate-limit result prodr.
+    result: RateLimitResult
+
+    #: The header policy that should be applied when rendering this context.
+    headers: RateLimitHeaderPolicy
+
+
+#: Singleton default header policy. The decorator references this
+#: instance directly so the policther
+#: than allocated per request.
+_DEFAULT_HEADER_POLICY: RateLimitHeaderPolicy = RateLimitHeaderPolicy()
+
+
+def _inject_rate_limit_headers(
+    headers: dict[str, str],
+    context: RateLimitContext,
+    *,
+    include_retry_after: bool,
+) -> None:
+    """Apply ``context``'s rate-limit headers to ``headers``.
+
+    Writes the ``RateLimit-Limit``, ``RateLimit-Remaining``, and
+    ``RateLimit-Reset`` headers (or whatever names the policy carries)
+    when the result has a state. ``Retry-After`` is only written when
+    ``include_retry_after`` is true, which is the 429 path.
+
+    :param headers: Mutable headers mapping to mutate in place.
+    :param context: The decorator-owned context carrying both the
+        result and the header-name policy.
+    :param include_retry_after: ``True`` when called from the 429
+        exception so the ``Retry-After`` header is set; ``False`` for
+        the ``after_request`` hook.
+    """
+    if context.result.state is None:
+        return
+
+    state = context.result.state
+    policy = context.headers
+
+    headers[policy.limit] = str(state.limit)
+    headers[policy.remaining] = str(state.remaining)
+    headers[policy.reset] = str(math.ceil(state.reset_after))
+
+    if include_retry_after:
+        headers[policy.retry_after] = str(math.ceil(state.retry_after))
