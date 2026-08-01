@@ -1,6 +1,25 @@
 Version History
 =================
 
+v3.4.1 - 2026-08-02
+---------------------
+
+`English Documents Available (v3.4.1) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.rst#v341---2026-08-02>`_ | 简体中文
+
+**🐛 Bug 修复**
+
+- fix: 防止 GCRA 因浮点数舍入而错误拒绝未见 key 的首次请求 @kkom (#175)
+
+**📦 依赖项更新**
+
+- build(deps): 将 soupsieve 从 2.8 升级到 2.8.4 @dependabot[bot] (#176)
+- build(deps): 将 cryptography 从 46.0.7 升级到 48.0.1 @dependabot[bot] (#172)
+- build(deps): 将 starlette 从 1.0.0 升级到 1.3.1 @dependabot[bot] (#171)
+- build(deps): 将 idna 从 3.11 升级到 3.15 @dependabot[bot] (#170)
+
+**完整更新日志**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v3.4.0...v3.4.1
+
+
 v3.4.0 - 2026-06-16
 ---------------------
 

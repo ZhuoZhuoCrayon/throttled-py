@@ -1,6 +1,25 @@
 Version History
 ================
 
+v3.4.1 - 2026-08-02
+---------------------
+
+`简体中文 (v3.4.1) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.rst#v341---2026-08-02>`_ | English
+
+**🐛 Bug Fixes**
+
+- fix: prevent GCRA from rejecting an unseen key's first request due to float rounding @kkom (#175)
+
+**📦 Dependencies**
+
+- build(deps): bump soupsieve from 2.8 to 2.8.4 @dependabot[bot] (#176)
+- build(deps): bump cryptography from 46.0.7 to 48.0.1 @dependabot[bot] (#172)
+- build(deps): bump starlette from 1.0.0 to 1.3.1 @dependabot[bot] (#171)
+- build(deps): bump idna from 3.11 to 3.15 @dependabot[bot] (#170)
+
+**Full Changelog**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v3.4.0...v3.4.1
+
+
 v3.4.0 - 2026-06-16
 ---------------------
 
