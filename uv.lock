@@ -2080,7 +2080,7 @@ docs = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", marker = "extra == 'fastapi'", specifier = ">=0.100.0,<1.0.0" },
-    { name = "flask", marker = "extra == 'flask'", specifier = ">=2.2,<4.0" },
+    { name = "flask", marker = "extra == 'flask'", specifier = ">=2.3.3,<4.0" },
     { name = "opentelemetry-api", marker = "extra == 'otel'", specifier = ">=1.30.0" },
     { name = "redis", marker = "extra == 'redis'", specifier = ">3,!=4.5.2,!=4.5.3,<8.0.0" },
 ]
@@ -2091,7 +2091,7 @@ all = [
     { name = "build", specifier = ">=1.2.1" },
     { name = "fakeredis", extras = ["lua"], specifier = ">=2.20.0" },
     { name = "fastapi", specifier = ">=0.100.0,<1.0.0" },
-    { name = "flask", extras = ["async"], specifier = ">=2.2,<4.0" },
+    { name = "flask", extras = ["async"], specifier = ">=2.3.3,<4.0" },
     { name = "hatchling" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "ipython", specifier = ">=8.0" },
@@ -2116,7 +2116,7 @@ dev = [
     { name = "build", specifier = ">=1.2.1" },
     { name = "fakeredis", extras = ["lua"], specifier = ">=2.20.0" },
     { name = "fastapi", specifier = ">=0.100.0,<1.0.0" },
-    { name = "flask", extras = ["async"], specifier = ">=2.2,<4.0" },
+    { name = "flask", extras = ["async"], specifier = ">=2.3.3,<4.0" },
     { name = "hatchling" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "ipython", specifier = ">=8.0" },

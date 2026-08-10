@@ -1,0 +1,35 @@
+name: Contrib compatibility checker
+
+on:
+  push:
+    branches: [main]
+  pull_request: {}
+
+env:
+  FLASK_MINIMUM_VERSION: "2.3.3"
+
+jobs:
+  flask-minimum:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: uv sync --locked --all-extras --group dev
+
+      - name: Install minimum Flask
+        run: uv pip install "flask[async]==${FLASK_MINIMUM_VERSION}"
+
+      - name: Run Flask tests
+        run: uv run --no-sync pytest tests/contrib/flask -q
