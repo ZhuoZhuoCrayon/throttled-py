@@ -1,7 +1,5 @@
 """Fixtures for Flask contrib tests."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Any
 
 import pytest
@@ -15,7 +13,7 @@ if TYPE_CHECKING:
 
 
 @pytest.fixture
-def build_app() -> Callable[..., tuple[Flask, Limiter]]:
+def build_app() -> "Callable[..., tuple[Flask, Limiter]]":
     """Return a factory that produces a fresh ``(Flask, Limiter)`` pair
     per test. ``init_app`` is called automatically.
     """

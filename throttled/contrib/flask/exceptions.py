@@ -1,7 +1,5 @@
 """Flask-specific rate-limit exception rendered as HTTP 429."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING, Any
 
 from throttled.exceptions import LimitedError
@@ -36,7 +34,7 @@ class RateLimitExceededError(TooManyRequests, LimitedError):
 
     description = "Rate limit exceeded"
 
-    def __init__(self, context: RateLimitContext) -> None:
+    def __init__(self, context: "RateLimitContext") -> None:
         TooManyRequests.__init__(self)
         LimitedError.__init__(self, rate_limit_result=context.result)
         #: The decorator-owned rate-limit context.
@@ -44,7 +42,7 @@ class RateLimitExceededError(TooManyRequests, LimitedError):
 
     def get_headers(
         self,
-        environ: WSGIEnvironment | None = None,
+        environ: "WSGIEnvironment | None" = None,
         scope: dict[str, Any] | None = None,
     ) -> list[tuple[str, str]]:
         """Extend werkzeug's headers with ``RateLimit-*`` and ``Retry-After``.

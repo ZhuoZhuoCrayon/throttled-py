@@ -1,7 +1,5 @@
 """Decorator-based rate limiter for Flask views."""
 
-from __future__ import annotations
-
 import logging
 from collections.abc import Callable
 from functools import wraps
@@ -51,7 +49,7 @@ _STORE_UNAVAILABLE_DETAIL = "Rate limit store unavailable"
 _STORE_UNAVAILABLE_LOG_MSG = "rate limit store unavailable"
 
 
-def _registered_handler_types(app: Flask) -> list[type[Exception]]:
+def _registered_handler_types(app: "Flask") -> list[type[Exception]]:
     """Return every exception class with a registered errorhandler.
 
     ``app.error_handler_spec`` is a three-level mapping::
@@ -74,7 +72,7 @@ def _registered_handler_types(app: Flask) -> list[type[Exception]]:
     return registered
 
 
-def _has_error_handler(app: Flask, exc_type: type[Exception]) -> bool:
+def _has_error_handler(app: "Flask", exc_type: type[Exception]) -> bool:
     """Mirror Flask's MRO-based handler lookup, excluding ``Exception``.
 
     A catch-all ``Exception`` handler is not an intentional opt-in for
@@ -104,7 +102,7 @@ def _route_template() -> str:
     return url_rule.rule if url_rule is not None else request.path
 
 
-def _inject_success_headers(response: Response) -> Response:
+def _inject_success_headers(response: "Response") -> "Response":
     """``after_request`` hook adding ``RateLimit-*`` headers.
 
     Pops the :class:`RateLimitContext` stored on ``flask.g`` by the
@@ -146,13 +144,13 @@ class Limiter:
 
     def __init__(
         self,
-        quota: Quota | str,
+        quota: "Quota | str",
         *,
-        app: Flask | None = None,
-        store: BaseStore | None = None,
-        using: RateLimiterTypeT = RateLimiterType.TOKEN_BUCKET.value,
+        app: "Flask | None" = None,
+        store: "BaseStore | None" = None,
+        using: "RateLimiterTypeT" = RateLimiterType.TOKEN_BUCKET.value,
         key_func: KeyFunc | None = None,
-        hooks: Sequence[Hook] | None = None,
+        hooks: "Sequence[Hook] | None" = None,
     ) -> None:
         if quota is None:
             raise TypeError("Limiter requires an explicit quota.")
@@ -166,7 +164,7 @@ class Limiter:
         if app is not None:
             self.init_app(app)
 
-    def init_app(self, app: Flask) -> None:
+    def init_app(self, app: "Flask") -> None:
         """Register the ``after_request`` header hook on ``app``.
 
         Idempotent per limiter, and the hook is registered once per
@@ -185,7 +183,7 @@ class Limiter:
 
     def limit(
         self,
-        quota: Quota | str | None = None,
+        quota: "Quota | str | None" = None,
         *,
         key_func: KeyFunc | None = None,
     ) -> Callable[[Callable[P, R]], Callable[P, R]]:
@@ -253,7 +251,7 @@ class Limiter:
         return decorator
 
 
-def _check(*, throttled: Throttled, key_func: KeyFunc) -> RateLimitResult:
+def _check(*, throttled: Throttled, key_func: KeyFunc) -> "RateLimitResult":
     """Run the rate-limit check for the active request.
 
     :param throttled: The per-view ``Throttled`` instance.

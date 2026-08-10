@@ -6,8 +6,6 @@ hook, and the 429 exception. The custom-policy assertion fixes the
 design rule that header names live only on the policy object.
 """
 
-from __future__ import annotations
-
 import math
 
 from throttled.contrib.flask.headers import (

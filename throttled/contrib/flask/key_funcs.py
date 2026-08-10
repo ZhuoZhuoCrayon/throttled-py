@@ -1,7 +1,5 @@
 """Built-in key extraction helpers for Flask views."""
 
-from __future__ import annotations
-
 import logging
 
 from flask import request

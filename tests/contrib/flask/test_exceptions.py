@@ -6,8 +6,6 @@ and ``except LimitedError`` / ``@app.errorhandler(LimitedError)`` keep
 working for code shared with the core library.
 """
 
-from __future__ import annotations
-
 from http import HTTPStatus
 
 from flask import Flask, jsonify

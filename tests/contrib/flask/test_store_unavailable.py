@@ -1,7 +1,5 @@
 """StoreUnavailableError → HTTP 503 mapping (mirrors FastAPI #168)."""
 
-from __future__ import annotations
-
 import logging
 from http import HTTPStatus
 from typing import TYPE_CHECKING
@@ -41,7 +39,7 @@ def build_unavailable_app() -> Flask:
     return app
 
 
-def call_route(app: Flask, caplog: pytest.LogCaptureFixture) -> TestResponse:
+def call_route(app: Flask, caplog: pytest.LogCaptureFixture) -> "TestResponse":
     """Call the app's rate-limited route with the limiter logger
     captured at ERROR level."""
     with caplog.at_level(logging.ERROR, logger=_LIMITER_LOGGER_NAME):

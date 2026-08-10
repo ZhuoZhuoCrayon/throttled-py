@@ -1,7 +1,5 @@
 """End-to-end tests driving a real Flask app through the test client."""
 
-from __future__ import annotations
-
 from http import HTTPStatus
 from typing import TYPE_CHECKING
 
@@ -138,7 +136,7 @@ class TestLimiterLimit:
     @classmethod
     def test_limit__below_quota__allows_requests(
         cls,
-        build_app: Callable[..., tuple[Flask, Limiter]],
+        build_app: "Callable[..., tuple[Flask, Limiter]]",
     ) -> None:
         """Requests under the quota pass through unchanged."""
         app, limiter = build_app(quota="2/s")
@@ -151,7 +149,7 @@ class TestLimiterLimit:
     @classmethod
     def test_limit__quota_exhausted__returns_429(
         cls,
-        build_app: Callable[..., tuple[Flask, Limiter]],
+        build_app: "Callable[..., tuple[Flask, Limiter]]",
     ) -> None:
         """Second request exceeds a ``1/s`` quota and must 429 without
         any errorhandler registration (werkzeug renders the exception)."""
@@ -165,7 +163,7 @@ class TestLimiterLimit:
     @classmethod
     def test_limit__429_response__carries_ietf_headers_and_description(
         cls,
-        build_app: Callable[..., tuple[Flask, Limiter]],
+        build_app: "Callable[..., tuple[Flask, Limiter]]",
     ) -> None:
         """429 carries draft-ietf-httpapi-ratelimit headers and the
         exception description in the default werkzeug body."""
@@ -185,7 +183,7 @@ class TestLimiterLimit:
     @classmethod
     def test_limit__path_parameters__share_route_template_key(
         cls,
-        build_app: Callable[..., tuple[Flask, Limiter]],
+        build_app: "Callable[..., tuple[Flask, Limiter]]",
     ) -> None:
         """``/users/<int:user_id>`` must share one rate-limit key across
         concrete IDs."""
@@ -203,7 +201,7 @@ class TestLimiterLimit:
     @classmethod
     def test_limit__per_route_quota__overrides_default(
         cls,
-        build_app: Callable[..., tuple[Flask, Limiter]],
+        build_app: "Callable[..., tuple[Flask, Limiter]]",
     ) -> None:
         """Per-route quota tighter than the instance default wins."""
         app, limiter = build_app(quota="1000/s")
@@ -220,7 +218,7 @@ class TestLimiterLimit:
     @classmethod
     def test_limit__per_route_key_func__overrides_default(
         cls,
-        build_app: Callable[..., tuple[Flask, Limiter]],
+        build_app: "Callable[..., tuple[Flask, Limiter]]",
     ) -> None:
         """Per-route key_func swaps the principal extractor for that
         route only."""
@@ -285,7 +283,7 @@ class TestSuccessHeaders:
     @classmethod
     def test_limit__success__dict_return__headers_present(
         cls,
-        build_app: Callable[..., tuple[Flask, Limiter]],
+        build_app: "Callable[..., tuple[Flask, Limiter]]",
     ) -> None:
         """Dict return (no Response object) still gets ``RateLimit-*``
         headers via the after_request hook."""
@@ -306,7 +304,7 @@ class TestSuccessHeaders:
     @classmethod
     def test_limit__success__remaining_decrements(
         cls,
-        build_app: Callable[..., tuple[Flask, Limiter]],
+        build_app: "Callable[..., tuple[Flask, Limiter]]",
     ) -> None:
         """RateLimit-Remaining decrements with each request."""
         app, limiter = build_app(quota="5/s")
@@ -325,7 +323,7 @@ class TestSuccessHeaders:
     @classmethod
     def test_limit__undecorated_route__no_rate_limit_headers(
         cls,
-        build_app: Callable[..., tuple[Flask, Limiter]],
+        build_app: "Callable[..., tuple[Flask, Limiter]]",
     ) -> None:
         """Routes without ``@limiter.limit()`` must stay untouched."""
         app, _ = build_app()
@@ -354,7 +352,7 @@ class TestAsyncViews:
     @classmethod
     def test_limit__async_view__enforced_and_awaited(
         cls,
-        build_app: Callable[..., tuple[Flask, Limiter]],
+        build_app: "Callable[..., tuple[Flask, Limiter]]",
     ) -> None:
         """An ``async def`` view under ``@limiter.limit()`` must behave
         exactly like a sync one: awaited on success, 429 on exhaustion.
@@ -378,7 +376,7 @@ class TestRequestContextLifetime:
     @classmethod
     def test_limit__held_open_app_context__no_header_leak_across_requests(
         cls,
-        build_app: Callable[..., tuple[Flask, Limiter]],
+        build_app: "Callable[..., tuple[Flask, Limiter]]",
     ) -> None:
         """``flask.g`` is bound to the app context, not the request.
         When a caller keeps one app context open across several
@@ -467,7 +465,7 @@ class TestLimiterAlgorithm:
     def test_limit__each_algorithm__returns_429_after_exhaustion(
         cls,
         algorithm: str,
-        build_app: Callable[..., tuple[Flask, Limiter]],
+        build_app: "Callable[..., tuple[Flask, Limiter]]",
     ) -> None:
         """Every supported algorithm must 429 when exhausted."""
         app, limiter = build_app(quota="1/s", using=algorithm)
