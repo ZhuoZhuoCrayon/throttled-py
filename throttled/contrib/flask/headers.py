@@ -37,7 +37,7 @@ class RateLimitHeaderPolicy:
     #: Header name for the remaining requests in the current window.
     remaining: str = "RateLimit-Remaining"
 
-    #: Header name for the second
+    #: Header name for the seconds until the quota resets.
     reset: str = "RateLimit-Reset"
 
     #: Header name for the seconds the client should wait before retrying.
@@ -49,11 +49,11 @@ class RateLimitContext:
     """Per-request rate-limit decision and the policy used to render it.
 
     Built by :class:`Limiter` after a rate-limit check, attached to
-    ``flask.g`` for the success p
+    ``flask.g`` for the success path, and carried by
     :class:`RateLimitExceededError` for the 429 path.
     """
 
-    #: The rate-limit result prodr.
+    #: The rate-limit result produced by the underlying limiter.
     result: RateLimitResult
 
     #: The header policy that should be applied when rendering this context.
@@ -61,7 +61,7 @@ class RateLimitContext:
 
 
 #: Singleton default header policy. The decorator references this
-#: instance directly so the policther
+#: instance directly so the policy is visible as a constant rather
 #: than allocated per request.
 _DEFAULT_HEADER_POLICY: RateLimitHeaderPolicy = RateLimitHeaderPolicy()
 
