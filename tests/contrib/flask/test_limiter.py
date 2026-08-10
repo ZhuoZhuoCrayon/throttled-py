@@ -151,9 +151,9 @@ class TestLimiterLimit:
         cls,
         build_app: "Callable[..., tuple[Flask, Limiter]]",
     ) -> None:
-        """Second request exceeds a ``1/s`` quota and must 429 without
+        """Second request exceeds a ``1/m`` quota and must 429 without
         any errorhandler registration (werkzeug renders the exception)."""
-        app, limiter = build_app(quota="1/s")
+        app, limiter = build_app(quota="1/m")
         _register_items_endpoint(app, limiter)
         client = app.test_client()
 
@@ -167,7 +167,7 @@ class TestLimiterLimit:
     ) -> None:
         """429 carries draft-ietf-httpapi-ratelimit headers and the
         exception description in the default werkzeug body."""
-        app, limiter = build_app(quota="1/s")
+        app, limiter = build_app(quota="1/m")
         _register_items_endpoint(app, limiter)
         client = app.test_client()
 
@@ -187,7 +187,7 @@ class TestLimiterLimit:
     ) -> None:
         """``/users/<int:user_id>`` must share one rate-limit key across
         concrete IDs."""
-        app, limiter = build_app(quota="1/s")
+        app, limiter = build_app(quota="1/m")
 
         @app.get("/users/<int:user_id>")
         @limiter.limit()
@@ -207,7 +207,7 @@ class TestLimiterLimit:
         app, limiter = build_app(quota="1000/s")
 
         @app.get("/tight")
-        @limiter.limit("1/s")
+        @limiter.limit("1/m")
         def tight() -> dict[str, bool]:
             return {"ok": True}
 
@@ -222,7 +222,7 @@ class TestLimiterLimit:
     ) -> None:
         """Per-route key_func swaps the principal extractor for that
         route only."""
-        app, limiter = build_app(quota="1/s", key_func=lambda: "shared")
+        app, limiter = build_app(quota="1/m", key_func=lambda: "shared")
 
         @app.get("/per-user")
         @limiter.limit(key_func=lambda: request.headers["x-user"])
@@ -307,7 +307,7 @@ class TestSuccessHeaders:
         build_app: "Callable[..., tuple[Flask, Limiter]]",
     ) -> None:
         """RateLimit-Remaining decrements with each request."""
-        app, limiter = build_app(quota="5/s")
+        app, limiter = build_app(quota="5/m")
 
         @app.get("/x")
         @limiter.limit()
@@ -357,7 +357,7 @@ class TestAsyncViews:
         """An ``async def`` view under ``@limiter.limit()`` must behave
         exactly like a sync one: awaited on success, 429 on exhaustion.
         """
-        app, limiter = build_app(quota="1/s")
+        app, limiter = build_app(quota="1/m")
 
         @app.get("/async")
         @limiter.limit()
@@ -461,7 +461,7 @@ class TestLimiterAlgorithm:
         build_app: "Callable[..., tuple[Flask, Limiter]]",
     ) -> None:
         """Every supported algorithm must return 429 when exhausted."""
-        app, limiter = build_app(quota="1/s", using=algorithm)
+        app, limiter = build_app(quota="1/m", using=algorithm)
 
         @app.get("/x")
         @limiter.limit()
