@@ -408,11 +408,8 @@ class TestStackedLimiters:
     @classmethod
     def test_limit__stacked_limiters__both_quotas_enforced(cls) -> None:
         """Two Limiter instances stacked on one view both enforce their
-        quotas. Header reporting under stacking is the documented MVP
-        limitation of the single ``flask.g`` slot: success headers
-        reflect the innermost decorator, and a 429 raised by the inner
-        limiter still gets its ``RateLimit-*`` headers overwritten by
-        the outer limiter's context in the after_request hook.
+        quotas. Success headers reflect the innermost limiter, while
+        429 responses preserve the rejecting limiter's headers.
         """
         app = Flask(__name__)
         outer = Limiter("3/m", app=app, store=MemoryStore())
@@ -436,23 +433,19 @@ class TestStackedLimiters:
         assert first.status_code == HTTPStatus.OK
         assert first.headers["RateLimit-Limit"] == "1"
 
-        # Inner per-user bucket for "a" is exhausted -> its 429. The
-        # outer bucket was still consumed on the way in (2/3 used) and
-        # the outer wrapper had already stored its context on ``g``, so
-        # the after_request hook overwrites the exception's RateLimit-*
-        # headers with the outer context (single-slot limitation).
+        # The inner per-user limiter rejects without its exception
+        # headers being overwritten by the outer context on ``g``.
         second = client.get("/stacked", headers={"x-user": "a"})
         assert second.status_code == HTTPStatus.TOO_MANY_REQUESTS
-        assert second.headers["RateLimit-Limit"] == "3"
+        assert second.headers["RateLimit-Limit"] == "1"
+        assert second.headers["RateLimit-Remaining"] == "0"
         assert "Retry-After" in second.headers
 
         # Fresh user passes both limiters (outer 3/3 used).
         third = client.get("/stacked", headers={"x-user": "b"})
         assert third.status_code == HTTPStatus.OK
 
-        # Outer shared bucket is exhausted -> its 429, raised before the
-        # inner limiter for user "c" is consulted and before anything is
-        # stored on ``g``, so the exception's own headers survive.
+        # The outer shared limiter rejects before the inner one runs.
         fourth = client.get("/stacked", headers={"x-user": "c"})
         assert fourth.status_code == HTTPStatus.TOO_MANY_REQUESTS
         assert fourth.headers["RateLimit-Limit"] == "3"
@@ -467,7 +460,7 @@ class TestLimiterAlgorithm:
         algorithm: str,
         build_app: "Callable[..., tuple[Flask, Limiter]]",
     ) -> None:
-        """Every supported algorithm must 429 when exhausted."""
+        """Every supported algorithm must return 429 when exhausted."""
         app, limiter = build_app(quota="1/s", using=algorithm)
 
         @app.get("/x")

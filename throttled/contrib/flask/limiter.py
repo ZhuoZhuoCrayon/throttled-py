@@ -102,12 +102,13 @@ def _route_template() -> str:
     return url_rule.rule if url_rule is not None else request.path
 
 
-def _inject_success_headers(response: "Response") -> "Response":
-    """``after_request`` hook adding ``RateLimit-*`` headers.
+def _apply_rate_limit_headers(response: "Response") -> "Response":
+    """``after_request`` hook adding missing ``RateLimit-*`` headers.
 
     Pops the :class:`RateLimitContext` stored on ``flask.g`` by the
-    :meth:`Limiter.limit` decorator wrapper and applies the
-    decorator's header policy to the response.
+    :meth:`Limiter.limit` decorator wrapper. Existing response headers
+    take precedence, preserving those rendered by a 429 exception. On
+    success, stacked limiters leave the innermost context in the slot.
 
     Responses from views that did not run
     under a rate-limit check pass through untouched.
@@ -117,7 +118,8 @@ def _inject_success_headers(response: "Response") -> "Response":
         headers: dict[str, str] = {}
         _inject_rate_limit_headers(headers, context, include_retry_after=False)
         for name, value in headers.items():
-            response.headers[name] = value
+            response.headers.setdefault(name, value)
+
     return response
 
 
@@ -177,7 +179,7 @@ class Limiter:
         if self in limiters:
             return
         if not limiters:
-            app.after_request(_inject_success_headers)
+            app.after_request(_apply_rate_limit_headers)
 
         limiters.add(self)
 
