@@ -37,6 +37,8 @@
 * 支持[配置限流算法](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#3%E6%8C%87%E5%AE%9A%E9%99%90%E6%B5%81%E7%AE%97%E6%B3%95)，提供灵活的[配额设置](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#4%E6%8C%87%E5%AE%9A%E5%AE%B9%E9%87%8F)。
 * 支持即刻返回及[等待重试](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#%E7%AD%89%E5%BE%85%E9%87%8D%E8%AF%95)，提供[函数调用](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A8)、[装饰器](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#%E4%BD%9C%E4%B8%BA%E8%A3%85%E9%A5%B0%E5%99%A8)、[上下文管理器](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%E5%99%A8)。
 * 支持集成到 [MCP](https://modelcontextprotocol.io/introduction) [Python SDK](https://github.com/modelcontextprotocol/python-sdk)，为模型对话流程提供限流支持。
+* 提供官方 [FastAPI 集成](https://throttled-py.readthedocs.io/en/latest/contrib/fastapi.html)，支持异步装饰器限流、符合 IETF 规范的 `RateLimit-*` 响应头以及 HTTP 429 响应。
+* 提供官方 [Flask 集成](https://throttled-py.readthedocs.io/en/latest/contrib/flask.html)，支持基于装饰器的限流、应用工厂模式以及 HTTP 429 响应。
 * 良好的性能，单次限流 API 执行耗时换算如下（详见 [Benchmarks](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#-benchmarks)）：
   * 内存：约为 2.5 ~ 4.5 次 `dict[key] += 1` 操作。
   * Redis：约为 1.06 ~ 1.37 次 `INCRBY key increment` 操作。
@@ -61,6 +63,10 @@ $ pip install "throttled-py[redis]"
 
 $ pip install "throttled-py[otel]"
 
+$ pip install "throttled-py[fastapi]"
+
+$ pip install "throttled-py[flask]"
+
 $ pip install "throttled-py[redis,otel]"
 ```
 
@@ -71,6 +77,8 @@ $ pip install "throttled-py[redis,otel]"
 | `memory`    | 内存后端默认可用（`memory` extra 不会额外安装依赖）。 |
 | `redis`     | 使用 Redis 作为存储后端。 |
 | `otel`      | 启用 OpenTelemetry Hook 支持。 |
+| `fastapi`   | 启用基于异步装饰器的 [FastAPI 集成](https://throttled-py.readthedocs.io/en/latest/contrib/fastapi.html)。 |
+| `flask`     | 启用基于装饰器的 [Flask 集成](https://throttled-py.readthedocs.io/en/latest/contrib/flask.html)。 |
 
 
 ## 🎨 快速开始

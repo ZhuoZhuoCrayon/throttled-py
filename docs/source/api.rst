@@ -47,6 +47,27 @@ FastAPI Integration
 .. autofunction:: throttled.asyncio.contrib.fastapi.get_remote_address
 
 
+Flask Integration
+=================
+
+.. autoclass:: throttled.contrib.flask.Limiter
+    :members:
+    :special-members: __init__
+
+.. py:exception:: throttled.contrib.flask.RateLimitExceededError(context)
+
+    HTTP 429 exception carrying the rejecting limiter's context and headers.
+    See :ref:`flask-examples` for usage.
+
+.. autoclass:: throttled.contrib.flask.RateLimitContext
+    :members:
+
+.. autoclass:: throttled.contrib.flask.RateLimitHeaderPolicy
+    :members:
+
+.. autofunction:: throttled.contrib.flask.get_remote_address
+
+
 Store
 =================
 
