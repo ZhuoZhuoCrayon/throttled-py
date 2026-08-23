@@ -1,7 +1,5 @@
 """Unit tests for ``get_remote_address``."""
 
-from __future__ import annotations
-
 import logging
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
@@ -39,7 +37,7 @@ class TestGetRemoteAddress:
 
     @classmethod
     def test_get_remote_address__client_none__warns_and_returns_unknown(
-        cls, caplog: pytest.LogCaptureFixture
+        cls, caplog: "pytest.LogCaptureFixture"
     ) -> None:
         """Emit a warning and fall back to :data:`_UNKNOWN_CLIENT` so
         operators can notice the key-collapse risk."""

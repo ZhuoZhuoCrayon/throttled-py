@@ -1,7 +1,5 @@
 """Tests for RateLimitExceededError and rate_limit_exceeded_handler."""
 
-from __future__ import annotations
-
 import math
 from http import HTTPStatus
 

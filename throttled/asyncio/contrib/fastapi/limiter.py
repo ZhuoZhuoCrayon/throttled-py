@@ -1,7 +1,5 @@
 """Async decorator-based rate limiter for FastAPI."""
 
-from __future__ import annotations
-
 import inspect
 import logging
 from collections.abc import Awaitable, Callable
@@ -44,7 +42,7 @@ _STORE_UNAVAILABLE_DETAIL = "Rate limit store unavailable"
 _STORE_UNAVAILABLE_LOG_MSG = "rate limit store unavailable"
 
 
-def _has_exception_handler(app: FastAPI, exc_type: type[Exception]) -> bool:
+def _has_exception_handler(app: "FastAPI", exc_type: type[Exception]) -> bool:
     """Mirror Starlette's MRO-based handler dispatch, excluding ``Exception``.
 
     ``Exception`` /500 handlers go through ``ServerErrorMiddleware`` and
@@ -77,12 +75,12 @@ class Limiter:
 
     def __init__(
         self,
-        quota: Quota | str,
+        quota: "Quota | str",
         *,
-        store: BaseStore | None = None,
-        using: RateLimiterTypeT = RateLimiterType.TOKEN_BUCKET.value,
+        store: "BaseStore | None" = None,
+        using: "RateLimiterTypeT" = RateLimiterType.TOKEN_BUCKET.value,
         key_func: KeyFunc | None = None,
-        hooks: Sequence[Hook] | None = None,
+        hooks: "Sequence[Hook] | None" = None,
     ) -> None:
         if quota is None:
             raise TypeError("Limiter requires an explicit quota.")
@@ -94,7 +92,7 @@ class Limiter:
 
     def limit(
         self,
-        quota: Quota | str | None = None,
+        quota: "Quota | str | None" = None,
         *,
         key_func: KeyFunc | None = None,
     ) -> Callable[[Callable[P, Awaitable[R]]], Callable[P, Awaitable[R]]]:
@@ -173,7 +171,7 @@ async def _check(
     request: Request,
     throttled: Throttled,
     key_func: KeyFunc,
-) -> RateLimitResult:
+) -> "RateLimitResult":
     """Run the rate-limit check for one request.
 
     :param request: Incoming FastAPI request.
@@ -235,7 +233,7 @@ def _route_template(request: Request) -> str:
 def _extract_request(
     func: Callable[..., object],
     args: tuple[object, ...],
-    kwargs: Mapping[str, object],
+    kwargs: "Mapping[str, object]",
 ) -> Request:
     """Find the :class:`Request` argument regardless of parameter name.
 

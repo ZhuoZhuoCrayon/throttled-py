@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 from http import HTTPStatus
 from typing import TYPE_CHECKING
@@ -29,7 +27,7 @@ class _CustomStoreUnavailableError(StoreUnavailableError):
 
 
 async def _custom_503_override(
-    request: StarletteRequest, exc: Exception
+    request: "StarletteRequest", exc: Exception
 ) -> JSONResponse:
     return JSONResponse(
         status_code=HTTPStatus.BAD_GATEWAY,
@@ -40,7 +38,7 @@ async def _custom_503_override(
 def build_unavailable_app(
     *,
     handler_type: type[Exception] | None = None,
-    handler: Callable[..., Awaitable[JSONResponse]] | None = None,
+    handler: "Callable[..., Awaitable[JSONResponse]] | None" = None,
 ) -> FastAPI:
     """Build a FastAPI app whose only route is rate-limited by a store
     that always raises ``StoreUnavailableError``.
@@ -59,7 +57,9 @@ def build_unavailable_app(
     return app
 
 
-async def call_route(app: FastAPI, caplog: pytest.LogCaptureFixture) -> httpx.Response:
+async def call_route(
+    app: FastAPI, caplog: "pytest.LogCaptureFixture"
+) -> "httpx.Response":
     """Call the app's rate-limited route with the limiter logger captured
     at ERROR level."""
     with caplog.at_level(logging.ERROR, logger=_LIMITER_LOGGER_NAME):
@@ -68,14 +68,14 @@ async def call_route(app: FastAPI, caplog: pytest.LogCaptureFixture) -> httpx.Re
 
 
 def _store_unavailable_records(
-    caplog: pytest.LogCaptureFixture,
+    caplog: "pytest.LogCaptureFixture",
 ) -> list[logging.LogRecord]:
     # Scope to the limiter logger so unrelated records don't skew the count.
     return [r for r in caplog.records if r.name == _LIMITER_LOGGER_NAME]
 
 
 def assert_store_unavailable_logged_once(
-    caplog: pytest.LogCaptureFixture,
+    caplog: "pytest.LogCaptureFixture",
 ) -> None:
     records = _store_unavailable_records(caplog)
     assert len(records) == 1
@@ -86,7 +86,7 @@ def assert_store_unavailable_logged_once(
     assert record.exc_info[0] is StoreUnavailableError
 
 
-def assert_no_store_unavailable_log(caplog: pytest.LogCaptureFixture) -> None:
+def assert_no_store_unavailable_log(caplog: "pytest.LogCaptureFixture") -> None:
     assert _store_unavailable_records(caplog) == []
 
 
@@ -95,7 +95,7 @@ class TestStoreUnavailable:
     @classmethod
     async def test_default__returns_503_without_rate_limit_headers(
         cls,
-        caplog: pytest.LogCaptureFixture,
+        caplog: "pytest.LogCaptureFixture",
     ) -> None:
         """No handler registered: 503 JSON body, one ERROR log record,
         and no ``RateLimit-*`` / ``Retry-After`` headers."""
@@ -123,7 +123,7 @@ class TestStoreUnavailable:
     async def test_handler__preempts_default_503(
         cls,
         handler_type: type[Exception],
-        caplog: pytest.LogCaptureFixture,
+        caplog: "pytest.LogCaptureFixture",
     ) -> None:
         """A handler whose class is in the raised exception's MRO
         (exact ``StoreUnavailableError`` or a base such as
@@ -143,7 +143,7 @@ class TestStoreUnavailable:
     @classmethod
     async def test_global_exception_handler__does_not_preempt_default_503(
         cls,
-        caplog: pytest.LogCaptureFixture,
+        caplog: "pytest.LogCaptureFixture",
     ) -> None:
         """Starlette routes ``Exception``/500 handlers through
         ``ServerErrorMiddleware``, which re-raises after handling, so a
@@ -154,7 +154,7 @@ class TestStoreUnavailable:
         global_called: dict[str, bool] = {"hit": False}
 
         async def global_handler(
-            request: StarletteRequest, exc: Exception
+            request: "StarletteRequest", exc: Exception
         ) -> JSONResponse:
             global_called["hit"] = True
             return JSONResponse(

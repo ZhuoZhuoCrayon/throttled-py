@@ -1,7 +1,5 @@
 """End-to-end tests driving a real FastAPI app through HTTPX."""
 
-from __future__ import annotations
-
 from http import HTTPStatus
 from typing import TYPE_CHECKING
 
@@ -86,7 +84,7 @@ class TestLimiterLimit:
     @classmethod
     async def test_limit__below_quota__allows_requests(
         cls,
-        build_app: Callable[..., tuple[FastAPI, Limiter]],
+        build_app: "Callable[..., tuple[FastAPI, Limiter]]",
     ) -> None:
         """Requests under the quota pass through unchanged."""
         app, limiter = build_app(quota="2/s")
@@ -99,7 +97,7 @@ class TestLimiterLimit:
     @classmethod
     async def test_limit__quota_exhausted__returns_429(
         cls,
-        build_app: Callable[..., tuple[FastAPI, Limiter]],
+        build_app: "Callable[..., tuple[FastAPI, Limiter]]",
     ) -> None:
         """Second request exceeds a ``1/s`` quota and must 429."""
         app, limiter = build_app(quota="1/s")
@@ -114,7 +112,7 @@ class TestLimiterLimit:
     @classmethod
     async def test_limit__429_response__carries_ietf_headers_and_body(
         cls,
-        build_app: Callable[..., tuple[FastAPI, Limiter]],
+        build_app: "Callable[..., tuple[FastAPI, Limiter]]",
     ) -> None:
         """429 carries draft-ietf-httpapi-ratelimit headers and body."""
         app, limiter = build_app(quota="1/s")
@@ -133,7 +131,7 @@ class TestLimiterLimit:
     @classmethod
     async def test_limit__sync_function__raises_typeerror_at_decoration(
         cls,
-        build_app: Callable[..., tuple[FastAPI, Limiter]],
+        build_app: "Callable[..., tuple[FastAPI, Limiter]]",
     ) -> None:
         """Sync endpoints are rejected eagerly at decoration time."""
         _, limiter = build_app()
@@ -146,7 +144,7 @@ class TestLimiterLimit:
     @classmethod
     async def test_limit__path_parameters__share_route_template_key(
         cls,
-        build_app: Callable[..., tuple[FastAPI, Limiter]],
+        build_app: "Callable[..., tuple[FastAPI, Limiter]]",
     ) -> None:
         """``/users/{user_id}`` must share one rate-limit key across
         concrete IDs."""
@@ -166,7 +164,7 @@ class TestLimiterLimit:
     @classmethod
     async def test_limit__arbitrary_request_param_name__accepted(
         cls,
-        build_app: Callable[..., tuple[FastAPI, Limiter]],
+        build_app: "Callable[..., tuple[FastAPI, Limiter]]",
     ) -> None:
         """FastAPI users may name the ``Request`` parameter anything."""
         app, limiter = build_app(quota="10/s")
@@ -182,7 +180,7 @@ class TestLimiterLimit:
     @classmethod
     async def test_limit__per_route_quota__overrides_default(
         cls,
-        build_app: Callable[..., tuple[FastAPI, Limiter]],
+        build_app: "Callable[..., tuple[FastAPI, Limiter]]",
     ) -> None:
         """Per-route quota tighter than the instance default wins."""
         app, limiter = build_app(quota="1000/s")
@@ -201,7 +199,7 @@ class TestLimiterLimit:
     @classmethod
     async def test_limit__per_route_key_func__overrides_default(
         cls,
-        build_app: Callable[..., tuple[FastAPI, Limiter]],
+        build_app: "Callable[..., tuple[FastAPI, Limiter]]",
     ) -> None:
         """Per-route key_func swaps the principal extractor for that
         route only."""
@@ -305,7 +303,7 @@ class TestSuccessHeaders:
     @classmethod
     async def test_limit__success__dict_return__headers_present(
         cls,
-        build_app: Callable[..., tuple[FastAPI, Limiter]],
+        build_app: "Callable[..., tuple[FastAPI, Limiter]]",
     ) -> None:
         """Dict return (no Response object) still gets RateLimit-*
         headers via middleware. This is the v3 core improvement."""
@@ -326,7 +324,7 @@ class TestSuccessHeaders:
     @classmethod
     async def test_limit__success__remaining_decrements(
         cls,
-        build_app: Callable[..., tuple[FastAPI, Limiter]],
+        build_app: "Callable[..., tuple[FastAPI, Limiter]]",
     ) -> None:
         """RateLimit-Remaining decrements with each request."""
         app, limiter = build_app(quota="5/s")
@@ -350,7 +348,7 @@ class TestLimiterAlgorithm:
     async def test_limit__each_algorithm__returns_429_after_exhaustion(
         cls,
         algorithm: str,
-        build_app: Callable[..., tuple[FastAPI, Limiter]],
+        build_app: "Callable[..., tuple[FastAPI, Limiter]]",
     ) -> None:
         """Every supported algorithm must 429 when exhausted."""
         app, limiter = build_app(quota="1/s", using=algorithm)

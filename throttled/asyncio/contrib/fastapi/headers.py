@@ -8,8 +8,6 @@ exception handler render headers through the same
 the literal strings.
 """
 
-from __future__ import annotations
-
 import math
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
@@ -54,7 +52,7 @@ class RateLimitContext:
     """
 
     #: The rate-limit result produced by the underlying limiter.
-    result: RateLimitResult
+    result: "RateLimitResult"
 
     #: The header policy that should be applied when rendering this context.
     headers: RateLimitHeaderPolicy

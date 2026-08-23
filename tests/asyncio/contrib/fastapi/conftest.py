@@ -1,7 +1,5 @@
 """Fixtures for FastAPI contrib tests."""
 
-from __future__ import annotations
-
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any
 
@@ -31,7 +29,7 @@ def setup_app(app: FastAPI) -> None:
 
 
 @pytest.fixture
-def build_app() -> Callable[..., tuple[FastAPI, Limiter]]:
+def build_app() -> "Callable[..., tuple[FastAPI, Limiter]]":
     """Return a factory that produces a fresh ``(FastAPI, Limiter)``
     pair per test. Middleware and exception handler are registered
     automatically.
@@ -52,7 +50,7 @@ async def asgi_client(
     app: FastAPI,
     *,
     client_addr: tuple[str, int] = ("127.0.0.1", 123),
-) -> AsyncIterator[httpx.AsyncClient]:
+) -> "AsyncIterator[httpx.AsyncClient]":
     """Async context manager yielding an HTTPX client bound to the
     app's ASGI transport.
 

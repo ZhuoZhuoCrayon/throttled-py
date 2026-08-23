@@ -5,8 +5,6 @@ Verifies that the contrib forwards user-provided store backends
 behavior is consistent across backends.
 """
 
-from __future__ import annotations
-
 from http import HTTPStatus
 from typing import TYPE_CHECKING
 
@@ -26,7 +24,9 @@ if TYPE_CHECKING:
 @pytest.mark.asyncio
 class TestStoreBackends:
     @classmethod
-    async def test_backend__below_quota__allows_requests(cls, store: BaseStore) -> None:
+    async def test_backend__below_quota__allows_requests(
+        cls, store: "BaseStore"
+    ) -> None:
         """Both Memory and Redis backends allow under-quota requests."""
         limiter = Limiter("5/s", store=store)
         app = FastAPI()
@@ -46,7 +46,9 @@ class TestStoreBackends:
         assert r2.headers["RateLimit-Remaining"] == "3"
 
     @classmethod
-    async def test_backend__quota_exhausted__returns_429(cls, store: BaseStore) -> None:
+    async def test_backend__quota_exhausted__returns_429(
+        cls, store: "BaseStore"
+    ) -> None:
         """Both backends produce 429 with IETF headers on exhaustion."""
         limiter = Limiter("1/s", store=store)
         app = FastAPI()
@@ -72,7 +74,7 @@ class TestStoreBackends:
 class TestRedisStoreSharedAcrossLimiters:
     @classmethod
     async def test_redis__shared_store__multiple_limiters_share_counter(
-        cls, redis_store: RedisStore
+        cls, redis_store: "RedisStore"
     ) -> None:
         """Two Limiters with different quotas but the same Redis store
         and overlapping keys hit the same counter. This is the basis

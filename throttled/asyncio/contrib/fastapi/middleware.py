@@ -1,7 +1,5 @@
 """ASGI middleware for ``RateLimit-*`` headers on checked routes."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -32,9 +30,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(  # noqa: PLR6301
         self,
-        request: Request,
-        call_next: Callable[[Request], Awaitable[Response]],
-    ) -> Response:
+        request: "Request",
+        call_next: "Callable[[Request], Awaitable[Response]]",
+    ) -> "Response":
         """Process the request and inject rate-limit headers.
 
         :param request: Incoming HTTP request.

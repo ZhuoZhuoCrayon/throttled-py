@@ -1,7 +1,5 @@
 """Built-in key extraction helpers for FastAPI routes."""
 
-from __future__ import annotations
-
 import logging
 from typing import TYPE_CHECKING
 
@@ -13,7 +11,7 @@ logger = logging.getLogger(__name__)
 _UNKNOWN_CLIENT = "unknown"
 
 
-def get_remote_address(request: Request) -> str:
+def get_remote_address(request: "Request") -> str:
     """Return the direct client IP from the ASGI scope.
 
     :returns: ``request.client.host`` when available, otherwise the

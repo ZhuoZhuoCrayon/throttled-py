@@ -1,7 +1,5 @@
 """Storage key composition utilities."""
 
-from __future__ import annotations
-
 from typing import NamedTuple
 from urllib.parse import quote
 

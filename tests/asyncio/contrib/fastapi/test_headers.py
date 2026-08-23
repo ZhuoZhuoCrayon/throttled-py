@@ -6,8 +6,6 @@ The custom-policy assertion fixes the design rule that header names
 live only on the policy object.
 """
 
-from __future__ import annotations
-
 import math
 
 from throttled.asyncio.contrib.fastapi.headers import (

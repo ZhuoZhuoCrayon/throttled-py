@@ -1,7 +1,5 @@
 """FastAPI-specific rate-limit exception and HTTP 429 handler."""
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 
 from fastapi.responses import JSONResponse
@@ -27,14 +25,14 @@ class RateLimitExceededError(LimitedError):
         429 response.
     """
 
-    def __init__(self, context: RateLimitContext) -> None:
+    def __init__(self, context: "RateLimitContext") -> None:
         super().__init__(rate_limit_result=context.result)
         #: The decorator-owned rate-limit context.
         self.rate_limit_context: RateLimitContext = context
 
 
 async def rate_limit_exceeded_handler(
-    request: Request,
+    request: "Request",
     exc: Exception,
 ) -> JSONResponse:
     """Render :class:`RateLimitExceededError` as HTTP 429.

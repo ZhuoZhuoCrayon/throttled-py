@@ -5,8 +5,6 @@ Verifies that hooks passed to ``Limiter`` reach the underlying
 used in the FastAPI path so metrics recording attributes flow through.
 """
 
-from __future__ import annotations
-
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
@@ -48,9 +46,9 @@ class _CountingHook(Hook):
 
     async def on_limit(
         self,
-        call_next: Callable[[], Awaitable[RateLimitResult]],
-        context: HookContext,
-    ) -> RateLimitResult:
+        call_next: "Callable[[], Awaitable[RateLimitResult]]",
+        context: "HookContext",
+    ) -> "RateLimitResult":
         self.calls.append(context.key)
         return await call_next()
 
