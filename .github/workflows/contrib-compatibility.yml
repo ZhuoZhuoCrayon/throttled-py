@@ -5,12 +5,41 @@ on:
     branches: [main]
   pull_request: {}
 
+# The lockfile always resolves the newest framework release, so nothing else
+# exercises the floors the extras in pyproject.toml promise. Test those floors
+# on the oldest and newest supported Python versions.
 env:
-  FLASK_MINIMUM_VERSION: "2.3.3"
+  MINIMUM_REQUIRED_FASTAPI: "0.100.0"
+  MINIMUM_REQUIRED_FLASK: "2.3.3"
 
 jobs:
-  flask-minimum:
+  minimum-version:
+    name: ${{ matrix.check-name }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - contrib: flask
+            python-version: "3.10"
+            check-name: flask-minimum
+            package: "flask[async]"
+            tests: tests/contrib/flask
+          - contrib: flask
+            python-version: "3.14"
+            check-name: flask-minimum (py3.14)
+            package: "flask[async]"
+            tests: tests/contrib/flask
+          - contrib: fastapi
+            python-version: "3.10"
+            check-name: fastapi-minimum
+            package: "fastapi"
+            tests: tests/asyncio/contrib/fastapi
+          - contrib: fastapi
+            python-version: "3.14"
+            check-name: fastapi-minimum (py3.14)
+            package: "fastapi"
+            tests: tests/asyncio/contrib/fastapi
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -18,18 +47,44 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: ${{ matrix.python-version }}
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
         with:
-          python-version: "3.10"
+          python-version: ${{ matrix.python-version }}
+
+      - name: Resolve the floor for ${{ matrix.contrib }}
+        id: floor
+        # The matrix cannot read the env context, so the contrib name selects
+        # its MINIMUM_REQUIRED_* variable here instead.
+        run: |
+          name="MINIMUM_REQUIRED_$(echo "${{ matrix.contrib }}" | tr '[:lower:]' '[:upper:]')"
+          pinned="${!name-}"
+          if [ -z "${pinned}" ]; then
+            echo "::error::${name} is not set for the ${{ matrix.contrib }} row"
+            exit 1
+          fi
+          echo "version=${pinned}" >> "$GITHUB_OUTPUT"
+
+      - name: Check the floor matches pyproject
+        run: |
+          declared=$(grep -oP '^\s*${{ matrix.contrib }}\s*=\s*\["[^"]*>=\K[^,"]+' pyproject.toml || true)
+          if [ -z "${declared}" ]; then
+            echo "::error::could not read the ${{ matrix.contrib }} floor from pyproject.toml"
+            exit 1
+          fi
+          echo "pyproject declares ${{ matrix.contrib }}>=${declared}"
+          if [ "${declared}" != "${{ steps.floor.outputs.version }}" ]; then
+            echo "::error::pyproject declares ${{ matrix.contrib }}>=${declared} but this workflow pins ${{ steps.floor.outputs.version }}"
+            exit 1
+          fi
 
       - name: Install dependencies
         run: uv sync --locked --all-extras --group dev
 
-      - name: Install minimum Flask
-        run: uv pip install "flask[async]==${FLASK_MINIMUM_VERSION}"
+      - name: Install minimum ${{ matrix.contrib }}
+        run: uv pip install "${{ matrix.package }}==${{ steps.floor.outputs.version }}"
 
-      - name: Run Flask tests
-        run: uv run --no-sync pytest tests/contrib/flask -q
+      - name: Run ${{ matrix.contrib }} tests
+        run: uv run --no-sync pytest ${{ matrix.tests }} -q
