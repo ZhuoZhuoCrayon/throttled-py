@@ -4,7 +4,7 @@
 
 .. container:: badges
 
-   .. image:: https://img.shields.io/badge/python-%3E%3D3.8-green?style=for-the-badge&logo=python
+   .. image:: https://img.shields.io/badge/python-%3E%3D3.10-green?style=for-the-badge&logo=python
       :target: https://github.com/ZhuoZhuoCrayon/throttled-py
       :class: header-badge
    .. image:: https://img.shields.io/codecov/c/github/ZhuoZhuoCrayon/throttled-py?logo=codecov&style=for-the-badge
