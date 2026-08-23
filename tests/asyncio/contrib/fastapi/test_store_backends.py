@@ -28,7 +28,7 @@ class TestStoreBackends:
     @classmethod
     async def test_backend__below_quota__allows_requests(cls, store: BaseStore) -> None:
         """Both Memory and Redis backends allow under-quota requests."""
-        limiter = Limiter("5/s", store=store)
+        limiter = Limiter("5/m", store=store)
         app = FastAPI()
         setup_app(app)
 
@@ -48,7 +48,7 @@ class TestStoreBackends:
     @classmethod
     async def test_backend__quota_exhausted__returns_429(cls, store: BaseStore) -> None:
         """Both backends produce 429 with IETF headers on exhaustion."""
-        limiter = Limiter("1/s", store=store)
+        limiter = Limiter("1/m", store=store)
         app = FastAPI()
         setup_app(app)
 

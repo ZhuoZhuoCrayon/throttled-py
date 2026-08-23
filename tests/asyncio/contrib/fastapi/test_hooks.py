@@ -93,7 +93,7 @@ class TestOTelHookIntegration:
         counter: MagicMock = mock_meter.create_counter.return_value
         histogram: MagicMock = mock_meter.create_histogram.return_value
 
-        limiter = Limiter("1/s", store=MemoryStore(), hooks=[hook])
+        limiter = Limiter("1/m", store=MemoryStore(), hooks=[hook])
         app = FastAPI()
         setup_app(app)
 
@@ -104,7 +104,7 @@ class TestOTelHookIntegration:
 
         async with asgi_client(app) as client:
             await client.get("/x")  # allowed
-            await client.get("/x")  # denied (1/s exhausted)
+            await client.get("/x")  # denied (1/m exhausted)
 
         # Counter and histogram each recorded once per request.
         assert counter.add.call_count == EXPECTED_CALL_COUNT
