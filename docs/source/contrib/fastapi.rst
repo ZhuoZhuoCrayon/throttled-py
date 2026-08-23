@@ -2,9 +2,9 @@
 FastAPI
 =======
 
-Async decorator-based rate limiter for FastAPI. Apply per-route rate limiting with
-automatic ``RateLimit-*`` header injection on responses from rate-limit-checked
-routes and IETF-compliant HTTP 429 responses on quota exhaustion.
+Async decorator-based rate limiting for FastAPI. Apply per-route quotas with
+automatic ``RateLimit-*`` headers on checked responses and HTTP 429 responses
+on quota exhaustion.
 
 
 Installation
@@ -23,29 +23,40 @@ This installs ``fastapi`` as a dependency. You also need an ASGI server
 Examples
 ========
 
-The examples below use the same FastAPI integration pieces with different
-quota choices.
+The examples below show common quota choices and error-handling customization.
 
 .. tab-set::
+    :sync-group: fastapi-example
 
-    .. tab-item:: Shared route quota
+    .. tab-item:: Basic usage
+        :sync: basic
+        :selected:
 
         .. literalinclude:: ../../../examples/contrib/fastapi/basic_example.py
            :language: python
 
     .. tab-item:: API key quota
+        :sync: api-key
 
         .. literalinclude:: ../../../examples/contrib/fastapi/custom_key_func_example.py
            :language: python
 
     .. tab-item:: Client IP quota
+        :sync: client-ip
 
         .. literalinclude:: ../../../examples/contrib/fastapi/remote_address_example.py
            :language: python
 
     .. tab-item:: Per-route quotas
+        :sync: per-route
 
         .. literalinclude:: ../../../examples/contrib/fastapi/multi_route_example.py
+           :language: python
+
+    .. tab-item:: Error handling
+        :sync: error-handling
+
+        .. literalinclude:: ../../../examples/contrib/fastapi/error_handling_example.py
            :language: python
 
 The setup has three parts:
@@ -70,10 +81,10 @@ The following sections explain when to use each example. Return to
 ==============
 
 By default, calls to the same method and route share one quota bucket. See the
-``Shared route quota`` example in :ref:`fastapi-examples`.
+`Basic usage example <?fastapi-example=basic#fastapi-examples>`_.
 
-Test
-----
+Example
+-------
 
 The default quota is ``2/m`` (two requests per minute). Run the matching
 example with an ASGI server, then send three requests in quick succession to
@@ -122,17 +133,13 @@ observe each phase of the rate limit:
 
 Use an explicit ``key_func`` when the quota should be tied to a caller or
 application identity. For the default shared-route behavior, see the
-``Shared route quota`` tab in :ref:`fastapi-examples`.
+`Basic usage example <?fastapi-example=basic#fastapi-examples>`_.
 
-For direct client-IP limiting, pass ``get_remote_address`` explicitly. See the
-``Client IP quota`` tab in :ref:`fastapi-examples` for a runnable app.
-``get_remote_address`` reads ``request.client.host`` from the ASGI scope. In
-reverse-proxy or load-balancer deployments, make sure that value is the client
-address you intend to trust before using it as a rate-limit principal.
+API key quota
+-------------
 
 For authenticated APIs, prefer an application principal such as user ID, tenant
-ID, or API key. See the ``API key quota`` tab in :ref:`fastapi-examples`
-for a runnable app.
+ID, or API key.
 
 ``key_func`` accepts both sync and async callables:
 
@@ -148,12 +155,17 @@ for a runnable app.
        user = await verify_token(token)
        return user.id
 
-Test
-----
+Example
+~~~~~~~
 
-Each API key gets its own quota. ``user-a`` and ``user-b`` are tracked separately:
+Run the
+`API key quota example <?fastapi-example=api-key#fastapi-examples>`_
+with an ASGI server, then send requests for two principals. Exhausting
+``user-a`` does not consume ``user-b``'s bucket:
 
 .. code-block:: bash
+
+   $ uvicorn examples.contrib.fastapi.custom_key_func_example:app
 
    $ curl -is -H "X-API-Key: user-a" http://localhost:8000/items
    HTTP/1.1 200 OK
@@ -177,6 +189,36 @@ Each API key gets its own quota. ``user-a`` and ``user-b`` are tracked separatel
    ...
    {"items":["apple","banana"]}
 
+Client IP quota
+---------------
+
+For direct client-IP limiting, pass ``get_remote_address`` explicitly:
+
+.. code-block:: python
+
+   from throttled.asyncio.contrib.fastapi import get_remote_address
+
+   limiter = Limiter("100/m", key_func=get_remote_address)
+
+``get_remote_address`` reads ``request.client.host`` from the ASGI scope. In
+reverse-proxy or load-balancer deployments, make sure that value is the client
+address you intend to trust before using it as a rate-limit principal.
+
+Example
+~~~~~~~
+
+Run the
+`Client IP quota example <?fastapi-example=client-ip#fastapi-examples>`_
+with an ASGI server:
+
+.. code-block:: bash
+
+   $ uvicorn examples.contrib.fastapi.remote_address_example:app
+
+To observe separate buckets, send requests from different network source
+addresses. Forwarded headers alone do not change the direct client address
+used by ``get_remote_address``.
+
 
 3) Per-Route Quota Override
 ===========================
@@ -188,11 +230,12 @@ Each ``.limit()`` call creates an independent ``Throttled`` instance. Routes sha
 a counter only when they share the same ``store`` object **and** the same composed
 storage key (method + route template + principal).
 
-See the ``Per-route quotas`` tab in :ref:`fastapi-examples` for a
-runnable app with a stricter ``/admin`` quota.
+See the
+`Per-route quotas example <?fastapi-example=per-route#fastapi-examples>`_
+for a runnable app with a stricter ``/admin`` quota.
 
-Test
-----
+Example
+-------
 
 Run the per-route example with an ASGI server. ``/items`` allows 10
 requests/minute, ``/admin`` only 1/minute. Each route has its own counter:
@@ -226,13 +269,63 @@ requests/minute, ``/admin`` only 1/minute. Each route has its own counter:
    ...
 
 
-4) Response Headers
+4) Error Handling
+=================
+
+The
+`Error handling example <?fastapi-example=error-handling#fastapi-examples>`_
+is a runnable application covering both cases below.
+
+Quota exhaustion
+----------------
+
+``rate_limit_exceeded_handler`` renders ``RateLimitExceededError`` as HTTP 429,
+including the ``RateLimit-*`` and ``Retry-After`` headers. The default body
+matches FastAPI's ``HTTPException`` shape:
+
+.. code-block:: json
+
+   {"detail": "Rate limit exceeded"}
+
+A replacement handler owns the headers as well as the body. Wrap the shipped
+handler to keep them:
+
+.. literalinclude:: ../../../examples/contrib/fastapi/error_handling_example.py
+   :language: python
+   :start-after: # Customize quota exhaustion responses.
+   :end-at: app.add_exception_handler(RateLimitExceededError, handle_rate_limit)
+
+The exception exposes ``rate_limit_context`` for the rejecting limiter's result
+and header policy, and inherits from the core ``LimitedError`` class for
+applications with shared error-handling code.
+
+Store outages
+-------------
+
+When the store backend raises ``StoreUnavailableError``, the limiter fails
+closed: it logs the failure at ``ERROR`` and returns HTTP 503. The response
+does not include ``RateLimit-*`` or ``Retry-After`` headers because no quota
+was measured.
+
+Register an exception handler for ``StoreUnavailableError`` to customize the
+response:
+
+.. literalinclude:: ../../../examples/contrib/fastapi/error_handling_example.py
+   :language: python
+   :start-after: # Customize store outage responses.
+   :end-at: app.add_exception_handler(StoreUnavailableError, handle_store_outage)
+
+A handler registered for ``StoreUnavailableError`` or one of its base classes
+takes over. A catch-all ``Exception`` handler does not replace the default 503.
+
+
+5) Response Headers
 ===================
 
 Allowed responses (any non-429)
 -------------------------------
 
-Whenever the rate-limit check passes, the middleware attaches three headers
+Whenever the rate-limit check passes, the integration attaches three headers
 following
 `draft-ietf-httpapi-ratelimit-headers <https://datatracker.ietf.org/doc/draft-ietf-httpapi-ratelimit-headers/>`_:
 
@@ -253,10 +346,9 @@ following
 
    Header injection is gated on whether the rate-limit check passed, **not** on
    the endpoint's status code. A decorated endpoint that returns ``400`` or
-   ``500`` after the rate-limit check passed will still carry the
-   ``RateLimit-*`` headers. This matches the IETF draft, which describes the
-   rate-limit state, not the response outcome. The 429 path is rendered by the
-   exception handler instead and is not affected by this middleware.
+   ``500`` after the check passed still carries the ``RateLimit-*`` headers.
+   These headers describe rate-limit state, not the response outcome. HTTP 429
+   responses follow the separate exception-handling path described above.
 
 Rate-limited responses (429)
 ----------------------------
@@ -274,14 +366,8 @@ responses, plus one additional header per
    * - ``Retry-After``
      - Seconds the client should wait before retrying (integer, rounded up).
 
-The body matches FastAPI's ``HTTPException`` shape:
 
-.. code-block:: json
-
-   {"detail": "Rate limit exceeded"}
-
-
-5) Constraints and Known Limitations
+6) Constraints and Known Limitations
 =====================================
 
 Async-only

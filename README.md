@@ -63,6 +63,8 @@ $ pip install "throttled-py[redis]"
 
 $ pip install "throttled-py[otel]"
 
+$ pip install "throttled-py[fastapi]"
+
 $ pip install "throttled-py[flask]"
 
 $ pip install "throttled-py[redis,otel]"
