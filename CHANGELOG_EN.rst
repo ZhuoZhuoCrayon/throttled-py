@@ -1,6 +1,26 @@
 Version History
 ================
 
+v3.5.0 - 2026-08-29
+---------------------
+
+`简体中文 (v3.5.0) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG.rst#v350---2026-08-29>`_ | English
+
+**🚀 New Features**
+
+- feat: support a configurable storage key prefix on Throttled @kkom (#179)
+- feat: add Flask rate limiter with init_app wiring (#152) @s3ich4n (#173)
+
+**🍃 Maintenance**
+
+- refactor: drop ``__future__`` annotations from fastapi contrib @s3ich4n (#182)
+- docs: expand Flask and FastAPI contrib guides @s3ich4n (#184)
+- ci: check the FastAPI minimum version @s3ich4n (#186)
+- test: stabilize FastAPI rate-limit tests @s3ich4n (#180)
+
+**Full Changelog**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v3.4.1...v3.5.0
+
+
 v3.4.1 - 2026-08-02
 ---------------------
 

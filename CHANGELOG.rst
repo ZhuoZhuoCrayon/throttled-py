@@ -1,6 +1,26 @@
 Version History
 =================
 
+v3.5.0 - 2026-08-29
+---------------------
+
+`English Documents Available (v3.5.0) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/CHANGELOG_EN.rst#v350---2026-08-29>`_ | 简体中文
+
+**🚀 功能**
+
+- feat: 支持在 Throttled 中配置存储 Key 前缀 @kkom (#179)
+- feat: 添加支持 init_app 初始化的 Flask 限流器 (#152) @s3ich4n (#173)
+
+**🍃 维护工作**
+
+- refactor: 从 FastAPI contrib 中移除 ``__future__`` annotations @s3ich4n (#182)
+- docs: 扩充 Flask 与 FastAPI contrib 指南 @s3ich4n (#184)
+- ci: 检查 FastAPI 最低版本 @s3ich4n (#186)
+- test: 稳定 FastAPI 限流测试 @s3ich4n (#180)
+
+**完整更新日志**: https://github.com/ZhuoZhuoCrayon/throttled-py/compare/v3.4.1...v3.5.0
+
+
 v3.4.1 - 2026-08-02
 ---------------------
 
