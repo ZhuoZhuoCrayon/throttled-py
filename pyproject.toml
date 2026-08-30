@@ -146,6 +146,7 @@ known-third-party = ["throttled", "tests"]
 "throttled/utils.py" = ["T201"]
 # PLR0913 - the Flask extension convention adds an ``app`` kwarg for eager init.
 "throttled/contrib/flask/limiter.py" = ["PLR0913"]
+"throttled/asyncio/contrib/fastapi/limiter.py" = ["PLR0913"]
 # D- Ignore docstring related rules in examples.
 # PLR0913 / PLR0917 - Ignore too many arguments in tests.
 "tests/**/*.py" = [

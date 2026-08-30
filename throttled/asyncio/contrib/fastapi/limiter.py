@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, ParamSpec, TypeAlias, TypeVar
 
 from fastapi import HTTPException
 from starlette.requests import Request
+from throttled.asyncio.rate_limiter import validate_key_prefix
 from throttled.asyncio.store import MemoryStore
 from throttled.asyncio.throttled import Throttled
 from throttled.constants import RateLimiterType
@@ -69,6 +70,9 @@ class Limiter:
     :param key_func: Optional sync or async callable that returns the
         principal key. When ``None``, all callers share one quota bucket
         per method and route.
+    :param key_prefix: Optional storage key namespace. Must be a non-blank
+        string that does not start or end with ``:``. ``None`` keeps the
+        default namespace.
     :param hooks: Optional async hooks forwarded to the internal
         :class:`~throttled.asyncio.throttled.Throttled` instances.
     """
@@ -80,14 +84,18 @@ class Limiter:
         store: "BaseStore | None" = None,
         using: "RateLimiterTypeT" = RateLimiterType.TOKEN_BUCKET.value,
         key_func: KeyFunc | None = None,
+        key_prefix: str | None = None,
         hooks: "Sequence[Hook] | None" = None,
     ) -> None:
         if quota is None:
             raise TypeError("Limiter requires an explicit quota.")
+        if key_prefix is not None:
+            validate_key_prefix(key_prefix)
         self._default_quota: Quota | str = quota
         self._store: BaseStore = store or MemoryStore()
         self._using: RateLimiterTypeT = using
         self._key_func: KeyFunc = key_func or _default_key_func
+        self._key_prefix: str | None = key_prefix
         self._hooks: Sequence[Hook] | None = hooks
 
     def limit(
@@ -110,6 +118,7 @@ class Limiter:
             quota=resolved_quota,
             using=self._using,
             store=self._store,
+            key_prefix=self._key_prefix,
             hooks=self._hooks,
         )
 
