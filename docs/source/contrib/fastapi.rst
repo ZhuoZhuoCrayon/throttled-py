@@ -23,7 +23,8 @@ This installs ``fastapi`` as a dependency. You also need an ASGI server
 Examples
 ========
 
-The examples below show common quota choices and error-handling customization.
+The examples below show common quota choices, storage namespaces, and
+error-handling customization.
 
 .. tab-set::
     :sync-group: fastapi-example
@@ -51,6 +52,12 @@ The examples below show common quota choices and error-handling customization.
         :sync: per-route
 
         .. literalinclude:: ../../../examples/contrib/fastapi/multi_route_example.py
+           :language: python
+
+    .. tab-item:: Key prefix
+        :sync: key-prefix
+
+        .. literalinclude:: ../../../examples/contrib/fastapi/key_prefix_example.py
            :language: python
 
     .. tab-item:: Error handling
@@ -269,7 +276,23 @@ requests/minute, ``/admin`` only 1/minute. Each route has its own counter:
    ...
 
 
-4) Error Handling
+4) Key Prefix
+=============
+
+By default, rate-limit state lives under ``throttled:v1:<algorithm>:``. Pass
+``key_prefix`` to replace the ``throttled`` namespace with your own. See the
+`Key prefix example <?fastapi-example=key-prefix#fastapi-examples>`_ for a
+runnable application configured with the ``storefront`` namespace.
+
+Use a distinct prefix for each application that shares a backing store. Their
+counters remain separate even when requests otherwise resolve to the same key.
+
+``Limiter`` validates ``key_prefix`` during construction, so invalid
+configuration fails at application setup. See
+:ref:`Key Prefix <store-backends-key-prefix>` for the key format and validation
+rules.
+
+5) Error Handling
 =================
 
 The
@@ -319,7 +342,7 @@ A handler registered for ``StoreUnavailableError`` or one of its base classes
 takes over. A catch-all ``Exception`` handler does not replace the default 503.
 
 
-5) Response Headers
+6) Response Headers
 ===================
 
 Allowed responses (any non-429)
@@ -367,7 +390,7 @@ responses, plus one additional header per
      - Seconds the client should wait before retrying (integer, rounded up).
 
 
-6) Constraints and Known Limitations
+7) Constraints and Known Limitations
 =====================================
 
 Async-only

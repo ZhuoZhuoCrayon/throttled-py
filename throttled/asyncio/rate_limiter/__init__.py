@@ -11,6 +11,7 @@ from ...rate_limiter import (
     per_min,
     per_sec,
     per_week,
+    validate_key_prefix,
 )
 from .base import BaseRateLimiter, RateLimiterMeta, RateLimiterRegistry
 
@@ -28,6 +29,7 @@ __all__ = [
     "per_day",
     "per_week",
     "per_duration",
+    "validate_key_prefix",
     "Rate",
     "Quota",
     "RateLimitState",
