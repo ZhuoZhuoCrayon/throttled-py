@@ -12,6 +12,7 @@ from throttled.asyncio import (
     RateLimiterType,
     RedisStore,
     Throttled,
+    ValkeyStore,
     constants,
     per_sec,
     types,
@@ -51,13 +52,18 @@ async def store(request) -> AsyncGenerator[BaseStore, Any]:
     def _create_store(store_type: str) -> BaseStore:
         if store_type == constants.StoreType.MEMORY.value:
             return MemoryStore()
+        if store_type == constants.StoreType.VALKEY.value:
+            return ValkeyStore(server="valkey://127.0.0.1:6379/0")
         return RedisStore(server=REDIS_URL)
 
     store: BaseStore = _create_store(request.param)
 
     yield store
 
-    if request.param == constants.StoreType.REDIS.value:
+    if request.param in {
+        constants.StoreType.REDIS.value,
+        constants.StoreType.VALKEY.value,
+    }:
         await clear_redis(cast("RedisStore", store)._backend.get_client())
 
 

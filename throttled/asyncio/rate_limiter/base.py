@@ -72,7 +72,7 @@ class BaseRateLimiter(
     ) -> None:
         all_classes = list(self._default_atomic_action_classes()) + list(classes)
         for action_cls in all_classes:
-            if action_cls.STORE_TYPE != self._store.TYPE:
+            if not self._store.accepts_atomic_action(action_cls.STORE_TYPE):
                 continue
             self._atomic_actions[action_cls.TYPE] = self._store.make_atomic(action_cls)
 

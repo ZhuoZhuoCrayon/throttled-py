@@ -11,6 +11,11 @@ from .redis_pool import BaseConnectionFactory, get_connection_factory
 if TYPE_CHECKING:
     from redis.commands.core import Script as SyncScript
 
+# Keep this aligned with ``throttled.store.valkey`` scheme translation.
+_VALKEY_SCHEMES: frozenset[str] = frozenset(
+    {"valkey", "valkey+sentinel", "valkey+cluster"}
+)
+
 redis_exceptions: ModuleType | None
 
 try:
@@ -91,6 +96,10 @@ class BaseRedisStoreBackend(BaseStoreBackend, Generic[types.RedisClientT]):
             cls._set_options(parsed_options)
             cls._set_standalone_options(parsed_options)
             return parsed_server, parsed_options
+
+        scheme: str = server.partition("://")[0].lower()
+        if scheme in _VALKEY_SCHEMES:
+            raise exceptions.DataError(f"Use ValkeyStore for {scheme}:// URLs.")
 
         if server.startswith("redis+sentinel://"):
             sentinel_parsed: urllib.parse.ParseResult = urllib.parse.urlparse(server)

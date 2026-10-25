@@ -175,9 +175,51 @@ via the ``options.REDIS_CLIENT_KWARGS`` parameter.
   when omitted.
 
 
+.. _store-backends-valkey:
+
+3) Valkey
+=================
+
+:class:`ValkeyStore <throttled.store.ValkeyStore>` is the official Valkey
+backend. Valkey speaks the Redis protocol, so the store reuses RedisStore
+commands, Lua scripts and connection options. Install the ``valkey`` extra,
+which pulls in redis-py:
+
+.. code-block:: shell
+
+    pip install "throttled-py[valkey]"
+
+Valkey 7.2 and newer are supported. CI runs the store contract and every
+rate-limiter algorithm against Valkey 8.
+
+``server`` accepts:
+
+* ``valkey://[[username]:[password]@]host[:port][/db]``
+* ``valkey+sentinel://[[username]:[password]@]host1[:port1][,hostN][:portN][/service_name]``
+* ``valkey+cluster://[[username]:[password]@]host1[:port1][,hostN][:portN]``
+
+A ``redis://`` URL is also accepted when it already points at Valkey.
+``RedisStore`` rejects ``valkey://`` URLs so the backend choice stays explicit.
+Options are the same as :ref:`RedisStore Options <store-configuration-redis-store-options>`.
+
+.. tab-set::
+
+    .. tab-item:: Sync
+        :sync: sync
+
+        .. literalinclude:: ../../../examples/quickstart/valkey_example.py
+           :language: python
+
+    .. tab-item:: Async
+        :sync: async
+
+        .. literalinclude:: ../../../examples/quickstart/async/valkey_example.py
+           :language: python
+
+
 .. _store-backends-key-prefix:
 
-3) Key Prefix
+4) Key Prefix
 =================
 
 Storage keys are namespaced under ``throttled`` by default - a key ``k`` limited by the GCRA algorithm
