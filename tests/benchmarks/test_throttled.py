@@ -11,6 +11,7 @@ from throttled import (
     RateLimiterType,
     RedisStore,
     Throttled,
+    ValkeyStore,
     per_sec,
 )
 from throttled.constants import StoreType
@@ -50,14 +51,18 @@ def store(request) -> Generator[BaseStore, Any, None]:
     def _create_store(store_type: str) -> BaseStore:
         if store_type == StoreType.MEMORY.value:
             return MemoryStore()
+        if store_type == StoreType.VALKEY.value:
+            return ValkeyStore(server="valkey://127.0.0.1:6379/0")
         return RedisStore(server=REDIS_URL)
 
     store: BaseStore = _create_store(request.param)
 
     yield store
 
-    if request.param == StoreType.REDIS.value:
-        clear_redis(cast("redis.Redis", cast("RedisStore", store)._backend.get_client()))
+    protocol_stores: set[str] = {StoreType.REDIS.value, StoreType.VALKEY.value}
+    if request.param in protocol_stores:
+        redis_store: RedisStore = cast("RedisStore", store)
+        clear_redis(cast("redis.Redis", redis_store._backend.get_client()))
 
 
 @pytest.fixture

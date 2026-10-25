@@ -1,6 +1,6 @@
 <h1 align="center">throttled-py</h1>
 <p align="center">
-    <em>🔧 High-performance Python rate limiting library with multiple algorithms (Fixed Window, Sliding Window, Token Bucket, Leaky Bucket & GCRA) and storage backends (Redis, In-Memory).</em>
+    <em>🔧 High-performance Python rate limiting library with multiple algorithms (Fixed Window, Sliding Window, Token Bucket, Leaky Bucket & GCRA) and storage backends (Redis, Valkey, In-Memory).</em>
 </p>
 
 <p align="center">
@@ -32,7 +32,7 @@
 ## ✨ Features
 
 * Supports both synchronous and [asynchronous](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#3-asynchronous) (`async / await`).
-* Provides thread-safe storage backends: [Redis(Standalone/Sentinel/Cluster)](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#redis), [In-Memory (with support for key expiration and eviction)](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#in-memory).
+* Provides thread-safe storage backends: [Redis(Standalone/Sentinel/Cluster)](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#redis), [Valkey](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#valkey), [In-Memory (with support for key expiration and eviction)](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#in-memory).
 * Supports multiple rate limiting algorithms: [Fixed Window](https://github.com/ZhuoZhuoCrayon/throttled-py/tree/main/docs/basic#21-%E5%9B%BA%E5%AE%9A%E7%AA%97%E5%8F%A3%E8%AE%A1%E6%95%B0%E5%99%A8), [Sliding Window](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#22-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3), [Token Bucket](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#23-%E4%BB%A4%E7%89%8C%E6%A1%B6), [Leaky Bucket](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#24-%E6%BC%8F%E6%A1%B6) & [Generic Cell Rate Algorithm (GCRA)](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#25-gcra).
 * Supports [configuration of rate limiting algorithms](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#3-algorithms) and provides flexible [quota configuration](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#4-quota-configuration).
 * Supports immediate response and [wait-retry](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#wait--retry) modes, and provides [function call](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#function-call), [decorator](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#decorator), and [context manager](https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#context-manager) modes.
@@ -61,6 +61,8 @@ To enable additional features, install optional dependencies as follows (multipl
 ```shell
 $ pip install "throttled-py[redis]"
 
+$ pip install "throttled-py[valkey]"
+
 $ pip install "throttled-py[otel]"
 
 $ pip install "throttled-py[fastapi]"
@@ -74,6 +76,7 @@ $ pip install "throttled-py[redis,otel]"
 |-------------|-----------------------------------|
 | `memory`    | In-Memory backend is available by default (`memory` extra installs no additional dependencies). |
 | `redis`     | Use Redis as storage backend.     |
+| `valkey`    | Use Valkey as storage backend. Installs redis-py, because Valkey speaks the Redis protocol. |
 | `otel`      | Enable OpenTelemetry hook support. |
 | `fastapi`   | [FastAPI integration](https://throttled-py.readthedocs.io/en/latest/contrib/fastapi.html) with decorator-based rate limiting. |
 | `flask`     | [Flask integration](https://throttled-py.readthedocs.io/en/latest/contrib/flask.html) with decorator-based rate limiting. |
@@ -272,6 +275,30 @@ products()  # Success
 products()  # Raises LimitedError
 ```
 
+#### Valkey
+
+Valkey speaks the Redis protocol, so `ValkeyStore` reuses RedisStore commands, Lua scripts and the options below. Use a `valkey://` URL for standalone, `valkey+sentinel://` for Sentinel, or `valkey+cluster://` for Cluster. A `redis://` URL is also accepted when it already points at Valkey.
+
+Install with `pip install "throttled-py[valkey]"`. Valkey 7.2 and newer are supported; CI runs the store contract and every rate-limiter algorithm against Valkey 8.
+
+```python
+from throttled import RateLimiterType, Throttled, store
+
+@Throttled(
+    key="/api/products",
+    using=RateLimiterType.TOKEN_BUCKET.value,
+    quota="1/m",
+    store=store.ValkeyStore(
+        server="valkey://127.0.0.1:6379/0",
+        # server="valkey+sentinel://:yourpassword@host1:26379,host2:26379/mymaster"
+        # server="valkey+cluster://:yourpassword@host1:6379,host2:6379"
+        options={}
+    ),
+)
+def products() -> list:
+    return [{"name": "iPhone"}, {"name": "MacBook"}]
+```
+
 #### In-Memory
 
 By default, a global `MemoryStore` instance with a maximum capacity of 1024 is used as the storage backend when no storage backend is specified. Therefore, **it is usually not necessary to manually create** a `MemoryStore` instance.
@@ -423,12 +450,12 @@ Rate represents the rate limit configuration.
 
 | Param     | Description                                                                      | Default                      |
 |-----------|----------------------------------------------------------------------------------|------------------------------|
-| `server`  | Redis connection URL, you can use it to connect to Redis in any deployment mode. | `"redis://localhost:6379/0"` |
+| `server`  | Redis or Valkey connection URL. Valkey accepts `valkey://`, `valkey+sentinel://` and `valkey+cluster://`. | `"redis://localhost:6379/0"` |
 | `options` | Storage-specific configurations                                                  | `{}`                         |
 
 #### RedisStore Options
 
-RedisStore is developed based on the Redis API provided by [redis-py](https://github.com/redis/redis-py).
+RedisStore is developed based on the Redis API provided by [redis-py](https://github.com/redis/redis-py). ValkeyStore uses the same options.
 
 In terms of Redis connection configuration management, the configuration naming of [django-redis](https://github.com/jazzband/django-redis) is basically used to reduce the learning cost.
 

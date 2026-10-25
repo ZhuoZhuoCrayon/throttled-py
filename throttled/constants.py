@@ -7,11 +7,12 @@ class StoreType(Enum):
     """Enumeration for supported store backends."""
 
     REDIS = "redis"
+    VALKEY = "valkey"
     MEMORY = "memory"
 
     @classmethod
     def choice(cls) -> list[str]:
-        return [cls.REDIS.value, cls.MEMORY.value]
+        return [cls.REDIS.value, cls.VALKEY.value, cls.MEMORY.value]
 
 
 STORE_TTL_STATE_NOT_TTL: int = -1

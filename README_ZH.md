@@ -1,6 +1,6 @@
 <h1 align="center">throttled-py</h1>
 <p align="center">
-    <em>🔧 支持多种算法（固定窗口，滑动窗口，令牌桶，漏桶 & GCRA）及存储（Redis、内存）的高性能 Python 限流库。</em>
+    <em>🔧 支持多种算法（固定窗口，滑动窗口，令牌桶，漏桶 & GCRA）及存储（Redis、Valkey、内存）的高性能 Python 限流库。</em>
 </p>
 
 <p align="center">
@@ -32,7 +32,7 @@
 ## ✨ 功能
 
 * 支持同步和[异步](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#3%E5%BC%82%E6%AD%A5)（`async / await`）。
-* 提供线程安全的存储后端：[Redis（单例/哨兵/集群）](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#redis)、[内存（支持 Key 过期淘汰）](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#memory)。
+* 提供线程安全的存储后端：[Redis（单例/哨兵/集群）](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#redis)、[Valkey](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#valkey)、[内存（支持 Key 过期淘汰）](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#memory)。
 * 支持多种限流算法：[固定窗口](https://github.com/ZhuoZhuoCrayon/throttled-py/tree/main/docs/basic#21-%E5%9B%BA%E5%AE%9A%E7%AA%97%E5%8F%A3%E8%AE%A1%E6%95%B0%E5%99%A8)、[滑动窗口](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#22-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3)、[令牌桶](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#23-%E4%BB%A4%E7%89%8C%E6%A1%B6)、[漏桶](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#24-%E6%BC%8F%E6%A1%B6) & [通用信元速率算法（Generic Cell Rate Algorithm, GCRA）](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#25-gcra)。
 * 支持[配置限流算法](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#3%E6%8C%87%E5%AE%9A%E9%99%90%E6%B5%81%E7%AE%97%E6%B3%95)，提供灵活的[配额设置](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#4%E6%8C%87%E5%AE%9A%E5%AE%B9%E9%87%8F)。
 * 支持即刻返回及[等待重试](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#%E7%AD%89%E5%BE%85%E9%87%8D%E8%AF%95)，提供[函数调用](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#%E5%87%BD%E6%95%B0%E8%B0%83%E7%94%A8)、[装饰器](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#%E4%BD%9C%E4%B8%BA%E8%A3%85%E9%A5%B0%E5%99%A8)、[上下文管理器](https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/README_ZH.md#%E4%B8%8A%E4%B8%8B%E6%96%87%E7%AE%A1%E7%90%86%E5%99%A8)。
@@ -61,6 +61,8 @@ $ pip install throttled-py
 ```shell
 $ pip install "throttled-py[redis]"
 
+$ pip install "throttled-py[valkey]"
+
 $ pip install "throttled-py[otel]"
 
 $ pip install "throttled-py[fastapi]"
@@ -76,6 +78,7 @@ $ pip install "throttled-py[redis,otel]"
 |-------------|------------------|
 | `memory`    | 内存后端默认可用（`memory` extra 不会额外安装依赖）。 |
 | `redis`     | 使用 Redis 作为存储后端。 |
+| `valkey`    | 使用 Valkey 作为存储后端。会安装 redis-py，因为 Valkey 使用 Redis 协议。 |
 | `otel`      | 启用 OpenTelemetry Hook 支持。 |
 | `fastapi`   | 启用基于异步装饰器的 [FastAPI 集成](https://throttled-py.readthedocs.io/en/latest/contrib/fastapi.html)。 |
 | `flask`     | 启用基于装饰器的 [Flask 集成](https://throttled-py.readthedocs.io/en/latest/contrib/flask.html)。 |
@@ -278,6 +281,30 @@ products()
 products()
 ```
 
+#### Valkey
+
+Valkey 使用 Redis 协议，因此 `ValkeyStore` 复用 RedisStore 的命令、Lua 脚本和下面的配置项。单机使用 `valkey://`，哨兵使用 `valkey+sentinel://`，集群使用 `valkey+cluster://`。已经指向 Valkey 的 `redis://` 地址也可以直接传入。
+
+安装方式：`pip install "throttled-py[valkey]"`。支持 Valkey 7.2 及以上；CI 会在 Valkey 8 上跑存储契约和全部限流算法。
+
+```python
+from throttled import RateLimiterType, Throttled, store
+
+@Throttled(
+    key="/api/products",
+    using=RateLimiterType.TOKEN_BUCKET.value,
+    quota="1/m",
+    store=store.ValkeyStore(
+        server="valkey://127.0.0.1:6379/0",
+        # server="valkey+sentinel://:yourpassword@host1:26379,host2:26379/mymaster"
+        # server="valkey+cluster://:yourpassword@host1:6379,host2:6379"
+        options={}
+    ),
+)
+def products() -> list:
+    return [{"name": "iPhone"}, {"name": "MacBook"}]
+```
+
 #### Memory
 
 当没有指定存储后端时，会默认使用最大容量为 1024 的全局 `MemoryStore` 实例作为存储后端，因此**通常不需要手动创建** `MemoryStore` 实例。
@@ -428,12 +455,12 @@ Rate 表示限流速率配置（(时间窗口内允许的请求量）。
 
 | 参数        | 描述                                    | 默认值                          |
 |-----------|---------------------------------------|------------------------------|
-| `server`  | 标准的 Redis URL，你可以使用它连接到任何 Redis 部署模式。 | `"redis://localhost:6379/0"` |
+| `server`  | Redis 或 Valkey 连接 URL。Valkey 接受 `valkey://`、`valkey+sentinel://` 和 `valkey+cluster://`。 | `"redis://localhost:6379/0"` |
 | `options` | 存储相关配置项，见下文。                          | `{}`                         |
 
 #### RedisStore Options
 
-RedisStore 基于 [redis-py](https://github.com/redis/redis-py) 提供的 Redis API 进行开发。
+RedisStore 基于 [redis-py](https://github.com/redis/redis-py) 提供的 Redis API 进行开发。ValkeyStore 使用同一组配置项。
 
 在 Redis 连接配置管理上，基本沿用 [django-redis](https://github.com/jazzband/django-redis) 的配置命名，减少学习成本。
 

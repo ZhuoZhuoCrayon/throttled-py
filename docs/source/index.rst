@@ -23,14 +23,14 @@ Introduction
 
 *throttled-py* is a high-performance Python rate limiting library with
 multiple algorithms(Fixed Window, Sliding Window, Token Bucket, Leaky Bucket & GCRA)
-and storage backends (Redis, In-Memory).
+and storage backends (Redis, Valkey, In-Memory).
 
 
 Features
 =================
 
 *   Supports both synchronous and `asynchronous <https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#3-asynchronous>`_ (``async / await``).
-*   Provides thread-safe storage backends: `Redis <https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#redis>`_, `In-Memory (with support for key expiration and eviction) <https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#in-memory>`_.
+*   Provides thread-safe storage backends: `Redis <https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#redis>`_, `Valkey <https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#valkey>`_, `In-Memory (with support for key expiration and eviction) <https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#in-memory>`_.
 *   Supports multiple rate limiting algorithms: `Fixed Window <https://github.com/ZhuoZhuoCrayon/throttled-py/tree/main/docs/basic#21-%E5%9B%BA%E5%AE%9A%E7%AA%97%E5%8F%A3%E8%AE%A1%E6%95%B0%E5%99%A8>`_, `Sliding Window <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#22-%E6%BB%91%E5%8A%A8%E7%AA%97%E5%8F%A3>`_, `Token Bucket <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#23-%E4%BB%A4%E7%89%8C%E6%A1%B6>`_, `Leaky Bucket <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#24-%E6%BC%8F%E6%A1%B6>`_ & `Generic Cell Rate Algorithm (GCRA) <https://github.com/ZhuoZhuoCrayon/throttled-py/blob/main/docs/basic/readme.md#25-gcra>`_.
 *   Supports `configuration of rate limiting algorithms <https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#3-algorithms>`_ and provides flexible `quota configuration <https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#4-quota-configuration>`_.
 *   Supports immediate response and `wait-retry <https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#wait--retry>`_ modes, and provides `function call <https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#function-call>`_, `decorator <https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#decorator>`_, and `context manager <https://github.com/ZhuoZhuoCrayon/throttled-py?tab=readme-ov-file#context-manager>`_ modes.
