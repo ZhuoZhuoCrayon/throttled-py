@@ -52,6 +52,10 @@ class StoreSpec:
     # Unique identifier for the type of store.
     TYPE: str = ""
 
+    # Atomic-action store types this store can execute in addition to TYPE.
+    # Valkey reuses the Redis action implementations.
+    COMPATIBLE_ACTION_TYPES: frozenset[str] = frozenset()
+
     _WRAPPED_METHOD_NAMES: tuple[str, ...] = (
         "exists",
         "ttl",
@@ -62,6 +66,14 @@ class StoreSpec:
         "hgetall",
         "make_atomic",
     )
+
+    def accepts_atomic_action(self, store_type: str) -> bool:
+        """Return whether an atomic action for ``store_type`` can run here.
+
+        :param store_type: ``STORE_TYPE`` declared by the atomic action.
+        :return: ``True`` when the action targets this store or a compatible one.
+        """
+        return store_type == self.TYPE or store_type in self.COMPATIBLE_ACTION_TYPES
 
 
 class StoreValidationLogic:

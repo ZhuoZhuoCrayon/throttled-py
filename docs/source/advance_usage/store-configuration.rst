@@ -119,7 +119,35 @@ Options
        Async: ``"redis.asyncio.Sentinel"``
 
 
-2) MemoryStore
+2) ValkeyStore
+======================
+
+``ValkeyStore`` accepts the same ``options`` as RedisStore. ``server`` uses
+``valkey://``, ``valkey+sentinel://`` or ``valkey+cluster://``. See
+:ref:`Valkey <store-backends-valkey>`.
+
+.. tab-set::
+
+    .. tab-item:: Sync
+        :sync: sync
+
+        .. code-block:: python
+
+            from throttled import store
+
+            store.ValkeyStore(server="valkey://127.0.0.1:6379/0", options={})
+
+    .. tab-item:: Async
+        :sync: async
+
+        .. code-block:: python
+
+            from throttled.asyncio import store
+
+            store.ValkeyStore(server="valkey://127.0.0.1:6379/0", options={})
+
+
+3) MemoryStore
 ======================
 
 ``MemoryStore`` is essentially a memory-based

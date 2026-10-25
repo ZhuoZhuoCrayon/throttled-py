@@ -82,6 +82,10 @@ Store
     :special-members: __init__
     :show-inheritance:
 
+.. autoclass:: throttled.store.ValkeyStore
+    :special-members: __init__
+    :show-inheritance:
+
 Rate Limiting
 =================
 

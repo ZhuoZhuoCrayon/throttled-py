@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "throttled-py"
 version = "3.5.0"
-description = "🔧 High-performance Python rate limiting library with multiple algorithms (Fixed Window, Sliding Window, Token Bucket, Leaky Bucket & GCRA) and storage backends (Redis, In-Memory)."
+description = "🔧 High-performance Python rate limiting library with multiple algorithms (Fixed Window, Sliding Window, Token Bucket, Leaky Bucket & GCRA) and storage backends (Redis, Valkey, In-Memory)."
 authors = [
     {name = "ZhuoZhuoCrayon", email = "crayon.ccxx@gmail.com"},
 ]
@@ -39,6 +39,7 @@ Changes = "https://github.com/ZhuoZhuoCrayon/throttled-py/releases"
 [project.optional-dependencies]
 memory = []
 redis = ["redis>3,!=4.5.2,!=4.5.3,<8.0.0"]
+valkey = ["redis>3,!=4.5.2,!=4.5.3,<8.0.0"]
 otel = ["opentelemetry-api>=1.30.0"]
 fastapi = ["fastapi>=0.100.0,<1.0.0"]
 flask = ["flask>=2.3.3,<4.0"]
@@ -176,6 +177,9 @@ quote-style = "double"
 
 [tool.pytest.ini_options]
 asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "valkey: tests that require a running Valkey server",
+]
 
 
 [tool.mypy]

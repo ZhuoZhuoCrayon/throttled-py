@@ -2016,6 +2016,9 @@ otel = [
 redis = [
     { name = "redis" },
 ]
+valkey = [
+    { name = "redis" },
+]
 
 [package.dev-dependencies]
 all = [
@@ -2083,8 +2086,9 @@ requires-dist = [
     { name = "flask", marker = "extra == 'flask'", specifier = ">=2.3.3,<4.0" },
     { name = "opentelemetry-api", marker = "extra == 'otel'", specifier = ">=1.30.0" },
     { name = "redis", marker = "extra == 'redis'", specifier = ">3,!=4.5.2,!=4.5.3,<8.0.0" },
+    { name = "redis", marker = "extra == 'valkey'", specifier = ">3,!=4.5.2,!=4.5.3,<8.0.0" },
 ]
-provides-extras = ["memory", "redis", "otel", "fastapi", "flask"]
+provides-extras = ["memory", "redis", "valkey", "otel", "fastapi", "flask"]
 
 [package.metadata.requires-dev]
 all = [
