@@ -20,7 +20,7 @@ from throttled.asyncio import (
 )
 
 from ...rate_limiter import parametrizes
-from ...rate_limiter.test_gcra import REDIS_CLOCK_EPOCH, assert_rate_limit_result
+from ...rate_limiter.test_gcra import assert_rate_limit_result
 
 
 @pytest.fixture
@@ -92,17 +92,16 @@ class TestGCRARateLimiter:
 
     @classmethod
     async def test_limit__fresh_key_first_request_allowed_redis(
-        cls, redis_store: RedisStore
+        cls, redis_store: RedisStore, gcra_clock_key: Callable[[int], str]
     ) -> None:
         """As the memory variant, but driving the Lua script's clock."""
         rate_limiter: BaseRateLimiter = RateLimiterRegistry.get(
             RateLimiterType.GCRA.value
         )(per_min(limit=1, burst=1), redis_store)
         for idx in range(4096):
-            now: float = REDIS_CLOCK_EPOCH + 30.0 + idx * 0.0173
-            with mock.patch("time.time", return_value=now):
-                result: RateLimitResult = await rate_limiter.limit(f"key-{idx}")
-            assert not result.limited, f"first request rejected at time={now!r}"
+            key: str = gcra_clock_key(idx)
+            result: RateLimitResult = await rate_limiter.limit(key)
+            assert not result.limited, f"first request rejected for {key}"
             assert result.state.remaining == 0
 
     @classmethod
@@ -126,19 +125,18 @@ class TestGCRARateLimiter:
 
     @classmethod
     async def test_peek__fresh_key_reports_full_burst_redis(
-        cls, redis_store: RedisStore
+        cls, redis_store: RedisStore, gcra_clock_key: Callable[[int], str]
     ) -> None:
         """As the memory variant, but driving the Lua script's clock."""
         rate_limiter: BaseRateLimiter = RateLimiterRegistry.get(
             RateLimiterType.GCRA.value
         )(per_sec(limit=3, burst=1), redis_store)
         for idx in range(4096):
-            now: float = REDIS_CLOCK_EPOCH + 30.0 + idx * 0.0173
-            with mock.patch("time.time", return_value=now):
-                state: RateLimitState = await rate_limiter.peek(f"key-{idx}")
+            key: str = gcra_clock_key(idx)
+            state: RateLimitState = await rate_limiter.peek(key)
             assert state == RateLimitState(
                 limit=1, remaining=1, reset_after=0, retry_after=0
-            ), f"peek misreported at time={now!r}"
+            ), f"peek misreported for {key}"
 
     async def test_peek(
         self, rate_limiter_constructor: Callable[[Quota], BaseRateLimiter]

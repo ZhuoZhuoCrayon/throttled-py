@@ -28,6 +28,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Install Redis for tests
+        run: sudo apt-get update && sudo apt-get install -y redis-server
+
       - name: Install dependencies
         run: uv sync --locked --all-extras --group dev
 

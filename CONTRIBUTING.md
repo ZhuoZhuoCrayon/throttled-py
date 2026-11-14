@@ -28,12 +28,18 @@ This guide will help you get started and ensure a smooth review process. If anyt
 
 ### Prerequisites
 
-- Python 3.10+
+- Python 3.10+ for development and tests; Python 3.11.5+ to build the docs
+- `redis-server` on your PATH for Redis tests. Pytest starts an isolated server
+  per worker; you do not need a running Redis service. If macOS reports
+  `UnixSocketTooLong`, run pytest with `TMPDIR=/tmp`.
 - [uv](https://docs.astral.sh/uv/) package manager
 
 ### Install Dependencies
 
 ```bash
+uv sync --group dev
+
+# Include the documentation tools on Python 3.11.5+
 uv sync --group all
 ```
 
