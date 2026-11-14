@@ -222,10 +222,8 @@ uv run pytest -n auto tests/test_hooks.py -v
 
 ## Documentation
 
-Read the Docs builds the API reference with [Sphinx](https://www.sphinx-doc.org/)
-and `autodoc`. Install the locked `docs` group and all project extras so
-`autodoc` can import optional integrations such as `OTelHook`. Run these commands
-from the repository root to build on Python 3.13 and treat warnings as errors:
+From the repository root, build the API reference with all project extras so
+Sphinx can document optional integrations such as `OTelHook`:
 
 ```bash
 uv sync --locked --python 3.13 --no-dev --group docs --all-extras
