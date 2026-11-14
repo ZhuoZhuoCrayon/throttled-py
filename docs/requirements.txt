@@ -1,7 +1,0 @@
-sphinx
-sphinx-book-theme
-soupsieve>=4.0
-sphinx-thebe
-sphinx-design
-sphinx-copybutton
-sphinx-autodoc-typehints

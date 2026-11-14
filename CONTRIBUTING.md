@@ -35,10 +35,9 @@ This guide will help you get started and ensure a smooth review process. If anyt
 
 ```bash
 uv sync --group dev
-
-# Include the documentation tools on Python 3.11.5+
-uv sync --group all
 ```
+
+To build the docs, follow [Documentation](#documentation).
 
 ### Set Up Pre-commit Hooks (prek)
 
@@ -223,15 +222,17 @@ uv run pytest -n auto tests/test_hooks.py -v
 
 ## Documentation
 
-This project uses [Sphinx](https://www.sphinx-doc.org/) with `autodoc` to generate API documentation from docstrings. If you're adding or modifying public APIs, please make sure the docs build correctly:
+Read the Docs builds the API reference with [Sphinx](https://www.sphinx-doc.org/)
+and `autodoc`. Install the locked `docs` group and all project extras so
+`autodoc` can import optional integrations such as `OTelHook`. Run these commands
+from the repository root to build on Python 3.13 and treat warnings as errors:
 
 ```bash
-# Build HTML docs (sphinx is included in `uv sync --group all`)
-cd docs
-uv run make html
+uv sync --locked --python 3.13 --no-dev --group docs --all-extras
+uv run --no-sync sphinx-build -W -E -b html docs/source docs/build/html
 
 # Preview locally at http://localhost:8000
-python -m http.server 8000 --directory build/html
+python -m http.server 8000 --directory docs/build/html
 ```
 
 The generated docs will be in `docs/build/html/`. Please use rst-style docstrings (`:param:`, `:return:`) so Sphinx can parse them correctly — see [Docstrings](#docstrings) for details.
