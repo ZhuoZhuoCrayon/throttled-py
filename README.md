@@ -277,9 +277,16 @@ products()  # Raises LimitedError
 
 #### Valkey
 
-Valkey speaks the Redis protocol, so `ValkeyStore` reuses RedisStore commands, Lua scripts and the options below. Use a `valkey://` URL for standalone, `valkey+sentinel://` for Sentinel, or `valkey+cluster://` for Cluster. A `redis://` URL is also accepted when it already points at Valkey.
+`ValkeyStore` subclasses `RedisStore` and uses the same commands, Lua scripts
+and connection options. It also keeps the Redis store type, so custom Redis
+atomic actions work unchanged.
 
-Install with `pip install "throttled-py[valkey]"`. Valkey 7.2 and newer are supported; CI runs the store contract and every rate-limiter algorithm against Valkey 8.
+Use `valkey://` for standalone, `valkey+sentinel://` for Sentinel, or
+`valkey+cluster://` for Cluster. Existing Redis URLs are accepted, including
+`rediss://` for TLS.
+
+Install with `pip install "throttled-py[valkey]"`. CI runs the shared store
+contract and all five rate-limiter algorithms against Valkey 8.
 
 ```python
 from throttled import RateLimiterType, Throttled, store

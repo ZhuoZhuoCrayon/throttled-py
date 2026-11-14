@@ -189,8 +189,8 @@ which pulls in redis-py:
 
     pip install "throttled-py[valkey]"
 
-Valkey 7.2 and newer are supported. CI runs the store contract and every
-rate-limiter algorithm against Valkey 8.
+CI runs the shared store contract and all five rate-limiter algorithms
+against Valkey 8.
 
 ``server`` accepts:
 
@@ -198,8 +198,9 @@ rate-limiter algorithm against Valkey 8.
 * ``valkey+sentinel://[[username]:[password]@]host1[:port1][,hostN][:portN][/service_name]``
 * ``valkey+cluster://[[username]:[password]@]host1[:port1][,hostN][:portN]``
 
-A ``redis://`` URL is also accepted when it already points at Valkey.
-``RedisStore`` rejects ``valkey://`` URLs so the backend choice stays explicit.
+Existing Redis URLs are accepted, including ``rediss://`` for TLS.
+``ValkeyStore`` inherits RedisStore's ``TYPE``, so custom Redis atomic actions
+work without additional registration.
 Options are the same as :ref:`RedisStore Options <store-configuration-redis-store-options>`.
 
 .. tab-set::

@@ -24,7 +24,7 @@ from .redis_pool import (
     SentinelConnectionFactory,
     get_connection_factory,
 )
-from .valkey import ValkeyStore, ValkeyStoreBackend
+from .valkey import ValkeyStore
 
 __all__ = [
     "BaseStoreBackend",
@@ -38,7 +38,6 @@ __all__ = [
     "BaseRedisAtomicAction",
     "RedisStoreBackend",
     "RedisStore",
-    "ValkeyStoreBackend",
     "ValkeyStore",
     "BaseConnectionFactory",
     "ConnectionFactory",

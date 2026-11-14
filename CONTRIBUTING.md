@@ -220,6 +220,15 @@ uv run pytest -n auto tests/ -x
 uv run pytest -n auto tests/test_hooks.py -v
 ```
 
+Valkey uses the shared store and rate-limiter tests. They use fakeredis by
+default. To run against a disposable standalone Valkey instance, set
+`VALKEY_URL` and run serially; the fixtures clear all keys between tests:
+
+```bash
+VALKEY_URL=valkey://127.0.0.1:6379/0 uv run pytest -m valkey \
+    tests/store tests/rate_limiter tests/asyncio/store tests/asyncio/rate_limiter
+```
+
 ## Documentation
 
 From the repository root, build the API reference with all project extras so

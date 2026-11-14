@@ -283,9 +283,11 @@ products()
 
 #### Valkey
 
-Valkey 使用 Redis 协议，因此 `ValkeyStore` 复用 RedisStore 的命令、Lua 脚本和下面的配置项。单机使用 `valkey://`，哨兵使用 `valkey+sentinel://`，集群使用 `valkey+cluster://`。已经指向 Valkey 的 `redis://` 地址也可以直接传入。
+`ValkeyStore` 继承 `RedisStore`，复用其命令、Lua 脚本和连接配置。它保留 Redis 存储类型，因此自定义 Redis 原子操作也可直接复用。
 
-安装方式：`pip install "throttled-py[valkey]"`。支持 Valkey 7.2 及以上；CI 会在 Valkey 8 上跑存储契约和全部限流算法。
+单机使用 `valkey://`，哨兵使用 `valkey+sentinel://`，集群使用 `valkey+cluster://`。也接受现有 Redis URL，包括用于 TLS 的 `rediss://`。
+
+安装方式：`pip install "throttled-py[valkey]"`。CI 在 Valkey 8 上运行共享的存储契约测试和全部五种限流算法测试。
 
 ```python
 from throttled import RateLimiterType, Throttled, store

@@ -54,7 +54,6 @@ jobs:
           --health-retries 20
     env:
       VALKEY_URL: valkey://127.0.0.1:6379/0
-      VALKEY_REQUIRED: "1"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -73,4 +72,7 @@ jobs:
         run: uv sync --locked --all-extras --group dev
 
       - name: Run Valkey compatibility tests
-        run: uv run pytest -m valkey
+        run: >-
+          uv run pytest -m valkey
+          tests/store tests/rate_limiter
+          tests/asyncio/store tests/asyncio/rate_limiter

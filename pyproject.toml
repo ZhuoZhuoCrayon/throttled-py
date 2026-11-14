@@ -183,7 +183,7 @@ quote-style = "double"
 [tool.pytest.ini_options]
 asyncio_default_fixture_loop_scope = "function"
 markers = [
-    "valkey: tests that require a running Valkey server",
+    "valkey: store contract tests (set VALKEY_URL to use a live Valkey server)",
 ]
 
 
