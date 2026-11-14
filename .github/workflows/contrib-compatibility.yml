@@ -80,9 +80,6 @@ jobs:
             exit 1
           fi
 
-      - name: Install Redis for tests
-        run: sudo apt-get update && sudo apt-get install -y redis-server
-
       - name: Install dependencies
         run: uv sync --locked --all-extras --group dev
 

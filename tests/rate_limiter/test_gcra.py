@@ -16,10 +16,17 @@ from throttled import (
     per_sec,
 )
 from throttled.constants import RateLimiterType
+from throttled.rate_limiter.gcra import (
+    RedisLimitAtomicActionSpec,
+    RedisPeekAtomicActionSpec,
+)
 from throttled.types import TimeLikeValueT
 from throttled.utils import Benchmark, Timer
 
 from . import parametrizes
+
+REDIS_CLOCK_EPOCH: int = 1735660800
+"""The offset the GCRA Lua scripts subtract from the Redis clock."""
 
 
 @pytest.fixture
@@ -97,17 +104,29 @@ class TestGCRARateLimiter:
             assert result.state.remaining == 0
 
     @classmethod
+    def test_redis_clock_epoch__matches_lua_scripts(cls) -> None:
+        """The Redis sweeps below must land just past the scripts' offset, so
+        drift would be a silent loss of coverage.
+        """
+        for scripts in (
+            RedisLimitAtomicActionSpec.SCRIPTS,
+            RedisPeekAtomicActionSpec.SCRIPTS,
+        ):
+            assert f"local jan_1_2025 = {REDIS_CLOCK_EPOCH}" in scripts
+
+    @classmethod
     def test_limit__fresh_key_first_request_allowed_redis(
-        cls, redis_store: RedisStore, gcra_clock_key: Callable[[int], str]
+        cls, redis_store: RedisStore
     ) -> None:
         """As the memory variant, but driving the Lua script's clock."""
         rate_limiter: BaseRateLimiter = RateLimiterRegistry.get(
             RateLimiterType.GCRA.value
         )(per_min(limit=1, burst=1), redis_store)
         for idx in range(4096):
-            key: str = gcra_clock_key(idx)
-            result: RateLimitResult = rate_limiter.limit(key)
-            assert not result.limited, f"first request rejected for {key}"
+            now: float = REDIS_CLOCK_EPOCH + 30.0 + idx * 0.0173
+            with mock.patch("time.time", return_value=now):
+                result: RateLimitResult = rate_limiter.limit(f"key-{idx}")
+            assert not result.limited, f"first request rejected at time={now!r}"
             assert result.state.remaining == 0
 
     @classmethod
@@ -131,18 +150,19 @@ class TestGCRARateLimiter:
 
     @classmethod
     def test_peek__fresh_key_reports_full_burst_redis(
-        cls, redis_store: RedisStore, gcra_clock_key: Callable[[int], str]
+        cls, redis_store: RedisStore
     ) -> None:
         """As the memory variant, but driving the Lua script's clock."""
         rate_limiter: BaseRateLimiter = RateLimiterRegistry.get(
             RateLimiterType.GCRA.value
         )(per_sec(limit=3, burst=1), redis_store)
         for idx in range(4096):
-            key: str = gcra_clock_key(idx)
-            state: RateLimitState = rate_limiter.peek(key)
+            now: float = REDIS_CLOCK_EPOCH + 30.0 + idx * 0.0173
+            with mock.patch("time.time", return_value=now):
+                state: RateLimitState = rate_limiter.peek(f"key-{idx}")
             assert state == RateLimitState(
                 limit=1, remaining=1, reset_after=0, retry_after=0
-            ), f"peek misreported for {key}"
+            ), f"peek misreported at time={now!r}"
 
     def test_peek(self, rate_limiter_constructor: Callable[[Quota], BaseRateLimiter]):
         key: str = "key"
