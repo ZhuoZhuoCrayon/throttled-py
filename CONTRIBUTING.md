@@ -28,14 +28,16 @@ This guide will help you get started and ensure a smooth review process. If anyt
 
 ### Prerequisites
 
-- Python 3.10+
+- Python 3.10+ for development and tests; Python 3.11.5+ to build the docs
 - [uv](https://docs.astral.sh/uv/) package manager
 
 ### Install Dependencies
 
 ```bash
-uv sync --group all
+uv sync --group dev
 ```
+
+To build the docs, follow [Documentation](#documentation).
 
 ### Set Up Pre-commit Hooks (prek)
 
@@ -220,15 +222,15 @@ uv run pytest -n auto tests/test_hooks.py -v
 
 ## Documentation
 
-This project uses [Sphinx](https://www.sphinx-doc.org/) with `autodoc` to generate API documentation from docstrings. If you're adding or modifying public APIs, please make sure the docs build correctly:
+From the repository root, build the API reference with all project extras so
+Sphinx can document optional integrations such as `OTelHook`:
 
 ```bash
-# Build HTML docs (sphinx is included in `uv sync --group all`)
-cd docs
-uv run make html
+uv sync --locked --python 3.13 --no-dev --group docs --all-extras
+uv run --no-sync sphinx-build -W -E -b html docs/source docs/build/html
 
 # Preview locally at http://localhost:8000
-python -m http.server 8000 --directory build/html
+python -m http.server 8000 --directory docs/build/html
 ```
 
 The generated docs will be in `docs/build/html/`. Please use rst-style docstrings (`:param:`, `:return:`) so Sphinx can parse them correctly — see [Docstrings](#docstrings) for details.

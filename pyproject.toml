@@ -39,7 +39,7 @@ Changes = "https://github.com/ZhuoZhuoCrayon/throttled-py/releases"
 [project.optional-dependencies]
 memory = []
 redis = ["redis>3,!=4.5.2,!=4.5.3,<8.0.0"]
-otel = ["opentelemetry-api>=1.30.0"]
+otel = ["opentelemetry-api>=1.45.2"]
 fastapi = ["fastapi>=0.100.0,<1.0.0"]
 flask = ["flask>=2.3.3,<4.0"]
 
@@ -56,7 +56,7 @@ dev = [
     "build>=1.2.1",
     "pytest-xdist>=3.8.0",
     "prek>=0.2.25",
-    "opentelemetry-api>=1.30.0",
+    "opentelemetry-api>=1.45.2",
     "opentelemetry-sdk>=1.30.0",
     "mypy>=1.15",
     "httpx>=0.28.1",
@@ -66,6 +66,7 @@ dev = [
 docs = [
     "sphinx",
     "sphinx-book-theme",
+    "soupsieve>=4.0",
     "sphinx_thebe",
     "sphinx-copybutton",
     "sphinx-autodoc-typehints",
@@ -75,6 +76,10 @@ all = [
     { include-group = "dev" },
     { include-group = "docs" }
 ]
+
+[tool.uv.dependency-groups]
+docs = { requires-python = ">=3.11.5" }
+all = { requires-python = ">=3.11.5" }
 
 [tool.hatch.build.targets.wheel]
 packages = ["throttled"]
