@@ -203,3 +203,26 @@ def redis_store_parse_parametrize(expected_results: dict[str, dict[str, Any]]):
             for key in REDIS_STORE_PARSE_INPUTS
         ],
     )
+
+
+VALKEY_SERVER = pytest.mark.parametrize(
+    "server,redis_server",
+    [
+        (None, None),
+        (
+            "valkey://user:p%40ss@localhost:6379/2?socket_timeout=3",
+            "redis://user:p%40ss@localhost:6379/2?socket_timeout=3",
+        ),
+        ("VALKEY://localhost:6379/0", "redis://localhost:6379/0"),
+        (
+            "valkey+sentinel://user:pass@h1:26379,h2/mymaster",
+            "redis+sentinel://user:pass@h1:26379,h2/mymaster",
+        ),
+        (
+            "valkey+cluster://user:pass@c1:7000,c2:7000",
+            "redis+cluster://user:pass@c1:7000,c2:7000",
+        ),
+        ("redis://localhost:6379/2", "redis://localhost:6379/2"),
+        ("rediss://localhost:6379/2", "rediss://localhost:6379/2"),
+    ],
+)

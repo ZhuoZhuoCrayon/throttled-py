@@ -27,6 +27,7 @@ from .store import (
     MemoryStoreBackend,
     RedisStore,
     RedisStoreBackend,
+    ValkeyStore,
 )
 from .throttled import Throttled
 
@@ -64,6 +65,7 @@ __all__ = [
     "MemoryStore",
     "RedisStoreBackend",
     "RedisStore",
+    "ValkeyStore",
     # throttled
     "Throttled",
     # hooks

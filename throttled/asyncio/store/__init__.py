@@ -8,6 +8,7 @@ from .redis import (
     RedisStore,
     RedisStoreBackend,
 )
+from .valkey import ValkeyStore
 
 __all__ = [
     "BaseStoreBackend",
@@ -19,4 +20,5 @@ __all__ = [
     "BaseRedisAtomicAction",
     "RedisStoreBackend",
     "RedisStore",
+    "ValkeyStore",
 ]

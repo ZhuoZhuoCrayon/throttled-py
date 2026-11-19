@@ -26,6 +26,7 @@ be comma-separated):
 .. code-block:: shell
 
     $ pip install "throttled-py[redis]"
+    $ pip install "throttled-py[valkey]"
     $ pip install "throttled-py[otel]"
     $ pip install "throttled-py[redis,otel]"
 
@@ -43,5 +44,8 @@ be comma-separated):
        installs no dependencies).
    * - ``redis``
      - Use Redis as storage backend.
+   * - ``valkey``
+     - Use Valkey as storage backend. Installs redis-py, because Valkey
+       speaks the Redis protocol.
    * - ``otel``
      - OpenTelemetry metrics integration.
